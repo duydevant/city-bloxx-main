@@ -1,0 +1,1 @@
+Lưu riêng `ui_life_heart_full_v001.png` và `ui_life_heart_empty_v001.png` (512×512 RGBA). Prompt, bbox và đích runtime: [UI Art v4](../../../../City_Bloxx_UI_Art_Prompts_v4.0.md). HUD hiện dùng SVG nhẹ; chưa import PNG.

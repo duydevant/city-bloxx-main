@@ -1,0 +1,328 @@
+{
+  "version": "assets-1",
+  "budget": {
+    "maxFileBytes": 2097152,
+    "totalBytes": 15728640
+  },
+  "assets": [
+    {
+      "path": "bg/default/bg_downtown_default_map.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1838848,
+      "sha256": "6fa26695c6551034d962678bb1a04c9e84b19f4210e0e568d3de87c8d80b51e1",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "bg/default/bg_stack_default_sky.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 1154674,
+      "sha256": "27ac62eef6dbfd0038e4905a64256a4bd420c691d01d9f1f2672d8b397120ff4",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/default/city_highrise_default_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 77077,
+      "sha256": "0533401d5b8f08f4bfda75ee768f951b5c596df92257257a005fd3b58a36f3d2",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/default/city_industrial_default_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 83504,
+      "sha256": "929ad49940b0be22c4bc680ab21158f755711c885f9026af0db9c26ba069e1a8",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/default/city_office_default_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 91837,
+      "sha256": "b94111ec2589209ecbafa8abf2f1ca44672c273999a79fc025da19fc58bae8da",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/default/city_residential_default_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 77327,
+      "sha256": "9c6fa274e10a5cd130ad8ffd9292d731ef42a059267c12e294154223f378a49a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/default/lot_empty_default_tile.png",
+      "width": 256,
+      "height": 128,
+      "bytes": 27709,
+      "sha256": "8caa072827427721834f48e865f8bacdf42f4ee67f5fc27827934d678be12b59",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_highrise_default_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 59795,
+      "sha256": "198b916c7faad9a18d5b1692e9f5ea28986a30d65b1db2f0c109c97a2dca9df4",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_highrise_default_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 50580,
+      "sha256": "41aafc9e1ec54bb6d5898a5e531156578f146ff173a4c3510c0e4d0dc70e3bba",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_highrise_default_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 36364,
+      "sha256": "f9532bf7915d3228945cba58b27ec722ecb1138c9a3732618fe41309c3d1395a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_industrial_default_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 55975,
+      "sha256": "f534e48a78a32ca9076c3134238c2116846ec6ece7d1e36525f4923bd3ca96d1",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_industrial_default_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 58092,
+      "sha256": "db9999160d5909f84873b7fc84b2b26464a81488249b90881c1a347cd975263a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_industrial_default_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 38886,
+      "sha256": "79e8cec9bea6162e091f45f1e2d97cff986b055cc9fe694830244186bbd2e57b",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_office_default_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 51577,
+      "sha256": "8994a206a37e5fab808f0c0d376e987a20ffc9de32cbfe7e4e79d23a131f130e",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_office_default_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 45974,
+      "sha256": "2408671c3c4340cbb18282bf7b095c9702e15dc385522fff3b00353f8fea11a6",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_office_default_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 35179,
+      "sha256": "2f64d59201e7df7209ca8bbbcc0925e09b330d5a3c3cc008cc87b17a08446045",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_residential_default_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 59353,
+      "sha256": "91ae633bc2d8a60fb1cfe6ed7cfa927fbd58d401135ddf6bd8132f9fddb6e023",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_residential_default_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 54392,
+      "sha256": "55443766d970ff00dabaae9005cfa653f9cf8fc83d33a58c7d24b1ea5ed795df",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/bldg_residential_default_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 32469,
+      "sha256": "f6467e6c453fb7286b354fc933a3bb32256906053a1e99c5237e18e226fb6b2a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/crane_hook_default_sprite.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 12652,
+      "sha256": "ca53dcd0114ccc72a85b046b1d4e5ea636b280e4d7e268ef433d0633c8496127",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/default/crane_rig_default_sprite.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 184020,
+      "sha256": "bca86a6702f0e69a305aad56e510dd547bba18a180dc40a705317fd6f13b5eb5",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/parachute_highrise_default_open.png",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 1144958,
+      "sha256": "0d54377bebfefb7466fcb9700fd4dff394b23b8a7eae0a5c9198e72abb85df12",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/parachute_industrial_default_open.png",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 1022629,
+      "sha256": "6e7169389a9071e6c954597c960e47ac36da6fb3e9f32b514e5d104390c6426c",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/parachute_office_default_open.png",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 925188,
+      "sha256": "b1358eb82026c65365468da622a4f0022f60d9a58335b8d4d38ade5e7d92eaf4",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/parachute_residential_default_open.png",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 832682,
+      "sha256": "ff54f1418319147910f5762263ca24a584edb8257d447dd56235476ee361e76a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/person_highrise_default_fall.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 1220740,
+      "sha256": "7d9ef6539aa49737eb63c8147014d15c0a0e029a368bd2f2f0e50fe04c572dab",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/person_industrial_default_fall.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 1424828,
+      "sha256": "6a3ff058fea690bce303f9679791798f8799e164e463384af16f7edf3ac29b8b",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/person_office_default_fall.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 1137107,
+      "sha256": "0d0683f92240c1f677b12f16df3097093f4eb964be83853f7b091ffb063fc025",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "fx/population/default/person_residential_default_fall.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 1291691,
+      "sha256": "ff866f4c433ad487c86f001f2a71ec0b43ce0efc4d976170b3413e7913fec4b6",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    }
+  ]
+}

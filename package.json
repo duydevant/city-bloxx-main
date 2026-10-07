@@ -1,0 +1,20 @@
+{
+  "name": "city-bloxx-workspace",
+  "version": "0.2.0",
+  "private": true,
+  "allowScripts": { "esbuild@0.25.12": true },
+  "workspaces": ["packages/*", "base-game-nextjs", "base-playable-main"],
+  "scripts": {
+    "assets:export": "node scripts/export-game-assets.cjs",
+    "assets:check": "node scripts/check-game-assets.cjs",
+    "test": "npm --prefix base-game-nextjs test",
+    "test:browser": "node scripts/browser-smoke.cjs",
+    "lint": "npm --prefix base-game-nextjs run lint",
+    "build:web": "npm run assets:check && npm --prefix base-game-nextjs run build",
+    "build:playable": "npm run assets:check && npm --prefix base-playable-main run package",
+    "build": "npm run build:web && npm run build:playable",
+    "check": "npm run assets:check && npm test && npm run lint && npm run build",
+    "dev:web": "npm --prefix base-game-nextjs run dev",
+    "dev:playable": "npm --prefix base-playable-main run dev"
+  }
+}

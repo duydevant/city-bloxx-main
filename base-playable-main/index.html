@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- YouTube Playables SDK: PHAI la script dau tien trong head,
+         truoc bat ky script nao cua game. -->
+    <script src="https://www.youtube.com/game_api/v1"></script>
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1115" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%236ea8fe'/></svg>"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Playable</title>
+
+    <!-- Critical CSS cua man hinh loading: inline de co first paint ngay lap tuc
+         (firstFrameReady cang som cang tot). Phan con lai nap qua src/styles. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0f1115;
+        color: #e8eaed;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        overflow: hidden;
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: #0f1115;
+        z-index: 9999;
+      }
+      #loading[hidden] {
+        display: none;
+      }
+      #loading .bar {
+        width: 160px;
+        height: 6px;
+        border-radius: 999px;
+        background: #23262e;
+        overflow: hidden;
+      }
+      #loading .bar > i {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: #6ea8fe;
+        animation: ld 1s linear infinite;
+      }
+      @keyframes ld {
+        from {
+          transform: translateX(-110%);
+        }
+        to {
+          transform: translateX(260%);
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        html,
+        body,
+        #loading {
+          background: #f6f7f9;
+          color: #1a1c22;
+        }
+        #loading .bar {
+          background: #dfe2e8;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="loading">
+      <div class="bar"><i></i></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Build-time config cua game, lay tu .env
+        VITE_GAME_NAME: ${VITE_GAME_NAME:-Playable}
+        VITE_SAVE_KEY: ${VITE_SAVE_KEY:-playable_save_v1}
+        VITE_SAVE_VERSION: ${VITE_SAVE_VERSION:-1}
+        VITE_REWARD_EXTRA_TIME: ${VITE_REWARD_EXTRA_TIME:-extra_time}
+        CONTAINER_PORT: ${CONTAINER_PORT:-80}
+    image: ${IMAGE_NAME:-base-playable}:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-base-playable}
+    environment:
+      CONTAINER_PORT: ${CONTAINER_PORT:-80}
+    ports:
+      # host:container — doi HOST_PORT trong .env la xong
+      - "${HOST_PORT:-8080}:${CONTAINER_PORT:-80}"
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${CONTAINER_PORT:-80}/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

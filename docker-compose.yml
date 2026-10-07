@@ -1,0 +1,23 @@
+services:
+  web:
+    image: ${WEB_IMAGE:?Set WEB_IMAGE in .env}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?Set NODE_IMAGE in .env}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?Set NEXT_PUBLIC_SITE_URL in .env}
+        NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:?Set NEXT_PUBLIC_SITE_NAME in .env}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_PRIMARY_COLOR: ${NEXT_PUBLIC_PRIMARY_COLOR}
+    env_file: .env
+    ports:
+      - "${WEB_BIND_ADDRESS:?Set WEB_BIND_ADDRESS in .env}:${WEB_PORT:?Set WEB_PORT in .env}:${PORT:?Set PORT in .env}"
+    restart: ${WEB_RESTART_POLICY:?Set WEB_RESTART_POLICY in .env}
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get({hostname:'127.0.0.1',port:process.env.PORT,path:'/play'},r=>{r.resume();process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: ${WEB_HEALTH_INTERVAL:?Set WEB_HEALTH_INTERVAL in .env}
+      timeout: ${WEB_HEALTH_TIMEOUT:?Set WEB_HEALTH_TIMEOUT in .env}
+      start_period: ${WEB_HEALTH_START_PERIOD:?Set WEB_HEALTH_START_PERIOD in .env}
+      retries: ${WEB_HEALTH_RETRIES:?Set WEB_HEALTH_RETRIES in .env}

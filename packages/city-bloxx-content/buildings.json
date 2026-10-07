@@ -1,0 +1,10 @@
+{
+  "version": "buildings-2",
+  "geometry": { "width": 144, "height": 120 },
+  "buildings": [
+    { "id": "residential", "floors": 10, "population": 10, "requires": [], "skin": "default" },
+    { "id": "industrial", "floors": 20, "population": 20, "requires": ["residential"], "skin": "default" },
+    { "id": "office", "floors": 30, "population": 30, "requires": ["residential", "industrial"], "skin": "default" },
+    { "id": "highrise", "floors": 40, "population": 40, "requires": ["residential", "industrial", "office"], "skin": "default" }
+  ]
+}

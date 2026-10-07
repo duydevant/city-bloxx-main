@@ -1,0 +1,241 @@
+/* Reset + layout goc. KHONG dung font ngoai (Google Fonts...) vi Playables
+   khong cho phep request ra ben ngoai ngoai SDK, va no lam cham load. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--pv-bg);
+  color: var(--pv-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  /* Khong cho keo-tha / zoom gay lo tap */
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- Root / stage ---- */
+
+.pv-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--pv-safe-top) + 8px) calc(var(--pv-safe-right) + 8px)
+    calc(var(--pv-safe-bottom) + 8px) calc(var(--pv-safe-left) + 8px);
+}
+
+.pv-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pv-gap);
+  outline: none;
+  overflow: hidden;
+}
+
+/* ---- Overlay / modal ---- */
+
+.pv-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--pv-overlay-bg);
+  backdrop-filter: blur(2px);
+}
+.pv-overlay.hidden {
+  display: none;
+}
+
+.pv-card {
+  width: min(100%, 380px);
+  background: var(--pv-surface);
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius);
+  box-shadow: var(--pv-shadow);
+  padding: 20px 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: pv-pop 0.16s ease-out;
+}
+
+.pv-title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.pv-body {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pv-text-dim);
+}
+
+.pv-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+@media (min-width: 380px) {
+  .pv-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+.pv-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--pv-radius-sm);
+  padding: 11px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-width: 120px;
+  transition: transform 0.06s ease, filter 0.12s ease;
+}
+.pv-btn:hover {
+  filter: brightness(1.08);
+}
+.pv-btn:active {
+  transform: scale(0.98);
+}
+.pv-btn:focus-visible {
+  outline: 3px solid var(--pv-primary);
+  outline-offset: 2px;
+}
+.pv-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.pv-btn--primary {
+  background: var(--pv-primary);
+  color: var(--pv-primary-text);
+}
+.pv-btn--secondary {
+  background: var(--pv-secondary);
+  color: var(--pv-secondary-text);
+  border-color: var(--pv-border);
+}
+.pv-btn--ad {
+  background: var(--pv-ad);
+  color: var(--pv-ad-text);
+}
+
+@keyframes pv-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Toast ---- */
+
+.pv-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--pv-safe-bottom) + 14px);
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: 88%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--pv-surface-2);
+  border: 1px solid var(--pv-border);
+  color: var(--pv-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: var(--pv-shadow);
+  animation: pv-fade 0.16s ease-out;
+}
+.pv-toast.hidden {
+  display: none;
+}
+@keyframes pv-fade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ---- Tien ich nho cho game ---- */
+
+.pv-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pv-gap);
+}
+.pv-box {
+  background: var(--pv-surface);
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius-sm);
+  padding: 6px 12px;
+  text-align: center;
+  min-width: 76px;
+}
+.pv-box > small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pv-text-dim);
+}
+.pv-box > b {
+  display: block;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

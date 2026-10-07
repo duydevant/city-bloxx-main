@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "config": {
+    "seed": 42,
+    "mode": "quick",
+    "assist": false
+  },
+  "physicsVersion": "physics-0.3.0",
+  "rulesetVersion": "quick-tower-0.3.0",
+  "inputs": [
+    {
+      "tick": 72,
+      "sequence": 0,
+      "fraction": 0
+    },
+    {
+      "tick": 168,
+      "sequence": 1,
+      "fraction": 0
+    },
+    {
+      "tick": 474,
+      "sequence": 2,
+      "fraction": 0
+    },
+    {
+      "tick": 666,
+      "sequence": 3,
+      "fraction": 0
+    },
+    {
+      "tick": 858,
+      "sequence": 4,
+      "fraction": 0
+    },
+    {
+      "tick": 1050,
+      "sequence": 5,
+      "fraction": 0
+    },
+    {
+      "tick": 1242,
+      "sequence": 6,
+      "fraction": 0
+    },
+    {
+      "tick": 1434,
+      "sequence": 7,
+      "fraction": 0
+    },
+    {
+      "tick": 1543,
+      "sequence": 8,
+      "fraction": 0
+    },
+    {
+      "tick": 1739,
+      "sequence": 9,
+      "fraction": 0
+    },
+    {
+      "tick": 1831,
+      "sequence": 10,
+      "fraction": 0
+    },
+    {
+      "tick": 2026,
+      "sequence": 11,
+      "fraction": 0
+    },
+    {
+      "tick": 2121,
+      "sequence": 12,
+      "fraction": 0
+    },
+    {
+      "tick": 2313,
+      "sequence": 13,
+      "fraction": 0
+    }
+  ],
+  "endTick": 2379,
+  "result": {
+    "population": 95,
+    "height": 11,
+    "accuracy": 47.173,
+    "perfectCount": 2,
+    "bestStreak": 2,
+    "durationTicks": 2379,
+    "misses": 3,
+    "ranked": true,
+    "rating": "C",
+    "ratingVersion": "quick-rating-1"
+  }
+}

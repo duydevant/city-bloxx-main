@@ -1,0 +1,9 @@
+# Local configuration; keep templates versioned.
+.env
+.env.*
+!.env.example
+**/node_modules/
+**/.next/
+**/dist/
+**/dist.zip
+/tmp/
