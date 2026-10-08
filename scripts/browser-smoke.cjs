@@ -3,7 +3,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const assert = require("node:assert/strict");
 const esbuild = require("node:module").createRequire(path.resolve(__dirname,"../base-playable-main/package.json"))("esbuild");
-const fixture = require("../packages/city-bloxx-core/fixtures/quick-mixed-v11.json");
+const fixture = require("../packages/city-bloxx-core/fixtures/quick-mixed-v13.json");
 const root = path.resolve(__dirname,"..");
 const reportDir = path.join(root,"tmp","c0-c2-qa");
 fs.mkdirSync(reportDir,{recursive:true});
@@ -347,11 +347,39 @@ async function captureHighRig(kind) {
     window.__rigGame=game;window.__rigRenderer=renderer;
     return {floors:game.getSnapshot().floors.length,lives:game.getSnapshot().lives,difficulty:game.getSnapshot().difficulty};
   })()`);
-  assert.equal(setup.floors,50);assert.equal(setup.lives,3);assert(Math.abs(setup.difficulty.cableLength-165.456)<.001);
+  assert.equal(setup.floors,50);assert.equal(setup.lives,3);assert(Math.abs(setup.difficulty.cableLength-148.9104)<.001);
   await screenshot(`${kind}-rig-50-loaded`);
   await evaluate('window.__rigGame.drop(0);window.__rigGame.advanceTicks(18);window.__rigRenderer.render(window.__rigGame.getSnapshot())');
   await screenshot(`${kind}-rig-50-retracted`);
   await evaluate('document.querySelector("[data-rig-preview]").remove();delete window.__rigGame;delete window.__rigRenderer');
+}
+async function captureMiss(kind) {
+  await evaluate(botBundle);await evaluate(rendererBundle);
+  const impact=await evaluate(`(async()=>{
+    const game=new CityBloxx.QuickTowerGame(42);TestBot.placeAccurately(game);
+    for(let tick=0;tick<3000;tick++) {
+      const s=game.getSnapshot(),error=Math.abs(s.current.x-s.floors[0].x);
+      if(s.phase==='swing'&&error>100&&error<125){game.drop(1);break;}game.advanceTicks(1);
+    }
+    for(let tick=0;tick<200&&!game.getSnapshot().impact;tick++)game.advanceTicks(1);
+    const s=game.getSnapshot();if(s.phase!=='miss'||s.impact?.floorIndex!==0)throw new Error('Miss did not hit the top floor');
+    const canvas=document.createElement('canvas');canvas.dataset.missPreview='true';canvas.style.cssText='position:fixed;top:0;left:0;z-index:9999';document.body.append(canvas);
+    const renderer=new CityRender.QuickTowerRenderer(canvas,${JSON.stringify(kind==="web"?"/game":"./game")});
+    await renderer.load();renderer.resize(390,700,2);
+    const ctx=canvas.getContext('2d'),original=ctx.fillRect.bind(ctx);let count=0;ctx.fillRect=(...args)=>{count++;return original(...args)};
+    renderer.render(s);const animated=count;count=0;renderer.render(s,undefined,1,true);const reduced=count;
+    ctx.fillRect=original;renderer.render(s);window.__missGame=game;window.__missRenderer=renderer;
+    return {impact:s.impact,lives:s.lives,particles:animated-reduced};
+  })()`);
+  assert.equal(impact.lives,2);assert.equal(impact.particles,8);
+  await screenshot(`${kind}-miss-1-impact`);
+  const falling=await evaluate(`(()=>{
+    const game=window.__missGame,before=game.getSnapshot();game.advanceTicks(20);const s=game.getSnapshot();
+    window.__missRenderer.render(s);return {x:s.current.x,releaseX:before.current.x,lives:s.lives,floors:s.floors.length,phase:s.phase};
+  })()`);
+  assert.notEqual(falling.x,falling.releaseX);assert.equal(falling.lives,2);assert.equal(falling.floors,1);assert.equal(falling.phase,'miss');
+  await screenshot(`${kind}-miss-2-sliding`);
+  await evaluate('document.querySelector("[data-miss-preview]").remove();delete window.__missGame;delete window.__missRenderer');
 }
 async function main() {
   let targets;
@@ -423,6 +451,7 @@ async function main() {
     const cityRecord=await citySmoke(kind,url,key);
     await captureClassSeams(kind);
     await captureHighRig(kind);
+    await captureMiss(kind);
     const feedback=await feedbackSmoke(kind);
     const population=await populationSmoke(kind);
     console.log('Population FX verified',kind,JSON.stringify(population));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { cameraLift, commitRun, emptySave, floorSway, migrateSave, QuickTowerGame, QuickTowerReplay, QUICK_TOWER_RULES as R, verifyRecord, type RunRecord } from "../../../packages/city-bloxx-core/src/index"
-import golden from "../../../packages/city-bloxx-core/fixtures/quick-mixed-v11.json"
+import golden from "../../../packages/city-bloxx-core/fixtures/quick-mixed-v13.json"
 import { placeAccurately } from "./test-simulation"
 
 function until(game: QuickTowerGame, predicate: () => boolean, limit = 3000) {
@@ -44,7 +44,7 @@ describe("C0–C2 acceptance", () => {
     until(game, () => game.getSnapshot().phase === "swing")
     const s=game.getSnapshot()
     expect(s.floors.length).toBe(50)
-    expect(s.difficulty.cableLength).toBeCloseTo(R.pendulumLength*.72,4)
+    expect(s.difficulty.cableLength).toBeCloseTo(R.pendulumLength*.72*.9,4)
     expect(s.current.y + cameraLift(s)).toBeLessThanOrEqual(R.spawnY + 1)
     expect(s.current.y + R.floorHeight).toBeLessThan(R.groundY - s.floors.length*R.floorHeight)
     expect(s.lives).toBe(3)
@@ -98,7 +98,8 @@ describe("C0–C2 acceptance", () => {
     const game=new QuickTowerGame(42)
     for(let i=0;i<7;i++) place(game,30)
     const s=game.getSnapshot()
-    expect(s.sway).toBeGreaterThan(20)
+    expect(s.sway).toBeGreaterThan(0)
+    expect(Math.abs(s.swayOffset)).toBeGreaterThan(0)
     expect(floorSway(s,s.floors.length-1)).toBe(s.swayOffset)
   })
   it("keeps only the last bounded replay across 30 completed runs", () => {

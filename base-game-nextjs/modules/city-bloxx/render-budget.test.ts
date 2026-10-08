@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { QuickTowerGame, QuickTowerReplay } from "../../../packages/city-bloxx-core/src/index"
 import { cityGuide } from "../../../packages/city-bloxx-renderer/src/city-guide"
-import fixture from "../../../packages/city-bloxx-core/fixtures/quick-mixed-v11.json"
+import fixture from "../../../packages/city-bloxx-core/fixtures/quick-mixed-v13.json"
 import type { RunRecord } from "../../../packages/city-bloxx-core/src/index"
 
 describe("render budget and structured guide",()=>{

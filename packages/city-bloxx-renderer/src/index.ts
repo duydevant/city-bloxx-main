@@ -26,6 +26,7 @@ export class QuickTowerRenderer {
   private populationImages = new Map<BuildingId, {person:HTMLCanvasElement;parachute:HTMLCanvasElement;harness:number;eye:number}>();
   private populationLoads = new Map<BuildingId, Promise<void>>();
   private feedbackSeen = 0;
+  private completionSeen = false;
   private populationFx: {building:BuildingId;count:number;elapsed:number;x:number;y:number;population:number} | null = null;
   private buildingImages = new Map<BuildingId, { base: HTMLImageElement; mid: HTMLImageElement; roof: HTMLImageElement }>();
   private cssWidth = 1;
@@ -56,7 +57,7 @@ export class QuickTowerRenderer {
     this.warmSprites();
   }
   setLocale(locale: string): void { this.vi = locale.startsWith("vi"); }
-  resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; }
+  resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
   async loadPopulation(id: BuildingId): Promise<void> {
     if (this.populationLoads.has(id)) return this.populationLoads.get(id);
     const promise = Promise.all([
@@ -111,9 +112,10 @@ export class QuickTowerRenderer {
     this.cachedSprite("hook",this.images.hook,0,0,128,128,128*A.hook.scale*scale,128*A.hook.scale*scale);
   }
   render(snapshot: QuickTowerSnapshot, previous?: QuickTowerSnapshot, alpha = 1, reducedMotion = false): void {
-    if (snapshot.feedbackId !== this.feedbackSeen) {
+    const complete = !!snapshot.targetFloors && snapshot.phase === "ended" && snapshot.floors.length === snapshot.targetFloors;
+    if (snapshot.feedbackId !== this.feedbackSeen || (complete && !this.completionSeen)) {
       this.feedbackSeen = snapshot.feedbackId;
-      const complete = snapshot.targetFloors && snapshot.phase === "ended" && snapshot.floors.length === snapshot.targetFloors;
+      if (complete) this.completionSeen = true;
       const quick = !snapshot.targetFloors && snapshot.floors.length > 1 && snapshot.lastPlacement && snapshot.lastPlacement !== "miss";
       if (complete || quick) {
         const last = snapshot.floors[snapshot.floors.length-1];
@@ -161,8 +163,29 @@ export class QuickTowerRenderer {
       ctx.save(); ctx.globalAlpha = snapshot.phase === "preparing" ? snapshot.loadProgress : 1;
       this.drawFloor(point.x, point.y, scale, pose.rotation, snapshot.building, snapshot.isRoof ? "roof" : snapshot.targetFloors && snapshot.floors.length === 0 ? "base" : "mid"); ctx.restore();
     }
+    this.drawImpact(snapshot,scale,reducedMotion);
     if (snapshot.lastPlacement && snapshot.feedbackRatio > 0) this.drawFeedback(snapshot, scale, reducedMotion);
     this.drawPopulation(snapshot, scale, reducedMotion);
+  }
+  private drawImpact(snapshot: QuickTowerSnapshot, scale: number, reducedMotion: boolean): void {
+    const impact=snapshot.impact;
+    if (!impact) return;
+    const age=(snapshot.tick-impact.tick)/R.tickRate;
+    if (age<0 || age>.4) return;
+    const p=project(impact,snapshot,this.cssWidth,this.cssHeight),ctx=this.context;
+    ctx.save();ctx.globalAlpha=1-age/.4;
+    ctx.strokeStyle="#ffe6a3";ctx.lineWidth=Math.max(1.5,3*scale);
+    ctx.beginPath();ctx.arc(p.x,p.y,(8+(reducedMotion?0:age*65))*scale,0,Math.PI*2);ctx.stroke();
+    if (!reducedMotion) {
+      ctx.fillStyle="#e5ccaa";
+      for(let i=0;i<8;i++) {
+        const direction=i*Math.PI/4;
+        const distance=(6+age*(55+i%3*14))*scale;
+        const size=Math.max(1.5,(5-age*8)*scale);
+        ctx.fillRect(p.x+Math.cos(direction)*distance,p.y+Math.sin(direction)*distance+age*age*70*scale,size,size);
+      }
+    }
+    ctx.restore();
   }
   private drawPopulation(snapshot: QuickTowerSnapshot, scale: number, reducedMotion: boolean): void {
     const fx=this.populationFx;if(!fx)return;

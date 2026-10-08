@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { floorSway, QUICK_TOWER_RULES as R, QuickTowerGame, QuickTowerReplay, verifyRecord } from "../../../packages/city-bloxx-core/src/index"
+import { floorSway, getQuickDifficulty, QUICK_TOWER_RULES as R, QuickTowerGame, QuickTowerReplay, verifyRecord } from "../../../packages/city-bloxx-core/src/index"
 import { EMPTY_CABLE_LENGTH, loadPose, project, rigGeometry, roofPoint } from "../../../packages/city-bloxx-renderer/src/geometry"
 
 function until(g: QuickTowerGame, check: () => boolean) {
@@ -16,7 +16,7 @@ describe("drop/landing visual regressions", () => {
     expect(g.getSnapshot().current.y).toBeCloseTo(reduced.y,2)
   })
   it("keeps the maximum loaded cable and retracts the empty hook close to the pulley", () => {
-    expect(R.pendulumLength).toBeCloseTo(383 * .6, 5)
+    expect(getQuickDifficulty(0).cableLength).toBeCloseTo(383 * .6 * .9, 5)
     expect(EMPTY_CABLE_LENGTH).toBe(18)
   })
   it("holds the unloaded hook eye eighteen units below the pulley throughout the swing", () => {

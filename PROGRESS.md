@@ -1,28 +1,29 @@
 # City Bloxx — trạng thái hiện tại
 
-Cập nhật 07/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
+Cập nhật 08/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
 ## Tuning mới — dây thu theo tầng, độ khó tới 50 tầng và icon UI
 
-Lượt mới dùng physics/Quick `0.11.0`, City `build-city-5`. Thay yêu cầu cũ dây rỗng bằng 1/1,15 dây có tải: móc rỗng nay thu về mắt dây cách puly 18 world units sau 18 ticks (~0,3 giây). Dây có tải dài nhất vẫn 229,8; rút dần theo số tầng đã đặt. Cung ngang bằng 80% chiều dài dây để không vượt bán kính. Pha dao động vẫn tích phân liên tục, không nhảy khi tăng tầng.
+Lượt mới dùng physics/Quick `0.13.0`, City `build-city-7`. Chu kỳ một vòng ngắn thêm 10% so với 0.12 ở mọi tầng, cả Standard và Assist (còn 81% chu kỳ của 0.11). Dây giữ kích thước 0.12: dài nhất 206,82, rút dần theo số tầng đã đặt. Móc rỗng thu về mắt dây cách puly 18 world units sau 18 ticks (~0,3 giây). Cung ngang bằng 80% chiều dài dây để không vượt bán kính. Pha dao động tích phân liên tục, không nhảy khi tăng tầng.
 
 | Tầng đã xây | Dây có tải (world units) | Một vòng dao động Standard | Gió nền thân tháp |
 |---|---:|---:|---:|
-| 0–2 | 229,8 | 4,44 giây | 0 |
-| 10 | 218,3 | 4,21 giây | 1 |
-| 20 | 206,8 | 3,81 giây | 2,5 |
-| 30 | 193,0 | 3,40 giây | 4 |
-| 40 | 179,2 | 3,08 giây | 5,5 |
-| 50 | 165,5 | 2,81 giây | 7 |
-| ≥60 | 156,3 | 2,62 giây | 8 |
+| 0–2 | 206,8 | 3,60 giây | 0 |
+| 10 | 196,5 | 3,41 giây | 1 |
+| 20 | 186,1 | 3,09 giây | 2,5 |
+| 30 | 173,7 | 2,76 giây | 4 |
+| 40 | 161,3 | 2,49 giây | 5,5 |
+| 50 | 148,9 | 2,27 giây | 7 |
+| ≥60 | 140,6 | 2,12 giây | 8 |
 
-- Nội suy giữa các mốc, cap ở 60 tầng. Tầng 10 chỉ nhanh hơn đầu lượt ~5,6%; tầng 50 vẫn có chu kỳ chậm hơn tầng 10 của bản cũ (~2,55 giây). Assist giảm tốc và mức tăng thêm, cùng hình học dây và band chấm chất lượng.
-- Các công trình City đang dở từ 0.7–0.10 giữ chuyển động cũ đến hết lượt để phục hồi đúng input. Fixture City 0.10 đang rơi tại tick 554 được kiểm tra khôi phục đúng vị trí/tầng/camera/dân số. Quick replay physics cũ không được phát dưới luật mới; PB, dân số và nhà đã nhận được giữ.
+- Nội suy giữa các mốc, cap ở 60 tầng. Tầng 10 chỉ nhanh hơn đầu lượt ~5,6%; giữ đường tăng độ khó, nhân chu kỳ 0.12 với 0,9. Assist giảm tốc và mức tăng thêm, cùng hình học dây và band chấm chất lượng.
+- Miss ≥40% chỉ chấm một lần tại mặt phẳng tầng cao nhất. Nếu có phần chồng ngang (<100%), nhà va vào tầng đó, nảy nhẹ rồi trượt khỏi mép. Nếu không chồng ngang (≥100%), nhà tiếp tục rơi theo trục dọc và xét tầng dưới thực sự nằm trên đường rơi. Kiểm tra swept facade 144×120 gồm mặt trên/cạnh/dưới và chuyển động sway, tránh xuyên tầng khi rơi nhanh; góc xoay là hiệu ứng hình ảnh. Va nhiều lần không mất thêm mạng, không thêm tầng hay dân số. Va chạm có vòng lóe/bụi 0,4 giây, tối đa 8 hạt; Reduced Motion chỉ vòng lóe tĩnh. Nhà Miss rơi hết phần nhìn thấy hoặc đáp đất trước khi tải nhà mới; Miss mái cũng có hoạt ảnh rồi mới kết thúc.
+- Các công trình City đang dở từ 0.7–0.12 giữ chuyển động/luật Miss cũ đến hết lượt để phục hồi đúng input. Fixture City 0.10/0.11/0.12 được kiểm tra khôi phục đúng vị trí/tầng/camera/dân số, kể cả lưu lại rồi mở tiếp. Lượt 0.13 đang va chạm cũng khôi phục đúng hoạt ảnh và diễn biến tiếp theo. Quick replay physics cũ không được phát dưới luật mới; PB, dân số và nhà đã nhận được giữ.
 - HUD đổi ba dấu chấm thành ba tim vector: đỏ hồng còn mạng, viền xám rỗng khi mất; có nhãn EN/VI và không đổi độ rộng khi mất mạng. Web có favicon vector ba khối xếp tháp tại `app/icon.svg`.
 - [UI Art Prompts v4](City_Bloxx_UI_Art_Prompts_v4.0.md) có ba prompt riêng, bbox cụ thể, kích thước export và tên/đường dẫn: favicon master 1024², hai tim 512² → runtime 64². Nguồn lưu trong `art/source/brand/default/` và `art/source/ui/default/`. PNG gen chưa được import; SVG hiện tại dùng được ngay.
-- 106 unit tests qua, gồm xây Quick 50 tầng còn ba mạng, bốn tier City, giới hạn dây/cung/tốc độ, giữ input fraction và migration City 0.10. Lint, build/package và Chrome smoke hai nền tảng qua; kiểm favicon link, ba tim đầy/rỗng, cảnh dây có tải/thu sát cần cẩu tại tầng 50 (`tmp/c0-c2-qa/*-rig-50-*.png`), responsive EN/VI, replay và save. Cân bằng 40–50 tầng vẫn cần chơi thử với người thật; bot chỉ xác nhận có thể xây đúng luật.
+- 116 unit tests qua, gồm tỷ lệ chu kỳ 90% so với 0.12 ở cả Standard/Assist, đường va chạm Miss trên/dưới/cạnh/đúng 100% và sway, mất một mạng, pause và restore khi đang va, Quick 50 tầng còn ba mạng, bốn tier City, migration City 0.10/0.11/0.12. Lint, build/package và Chrome smoke hai nền tảng qua, gồm 8 hạt va chạm/Reduced Motion, ảnh va mép và rơi, replay, save/resume, responsive EN/VI và population FX. Ảnh `tmp/c0-c2-qa/*-miss-1-impact.png`, `*-miss-2-sliding.png`. Cân bằng 40–50 tầng vẫn cần chơi thử với người thật; bot chỉ xác nhận có thể xây đúng luật.
 
 ## Polish mới — toolbar, responsive, render và Docker Web
 
@@ -31,7 +32,7 @@ Lượt mới dùng physics/Quick `0.11.0`, City `build-city-5`. Thay yêu cầu
 - Kết quả Quick/City dùng 6 thẻ label/value, 2 cột trên portrait; trạng thái mái/nhà cũ là đoạn riêng. Landscape thấp dùng hai vùng tóm tắt/thống kê. Hướng dẫn Web và trong game dùng heading + bullet, 6 phần ngắn; các quality band tách từng dòng.
 - Combo chuyển thành overlay trên arena: hiện/ẩn không đổi kích thước canvas. Hint giữ chiều cao tối thiểu 2 dòng. Mỗi frame tái sử dụng một snapshot cho paint/previous; schedule đọc phase trực tiếp. Checkpoint City chỉ thay pending, không serialize toàn bộ lots ngay lúc bấm thả.
 - Ảnh tầng/crane/hook được crop và rasterize vào cache theo viewport/DPR một lần sau load/resize; animation dùng canvas nhỏ thay PNG lớn. Decode ảnh xong trước khi dùng. Quick/Replay chờ ảnh người/dù ở màn chuẩn bị trước khi chạy, không giải mã bộ ảnh mới giữa swing. Không sửa PNG nguồn, physics, band hay save version.
-- Docker Web có `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env`/`.env.example` ở root. Port, bind, image, restart, healthcheck và public config đều lấy từ `.env`; mặc định Web `http://localhost:3080/play`. Builder bật Next standalone và tracing root monorepo; chạy local vẫn dùng `next start` bình thường. Xem [DOCKER_WEB](DOCKER_WEB.md).
+- Docker Web có `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env`/`.env.example` ở root. Port, bind, image, restart, healthcheck và public config đều lấy từ `.env`; mặc định Web `http://localhost:56789/play` (cập nhật 08/10). Builder bật Next standalone và tracing root monorepo; chạy local vẫn dùng `next start` bình thường. Xem [DOCKER_WEB](DOCKER_WEB.md) để deploy máy chủ trực tiếp qua IP hoặc qua reverse proxy/domain.
 - Reduced Motion vẫn nội suy vị trí swing/fall (chỉ bỏ rotation/hiệu ứng phụ), tránh chuyển động theo nấc và giữ fraction thả đúng vị trí đang thấy.
 - 104/104 unit tests, lint và build/package hai nền tảng đã qua. Browser smoke kiểm tra toolbar, stats Quick/City EN/VI, 6 trang guide EN/VI ở 320×568, 390×844, 900×430, header switch không reset run, combo không resize arena. Screenshot/report trong `tmp/c0-c2-qa/`.
 - Profile RAF thật riêng (không fake clock), Chrome headless DPR 2: CPU phần lớn dưới 1 ms, khoảng cách RAF ~16,7 ms; vẫn có spike ~20 ms. Không vẽ PNG lớn trên đường animation đã warm; không thấy long task ≥50 ms ở mẫu 4,5 giây. Đây không phải GPU/display FPS hay kết luận đã hết khựng trên máy người dùng; cần kiểm tra lại bản production trên thiết bị thực.

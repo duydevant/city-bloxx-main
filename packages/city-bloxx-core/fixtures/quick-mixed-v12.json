@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "config": {
+    "seed": 42,
+    "mode": "quick",
+    "assist": false
+  },
+  "physicsVersion": "physics-0.12.0",
+  "rulesetVersion": "quick-tower-0.12.0",
+  "inputs": [
+    {
+      "tick": 90,
+      "sequence": 0,
+      "fraction": 0
+    },
+    {
+      "tick": 210,
+      "sequence": 1,
+      "fraction": 0
+    },
+    {
+      "tick": 575,
+      "sequence": 2,
+      "fraction": 0
+    },
+    {
+      "tick": 683,
+      "sequence": 3,
+      "fraction": 0
+    },
+    {
+      "tick": 813,
+      "sequence": 4,
+      "fraction": 0
+    },
+    {
+      "tick": 920,
+      "sequence": 5,
+      "fraction": 0
+    },
+    {
+      "tick": 1048,
+      "sequence": 6,
+      "fraction": 0
+    },
+    {
+      "tick": 1154,
+      "sequence": 7,
+      "fraction": 0
+    },
+    {
+      "tick": 1219,
+      "sequence": 8,
+      "fraction": 0
+    },
+    {
+      "tick": 1313,
+      "sequence": 9,
+      "fraction": 0
+    },
+    {
+      "tick": 1412,
+      "sequence": 10,
+      "fraction": 0
+    }
+  ],
+  "endTick": 1486,
+  "result": {
+    "population": 97,
+    "height": 8,
+    "accuracy": 85.929,
+    "perfectCount": 1,
+    "bestStreak": 1,
+    "durationTicks": 1486,
+    "misses": 3,
+    "ranked": true,
+    "rating": "B",
+    "ratingVersion": "quick-rating-1"
+  }
+}

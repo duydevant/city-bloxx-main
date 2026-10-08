@@ -1,0 +1,126 @@
+{
+  "checkpoint": {
+    "version": "physics-0.12.0",
+    "config": {
+      "seed": 42,
+      "mode": "city",
+      "assist": false,
+      "building": "residential"
+    },
+    "tick": 691,
+    "inputs": [
+      {
+        "tick": 90,
+        "sequence": 0,
+        "fraction": 0
+      },
+      {
+        "tick": 210,
+        "sequence": 1,
+        "fraction": 0
+      },
+      {
+        "tick": 575,
+        "sequence": 2,
+        "fraction": 0
+      },
+      {
+        "tick": 683,
+        "sequence": 3,
+        "fraction": 0
+      }
+    ]
+  },
+  "snapshot": {
+    "physicsVersion": "physics-0.12.0",
+    "rulesetVersion": "build-city-6",
+    "seed": 42,
+    "assist": false,
+    "tick": 691,
+    "phase": "falling",
+    "lives": 3,
+    "population": 38,
+    "perfectCount": 1,
+    "streak": 0,
+    "bestStreak": 1,
+    "comboLevel": 0,
+    "comboRatio": 0,
+    "sway": 2.553,
+    "swayOffset": -2.005,
+    "difficulty": {
+      "speedMultiplier": 0.8055555555555555,
+      "amplitude": 164.42190000000002,
+      "cableLength": 205.527375,
+      "emptyCableLength": 18,
+      "baselineSway": 0.125,
+      "swaySpeedMultiplier": 1.003103448275862
+    },
+    "camera": {
+      "x": 0,
+      "lift": 90
+    },
+    "crane": {
+      "x": 21.344,
+      "y": -10
+    },
+    "released": {
+      "x": 59.654,
+      "y": 274.925
+    },
+    "loadProgress": 1,
+    "floors": [
+      {
+        "x": -5.46,
+        "quality": "good",
+        "population": 10,
+        "error": 0
+      },
+      {
+        "x": 0,
+        "quality": "perfect",
+        "population": 15,
+        "error": 0.038
+      },
+      {
+        "x": 21.344,
+        "quality": "great",
+        "population": 13,
+        "error": 0.148
+      }
+    ],
+    "building": "residential",
+    "targetFloors": 10,
+    "isRoof": false,
+    "roof": null,
+    "current": {
+      "x": 59.654,
+      "y": 300.845,
+      "rotation": 0.009
+    },
+    "lastPlacement": "great",
+    "feedbackId": 3,
+    "feedbackRatio": 0,
+    "drops": [
+      {
+        "tick": 90,
+        "sequence": 0,
+        "fraction": 0
+      },
+      {
+        "tick": 210,
+        "sequence": 1,
+        "fraction": 0
+      },
+      {
+        "tick": 575,
+        "sequence": 2,
+        "fraction": 0
+      },
+      {
+        "tick": 683,
+        "sequence": 3,
+        "fraction": 0
+      }
+    ]
+  }
+}

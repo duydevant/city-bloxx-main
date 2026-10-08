@@ -20,7 +20,8 @@ function miss(game: QuickTowerGame) {
   until(game,()=>{
     const s=game.getSnapshot(), index=s.floors.length-1
     const top=index>=0?s.floors[index].x+floorSway(s,index):0
-    return s.phase==="swing" && Math.abs(s.current.x-top)>180
+    // Reachable with the shorter cable, but well beyond the 40% miss boundary.
+    return s.phase==="swing" && Math.abs(s.current.x-top)>115
   })
   const id=game.getSnapshot().feedbackId
   game.drop(1);until(game,()=>game.getSnapshot().feedbackId>id)

@@ -1,6 +1,6 @@
 # City Bloxx — checklist rà soát dự án
 
-Cập nhật 07/10/2026. Phân biệt **code/kiểm thử đã xong** với **nghiệm thu sản phẩm/phát hành**. Web và Playable đang dùng chung Quick Tower + Build City; không có nghĩa đã hoàn tất toàn bộ roadmap.
+Cập nhật 08/10/2026. Phân biệt **code/kiểm thử đã xong** với **nghiệm thu sản phẩm/phát hành**. Web và Playable đang dùng chung Quick Tower + Build City; không có nghĩa đã hoàn tất toàn bộ roadmap.
 
 ## Polish bổ sung mới nhất
 
@@ -15,8 +15,9 @@ Cập nhật 07/10/2026. Phân biệt **code/kiểm thử đã xong** với **ng
 ## 1. Luật mới để soát
 
 - [x] Nhà rộng 144, cao 120 world units, tỷ lệ 1,2:1; hitbox hẹp hơn 40% so với bản 240×120.
-- [x] Dây có tải dài nhất 229,8 (ngắn hơn 40% so với bản đầu), rút dần còn 165,5 ở tầng 50, cap 156,3 tại tầng 60. Dây rỗng chỉ 18 world units để móc sát puly; thay yêu cầu cũ tỷ lệ có tải/không tải 1,15.
-- [x] Tốc độ tăng nhẹ theo mốc 0–60 tầng; chu kỳ đầu 4,44 giây, tầng 10 là 4,21, tầng 50 là 2,81. Giảm gió nền để xây cao dễ kiểm soát hơn.
+- [x] Dây có tải ngắn thêm 10% so với 0.11: dài nhất 206,8, rút dần còn 148,9 ở tầng 50, cap 140,6 tại tầng 60. Dây rỗng vẫn chỉ 18 world units để móc sát puly; thay yêu cầu cũ tỷ lệ có tải/không tải 1,15.
+- [x] Chu kỳ rút thêm 10% ở mọi tầng so với 0.12: đầu 3,60 giây, tầng 20 là 3,09, tầng 30 là 2,76, tầng 50 là 2,27. Áp dụng cả Standard/Assist; tăng tốc từ từ theo mốc 0–60. City đang xây dở giữ chuyển động cũ đến hết lượt.
+- [x] Miss chạm tầng trên thì nảy/trượt khỏi mép; lệch ≥100% bỏ qua tầng không chạm và xét các tầng dưới theo đường rơi. Có va cạnh, sway và va đất, vòng lóe/bụi; chỉ mất một mạng mỗi lần thả. Miss mái diễn hoạt ảnh trước kết quả; checkpoint 0.7–0.12 giữ luật cũ, checkpoint mới khôi phục cả trạng thái va chạm.
 - [x] Tim vector đầy/rỗng cho số mạng, favicon vector và bộ 3 prompt PNG có bbox/đường dẫn: `City_Bloxx_UI_Art_Prompts_v4.0.md`.
 - [ ] Gen/import favicon PNG + hai PNG tim theo v4 nếu muốn thay bộ vector hiện tại.
 - [x] Perfect khớp 95–100%, tức lệch ≤5% bề rộng (≤7,2 world units).

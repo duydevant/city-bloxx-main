@@ -1,7 +1,7 @@
-export const PHYSICS_VERSION = "physics-0.11.0";
-export const RULESET_VERSION = "quick-tower-0.11.0";
-export const ASSIST_RULESET_VERSION = "quick-tower-assist-0.11.0";
-export const CITY_RULESET_VERSION = "build-city-5";
+export const PHYSICS_VERSION = "physics-0.13.0";
+export const RULESET_VERSION = "quick-tower-0.13.0";
+export const ASSIST_RULESET_VERSION = "quick-tower-assist-0.13.0";
+export const CITY_RULESET_VERSION = "build-city-7";
 export const CITY_RATING_VERSION = "city-rating-1";
 export const RATING_VERSION = "quick-rating-1";
 export const SAVE_VERSION = 3;
@@ -34,8 +34,10 @@ export const QUICK_TOWER_RULES = Object.freeze({
   inputDebounceTicks: 8,
   cameraTopY: 820,
   worldWidth: 840,
-  // 40% shorter than the previous 383-unit cable, loaded or unloaded.
+  // Nominal v0.11 maximum; current loaded length applies loadedCableScale below.
   pendulumLength: 229.8,
+  loadedCableScale: 0.9,
+  swingCycleScale: 0.81,
   emptyCableLength: 18,
   retractTicks: 18,
   cablePivotY: 80,
@@ -68,7 +70,7 @@ export const HEIGHT_DIFFICULTY = Object.freeze([
   [0,.72,1,0], [2,.72,1,0], [10,.76,.95,1], [20,.84,.90,2.5],
   [30,.94,.84,4], [40,1.04,.78,5.5], [50,1.14,.72,7], [60,1.22,.68,8],
 ] as const);
-export function getQuickDifficulty(height: number, assist = false, legacyMotion = false): QuickDifficulty {
+export function getQuickDifficulty(height: number, assist = false, legacyMotion = false, motionVersion?: 11 | 12): QuickDifficulty {
   if (!legacyMotion) {
     const h = Math.max(0,Number.isFinite(height)?height:0);
     const upper = HEIGHT_DIFFICULTY.findIndex(point=>point[0]>=h);
@@ -76,10 +78,10 @@ export function getQuickDifficulty(height: number, assist = false, legacyMotion 
     const a = HEIGHT_DIFFICULTY[Math.max(0,(upper<0?HEIGHT_DIFFICULTY.length-1:upper)-1)];
     const t = a===b?0:Math.min(1,(h-a[0])/(b[0]-a[0]));
     const speed = a[1]+(b[1]-a[1])*t, ratio = a[2]+(b[2]-a[2])*t;
-    const cableLength = QUICK_TOWER_RULES.pendulumLength*ratio;
+    const cableLength = QUICK_TOWER_RULES.pendulumLength*ratio*(motionVersion===11?1:QUICK_TOWER_RULES.loadedCableScale);
     const strength = assist?QUICK_TOWER_RULES.assistDifficultyStrength:1;
     return {
-      speedMultiplier:(.72+(speed-.72)*strength)/(assist?QUICK_TOWER_RULES.assistSwingMultiplier:1),
+      speedMultiplier:(.72+(speed-.72)*strength)/(assist?QUICK_TOWER_RULES.assistSwingMultiplier:1)/(motionVersion===11?1:motionVersion===12?.9:QUICK_TOWER_RULES.swingCycleScale),
       // A shorter cable needs a narrower arc; never let horizontal travel exceed cable length.
       amplitude:cableLength*.8, cableLength, emptyCableLength:QUICK_TOWER_RULES.emptyCableLength,
       baselineSway:(a[3]+(b[3]-a[3])*t)*strength,

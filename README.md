@@ -15,7 +15,7 @@ npm.cmd run dev:playable
 
 Web: `/play` trên cổng Next mặc định 3000. Playable: URL Vite in ra, thông thường 5173. Preview ngoài YouTube dùng mock SDK/localStorage.
 
-Docker Web: cấu hình ở `.env` thư mục gốc, chạy `docker compose up -d --build web`, mặc định `http://localhost:3080/play`. Xem [DOCKER_WEB](DOCKER_WEB.md) để đổi port/domain và phân biệt cấu hình build/runtime.
+Docker Web: cấu hình ở `.env` thư mục gốc, chạy `docker compose up -d --build web`, mặc định `http://localhost:56789/play`. Xem [DOCKER_WEB](DOCKER_WEB.md) để deploy lên máy chủ, đổi port/domain và phân biệt cấu hình build/runtime.
 
 ```powershell
 npm.cmd test

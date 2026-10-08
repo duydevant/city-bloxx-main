@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { floorSway, getQuickDifficulty, QuickTowerGame, QUICK_TOWER_RULES as R, restoreTower, checkpointTower } from "../../../packages/city-bloxx-core/src/index"
 import pendingV10 from "../../../packages/city-bloxx-core/fixtures/city-pending-v10.json"
+import pendingV11 from "../../../packages/city-bloxx-core/fixtures/city-pending-v11.json"
+import pendingV12 from "../../../packages/city-bloxx-core/fixtures/city-pending-v12.json"
 
 function advanceUntil(g: QuickTowerGame, check: () => boolean) {
   for(let tick=0;tick<3000;tick++) { if(check()) return; g.advanceTicks(1) }
@@ -46,14 +48,18 @@ describe("height difficulty ramp",()=>{
   })
   it("keeps ten floors gentle, progresses to sixty, and never stretches past the cable",()=>{
     expect(getQuickDifficulty(10).speedMultiplier/getQuickDifficulty(0).speedMultiplier).toBeLessThan(1.06)
-    expect(getQuickDifficulty(50).speedMultiplier).toBeLessThan(getQuickDifficulty(10,false,true).speedMultiplier)
+    for(const height of [0,10,20,40,50,60])for(const assist of [false,true]) {
+      const now=getQuickDifficulty(height,assist),before=getQuickDifficulty(height,assist,false,12)
+      expect(now.cableLength).toBe(before.cableLength)
+      expect(before.speedMultiplier/now.speedMultiplier).toBeCloseTo(.9,8)
+    }
     for(let floor=0;floor<=100;floor++) {
       const current=getQuickDifficulty(floor),next=getQuickDifficulty(floor+1)
       expect(current.cableLength).toBeLessThanOrEqual(R.pendulumLength)
       expect(current.amplitude).toBeLessThan(current.cableLength)
       expect(next.cableLength).toBeLessThanOrEqual(current.cableLength)
       expect(next.speedMultiplier).toBeGreaterThanOrEqual(current.speedMultiplier)
-      expect(next.speedMultiplier-current.speedMultiplier).toBeLessThanOrEqual(.01001)
+      expect(next.speedMultiplier-current.speedMultiplier).toBeLessThanOrEqual(.01235)
     }
   })
   it("restores the recorded v0.10 City fall exactly and retains old motion on the next save",()=>{
@@ -69,5 +75,19 @@ describe("height difficulty ramp",()=>{
       expect(assist.amplitude).toBeLessThanOrEqual(standard.amplitude)
       expect(assist.baselineSway).toBeLessThanOrEqual(standard.baselineSway)
     }
+  })
+  it("preserves a v0.11 pending fall through migration and resave",()=>{
+    const game=restoreTower(pendingV11.checkpoint),snapshot=game.getSnapshot()
+    expect(game.config.motionVersion).toBe(11)
+    for(const field of ["current","floors","camera","lives","population","phase","tick","difficulty"] as const)expect(snapshot[field]).toEqual(pendingV11.snapshot[field])
+    expect(restoreTower(checkpointTower(game)).getSnapshot()).toEqual(snapshot)
+  })
+  it("preserves a v0.12 pending fall, including subsequent misses, through resave",()=>{
+    const game=restoreTower(pendingV12.checkpoint),snapshot=game.getSnapshot()
+    expect(game.config.motionVersion).toBe(12)
+    for(const field of ["current","floors","camera","lives","population","phase","tick","difficulty"] as const)expect(snapshot[field]).toEqual(pendingV12.snapshot[field])
+    const resumed=restoreTower(checkpointTower(game))
+    game.advanceTicks(200);resumed.advanceTicks(200)
+    expect(resumed.getSnapshot()).toEqual(game.getSnapshot())
   })
 })

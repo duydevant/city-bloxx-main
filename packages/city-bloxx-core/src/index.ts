@@ -5,4 +5,5 @@ export * from "./save";
 export * from "./ports";
 export * from "./buildings";
 export * from "./checkpoint";
+export * from "./collision";
 export * from "./city";

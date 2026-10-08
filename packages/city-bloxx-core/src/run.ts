@@ -1,9 +1,10 @@
 import { ASSIST_RULESET_VERSION, CITY_RATING_VERSION, CITY_RULESET_VERSION, getQuickDifficulty, PHYSICS_VERSION, QUALITY_POPULATION_FACTORS, QUICK_RATING_RULES as Rating, QUICK_TOWER_RULES as R, RATING_VERSION, RULESET_VERSION, type QuickDifficulty } from "./rules";
 import { BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
+import { sweepTower } from "./collision";
 
 export type PlacementQuality = "perfect" | "great" | "good" | "risky" | "miss";
 export type RunPhase = "preparing" | "swing" | "falling" | "settling" | "miss" | "ended";
-export interface RunConfig { seed: number; mode: "quick" | "city"; assist: boolean; building?: BuildingId; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean }
+export interface RunConfig { seed: number; mode: "quick" | "city"; assist: boolean; building?: BuildingId; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
 export interface DropInput { tick: number; sequence: number; fraction: number }
 export type DropEvent = DropInput;
 export interface PlacedFloor { x: number; quality: Exclude<PlacementQuality, "miss">; population: number; error: number }
@@ -23,6 +24,7 @@ export interface QuickTowerSnapshot {
   floors: readonly PlacedFloor[];
   building: BuildingId; targetFloors: number; isRoof: boolean; roof: PlacedFloor | null;
   current: { x: number; y: number; rotation: number };
+  impact?: { tick: number; x: number; y: number; floorIndex: number; normalX: number; normalY: number } | null;
   lastPlacement: PlacementQuality | null; feedbackId: number; feedbackRatio: number;
   drops: readonly DropInput[];
 }
@@ -72,6 +74,11 @@ export class QuickTowerGame {
   private previousFloorCount = 0;
   private fallSpeed = 0;
   private missTicks = 0;
+  private missAge = 0;
+  private missVelocityX = 0;
+  private missGroundTick = -1;
+  private lastContactFloor: number | null = null;
+  private impact: NonNullable<QuickTowerSnapshot["impact"]> | null = null;
   private transitionTicks = 0;
   private cameraX = 0;
   private cameraY = 0;
@@ -94,6 +101,7 @@ export class QuickTowerGame {
     if (value.legacyOverlap !== undefined && (value.mode !== "city" || typeof value.legacyOverlap !== "boolean")) throw new Error("Invalid legacy overlap rules");
     if (value.legacyScoring !== undefined && (value.mode !== "city" || typeof value.legacyScoring !== "boolean")) throw new Error("Invalid legacy scoring rules");
     if (value.legacyMotion !== undefined && (value.mode !== "city" || typeof value.legacyMotion !== "boolean")) throw new Error("Invalid legacy motion rules");
+    if (value.motionVersion !== undefined && (value.mode !== "city" || ![11,12].includes(value.motionVersion))) throw new Error("Invalid motion version");
     this.config = Object.freeze({ ...value, seed: value.seed | 0 });
     this.phaseOffset = seedPhase(this.config.seed);
     this.swingPhase = (this.phaseOffset % R.swingPeriodTicks) * 1000;
@@ -136,7 +144,7 @@ export class QuickTowerGame {
   }
   getSnapshot(): QuickTowerSnapshot {
     return {
-      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
+      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
       seed: this.config.seed, assist: this.config.assist, tick: this.tickCount, phase: this.phase,
       lives: this.lives, population: this.population, perfectCount: this.perfectCount,
       streak: this.streak, bestStreak: this.bestStreak, comboLevel: this.comboLevel,
@@ -149,6 +157,7 @@ export class QuickTowerGame {
       targetFloors: this.config.mode === "city" ? BUILDINGS[this.config.building!].floors : 0,
       isRoof: this.isRoof(), roof: this.roof ? { ...this.roof } : null,
       current: { x: this.currentX, y: this.currentY, rotation: this.currentRotation },
+      impact: this.impact ? {...this.impact} : null,
       lastPlacement: this.lastPlacement, feedbackId: this.feedbackId, feedbackRatio: this.feedbackTicks / R.feedbackTicks,
       drops: this.drops.map(d => ({ ...d })),
     };
@@ -171,6 +180,7 @@ export class QuickTowerGame {
     if (this.phase === "ended") return;
     this.previousCurrent = { x: this.currentX, y: this.currentY, rotation: this.currentRotation };
     this.previousPhase = this.phase; this.previousFloorCount = this.floors.length;
+    const previousSway = this.swayOffset();
     this.tickCount++;
     const difficulty = this.difficulty();
     // Integrate phase instead of changing tick % period: height changes cannot jump the pendulum.
@@ -195,12 +205,18 @@ export class QuickTowerGame {
       }
       return;
     }
+    if (this.phase === "miss" && !this.legacyMiss()) {
+      this.advanceMiss(previousSway); return;
+    }
     this.fallSpeed = q(Math.min(R.maxFallSpeed, this.fallSpeed + R.gravityPerTick));
     this.currentY = q(this.currentY + this.fallSpeed);
     if (this.phase === "falling") {
       this.currentRotation = q(this.currentRotation * .985);
       const surfaceY = R.groundY - this.floors.length * R.floorHeight;
-      if (this.currentY + R.floorHeight >= surfaceY) this.resolveLanding(surfaceY - R.floorHeight);
+      if (this.currentY + R.floorHeight >= surfaceY) {
+        this.resolveLanding(surfaceY - R.floorHeight);
+        if (this.getPhase() === "miss" && !this.legacyMiss()) this.resolveMissContact(previousSway);
+      }
     } else {
       this.currentRotation = q(this.currentRotation + .06);
       if (--this.missTicks <= 0) { if (this.lives <= 0) this.phase = "ended"; else this.spawnFloor(); }
@@ -271,11 +287,56 @@ export class QuickTowerGame {
   private registerMiss(): void {
     this.lives--; this.streak = 0; this.comboLevel = 0; this.comboTicks = 0;
     this.lastPlacement = "miss"; this.feedbackId++; this.feedbackTicks = R.feedbackTicks;
-    if (this.isRoof()) { this.phase = "ended"; return; }
+    if (this.isRoof() && this.legacyMiss()) { this.phase = "ended"; return; }
     this.phase = "miss"; this.missTicks = R.missTicks;
+    this.missAge = 0; this.missVelocityX = 0; this.missGroundTick = -1;
+    this.lastContactFloor = null;
+  }
+  private legacyMiss(): boolean {
+    return !!(this.config.legacyMotion || this.config.legacyScoring || this.config.legacyOverlap || this.config.legacyPerfect || this.config.motionVersion);
+  }
+  private resolveMissContact(previousSway: number): void {
+    const hit = sweepTower(this.previousCurrent,{x:this.currentX,y:this.currentY},this.floors,previousSway,this.swayOffset());
+    if (!hit) return;
+    const fresh = this.lastContactFloor !== hit.floorIndex;
+    if (fresh) this.impact = {tick:this.tickCount,x:q(hit.x),y:q(hit.y),floorIndex:hit.floorIndex,normalX:hit.normalX,normalY:hit.normalY};
+    this.lastContactFloor = hit.floorIndex;
+    if (hit.floorIndex === -1) {
+      this.currentY = R.groundY-R.floorHeight; this.fallSpeed = 0; this.missVelocityX = 0;
+      if (this.missGroundTick < 0) this.missGroundTick = this.tickCount;
+      return;
+    }
+    const direction = hit.normalX || Math.sign(this.currentX-hit.floorX) || 1;
+    this.missVelocityX = direction*6;
+    if (hit.normalY < 0) {
+      this.currentY = R.groundY-(hit.floorIndex+2)*R.floorHeight;
+      this.fallSpeed = fresh ? -4 : 0;
+    } else if (hit.normalY > 0) {
+      this.currentY = R.groundY-hit.floorIndex*R.floorHeight;
+      this.fallSpeed = Math.max(0,this.fallSpeed);
+    } else {
+      this.currentX = q(hit.floorX+hit.normalX*(R.floorWidth+.01));
+    }
+  }
+  private advanceMiss(previousSway: number): void {
+    this.missAge++; this.missTicks--;
+    if (this.missGroundTick < 0) {
+      this.fallSpeed = q(Math.min(R.maxFallSpeed,this.fallSpeed+R.gravityPerTick));
+      this.currentX = q(this.currentX+this.missVelocityX);
+      this.currentY = q(this.currentY+this.fallSpeed);
+      this.resolveMissContact(previousSway);
+      const direction = Math.sign(this.missVelocityX) || Math.sign(this.currentX-this.craneX) || 1;
+      this.currentRotation = q(clamp(this.currentRotation+direction*.025,-.28,.28));
+    }
+    const belowView = this.currentY+this.cameraY>R.worldHeight+R.floorHeight;
+    const onGround = this.missGroundTick>=0 && this.tickCount-this.missGroundTick>=12;
+    if (this.missTicks<=0 && (belowView || onGround || this.missAge>=180)) {
+      if (this.lives<=0 || this.isRoof()) this.phase="ended";
+      else this.spawnFloor();
+    }
   }
   private isRoof(): boolean { return this.config.mode === "city" && this.floors.length >= BUILDINGS[this.config.building!].floors; }
-  private spawnFloor(): void { this.phase = "preparing"; this.transitionTicks = R.prepareTicks; this.fallSpeed = 0; this.updateSwing(); }
+  private spawnFloor(): void { this.phase = "preparing"; this.transitionTicks = R.prepareTicks; this.fallSpeed = 0; this.impact = null; this.updateSwing(); }
   private updateCamera(): void {
     const top = this.floors.length ? this.floors[this.floors.length - 1].x : 0;
     this.craneX = q(this.craneX + clamp(top - this.craneX, -R.cameraSpeed, R.cameraSpeed));
@@ -284,7 +345,7 @@ export class QuickTowerGame {
     this.cameraX = q(this.cameraX + clamp(targetX - this.cameraX, -R.cameraSpeed, R.cameraSpeed));
     this.cameraY = q(this.cameraY + clamp(targetY - this.cameraY, -R.cameraSpeed, R.cameraSpeed));
   }
-  private difficulty(): QuickDifficulty { return getQuickDifficulty(this.floors.length,this.config.assist,!!(this.config.legacyMotion||this.config.legacyScoring||this.config.legacyOverlap||this.config.legacyPerfect)); }
+  private difficulty(): QuickDifficulty { return getQuickDifficulty(this.floors.length,this.config.assist,!!(this.config.legacyMotion||this.config.legacyScoring||this.config.legacyOverlap||this.config.legacyPerfect),this.config.motionVersion); }
   private swayAmplitude(): number { return this.sway + this.difficulty().baselineSway; }
   private swayOffset(): number { return this.floors.length ? q(wave(this.swayPhase / 1000, R.swayPeriodTicks) * this.swayAmplitude() + this.swayBias) : 0; }
 }
