@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { acceptCityTower, allocateRun, beginCityTower, BUILDINGS, checkpointTower, emptySave, initializeTracking, isSettled, makeSummary, migrateSave, perfectRate, pinReplay, prepareSave, QuickTowerGame, restoreTower, saveByteSize, SAVE_BUDGET_BYTES, settleRun, updateCityCheckpoint, type GameSave, type RunConfig, type RunRecord } from "../../../packages/city-bloxx-core/src/index"
+import { acceptCityTower, allocateRun, beginCityTower, BUILDINGS, cancelCityTower, checkpointTower, emptySave, initializeTracking, isSettled, makeSummary, migrateSave, perfectRate, pinReplay, prepareSave, QuickTowerGame, restoreTower, runXP, saveByteSize, SAVE_BUDGET_BYTES, settleRun, updateCityCheckpoint, type GameSave, type RunConfig, type RunRecord } from "../../../packages/city-bloxx-core/src/index"
 import golden from "../../../packages/city-bloxx-core/fixtures/quick-mixed-v13.json"
 import legacy10 from "../../../packages/city-bloxx-core/fixtures/city-pending-v10.json"
 import legacy11 from "../../../packages/city-bloxx-core/fixtures/city-pending-v11.json"
@@ -43,6 +43,9 @@ describe("C4.0 save and tracking", () => {
     expect(settleRun(loaded, summary)).toBe(loaded)
     expect(loaded.runs).toBe(1); expect(loaded.stats.totals.attempts).toBe(1)
     expect(loaded.history).toHaveLength(1)
+    expect(loaded.progression.xp).toBe(runXP(summary))
+    expect(loaded.progression.masteryXP.residential).toBe(runXP(summary))
+    expect(loaded.history[0].xpEarned).toBe(runXP(summary))
     expect(loaded.stats.totals.scoredBody).toBe(summary.metrics!.errorCount)
     expect(perfectRate(loaded.stats.totals)).toBeCloseTo(summary.metrics!.body.perfect / summary.metrics!.errorCount * 100, 1)
   })
@@ -55,6 +58,7 @@ describe("C4.0 save and tracking", () => {
     expect(perfectRate(save.stats.totals)).toBeNull()
     expect(save.stats.totals.abandoned).toBe(1)
     expect(save.standardQuickBest).toBe(0); expect(save.runs).toBe(0)
+    expect(save.progression.xp).toBe(0)
   })
   it("keeps settlement receipts after pruning more than 50 summaries", () => {
     const game = fixtureGame(); let save = initial()
@@ -68,6 +72,7 @@ describe("C4.0 save and tracking", () => {
     expect(save.history).toHaveLength(50)
     expect(save.tracking.settled).toEqual([[1, 70]])
     expect(save.stats.totals.attempts).toBe(70)
+    expect(save.progression.xp).toBe(70 * runXP(first!))
     expect(settleRun(save, first!)).toBe(save)
     expect(saveByteSize(prepareSave(save))).toBeLessThan(SAVE_BUDGET_BYTES)
     expect(migrateSave(copy(save)).stats).toEqual(save.stats)
@@ -101,10 +106,12 @@ describe("C4.0 save and tracking", () => {
     let save = settleRun(allocation.save, makeSummary(city, allocation.context, 2000))
     expect(save.stats.byClass.residential.completed).toBe(1); expect(save.city.stats.builds).toBe(0)
     expect(save.stats.totals.roof.perfect).toBe(1); expect(save.stats.totals.scoredBody).toBe(9)
+    expect(save.progression.xp).toBe(9 * 7 + 50)
     save = { ...save, city: acceptCityTower(save.city, save.city.pending!.runId), tracking: { ...save.tracking, pendingCity: null } }
     expect(migrateSave(copy(save)).stats.totals.attempts).toBe(1)
     expect(save.city.stats.builds).toBe(1); expect(save.standardQuickBest).toBe(0)
     expect(settleRun(save, makeSummary(city, allocation.context, 2000))).toBe(save)
+    expect(save.progression.xp).toBe(113)
   })
   it("counts a roof Miss once without polluting body Miss/Perfect rate", () => {
     const city = new QuickTowerGame({ seed: 42, mode: "city", assist: false, building: "residential" })
@@ -113,6 +120,36 @@ describe("C4.0 save and tracking", () => {
     expect(city.getPhase()).toBe("ended")
     expect(city.getMetrics().body.miss).toBe(0); expect(city.getMetrics().roof).toBe("miss")
     expect(city.getResult().misses).toBe(1)
+    const allocation = allocateRun(initial(), 1000)
+    expect(settleRun(allocation.save, makeSummary(city, allocation.context, 2000)).progression.xp).toBe(113)
+  })
+  it("retains City skill rewards when keeping the old building or cancelling a rebuild", () => {
+    const game = new QuickTowerGame({ seed: 42, mode: "city", assist: false, building: "residential" })
+    for (let i = 0; i <= 10; i++) placeAccurately(game, .02)
+    let save = initial()
+    save.city = updateCityCheckpoint(beginCityTower(save.city, 12, "residential", 42), game)
+    save.city = acceptCityTower(save.city, save.city.pending!.runId)
+    const old = copy(save.city.lots[12])
+    save.city = updateCityCheckpoint(beginCityTower(save.city, 12, "residential", 42), game)
+    const q = allocateRun(save, 1000), summary = makeSummary(game, q.context, 2000)
+    save = settleRun(q.save, summary)
+    save.city = cancelCityTower(save.city)
+    expect(save.city.lots[12]).toEqual(old); expect(save.progression.xp).toBe(113)
+    expect(settleRun(migrateSave(copy(save)), summary).progression.xp).toBe(113)
+    const partial = new QuickTowerGame({ seed: 42, mode: "city", assist: false, building: "residential" })
+    placeAccurately(partial, .02); placeAccurately(partial, .02)
+    const next = allocateRun(save, 3000)
+    save = settleRun(next.save, makeSummary(partial, next.context, 4000, "abandoned"))
+    expect(save.progression.xp).toBe(120); expect(save.stats.totals.completed).toBe(1)
+  })
+  it("derives XP from resolved metrics, refuses overflow and never rewards unknown legacy records", () => {
+    const game = fixtureGame(), q = allocateRun(initial(), 1000), summary = makeSummary(game, q.context, 2000)
+    summary.xpEarned = 999999
+    expect(settleRun(q.save, summary).progression.xp).toBe(runXP(summary))
+    expect(settleRun(q.save, { ...summary, metrics: null }).progression.xp).toBe(0)
+    q.save.progression.xp = Number.MAX_SAFE_INTEGER
+    expect(() => settleRun(q.save, summary)).toThrow("Reward bounds")
+    expect(q.save.history).toHaveLength(0)
   })
   it("keeps Standard and Assist totals/PB separate", () => {
     let save = initial()

@@ -34,7 +34,7 @@ const bundle=esbuild.buildSync({entryPoints:[path.join(root,"packages/city-bloxx
 const sceneBundle=esbuild.buildSync({entryPoints:[path.join(root,"packages/city-bloxx-renderer/src/session.ts")],bundle:true,platform:"browser",format:"iife",globalName:"CityScene",write:false}).outputFiles[0].text;
 const rendererBundle=esbuild.buildSync({entryPoints:[path.join(root,"packages/city-bloxx-renderer/src/index.ts")],bundle:true,platform:"browser",format:"iife",globalName:"CityRender",write:false}).outputFiles[0].text;
 const botBundle=esbuild.buildSync({entryPoints:[path.join(root,"base-game-nextjs/modules/city-bloxx/test-simulation.ts")],bundle:true,platform:"browser",format:"iife",globalName:"TestBot",write:false}).outputFiles[0].text;
-function initScript(kind,storageMode="normal") {
+function initScript(kind,storageMode="normal",rawOverride) {
   const initial={schema:2,standardQuickBest:0,assistQuickBest:0,runs:0,lastReplay:fixture};
   return `
     window.__frameCount=0;window.__frames=new Map();window.__rafId=0;
@@ -44,13 +44,14 @@ function initScript(kind,storageMode="normal") {
     Date.now=()=>42;
     ${bundle}
     window.__fixture=${JSON.stringify(fixture)};
-    ${storageMode === "preserve" ? "" : `localStorage.setItem(${JSON.stringify(kind==="web"?"city-bloxx.quick-save.v2":"city_bloxx_save_v1")},${JSON.stringify(JSON.stringify(kind==="web"?initial:{v:1,d:initial}))});`}
+    window.__storageGet=Storage.prototype.getItem;window.__storageSet=Storage.prototype.setItem;
+    ${rawOverride !== undefined ? `localStorage.setItem(${JSON.stringify(kind==="web"?"city-bloxx.quick-save.v2":"city_bloxx_save_v1")},${JSON.stringify(rawOverride)});` : storageMode === "preserve" ? "" : `localStorage.setItem(${JSON.stringify(kind==="web"?"city-bloxx.quick-save.v2":"city_bloxx_save_v1")},${JSON.stringify(JSON.stringify(kind==="web"?initial:{v:1,d:initial}))});`}
     ${storageMode==="read-failure"?'Storage.prototype.getItem=()=>{throw new Error("simulated read failure")};':""}
     ${storageMode==="write-failure"?'Storage.prototype.setItem=()=>{throw new Error("simulated write failure")};':""}
   `;
 }
-async function navigate(kind,url,storageMode="normal") {
-  const script=await send("Page.addScriptToEvaluateOnNewDocument",{source:initScript(kind,storageMode)});
+async function navigate(kind,url,storageMode="normal",rawOverride) {
+  const script=await send("Page.addScriptToEvaluateOnNewDocument",{source:initScript(kind,storageMode,rawOverride)});
   await send("Page.navigate",{url});
   await waitFor('document.querySelector(".cb-panel h2")?.textContent === "Quick Tower"');
   await evaluate("for(let i=0;i<4;i++)window.__step()");
@@ -90,7 +91,13 @@ async function screenshot(name) {
 }
 async function trackingSmoke(kind,url,key) {
   const read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
-  const before=await read();assert.equal(before.schema,4);assert.equal(before.stats.totals.attempts,1);
+  const before=await read();assert.equal(before.schema,4);assert.equal(before.stats.totals.attempts,2);
+  assert.equal(before.stats.totals.abandoned,1);assert.equal(before.runs,1);
+  assert.equal(before.progression.xp,before.history.reduce((sum,h)=>sum+(h.xpEarned||0),0));
+  fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-after-settlement.json`),JSON.stringify(before,null,2));
+  const payload=JSON.stringify(before),envelope=JSON.stringify({v:1,d:before});
+  const bytes={utf8:Buffer.byteLength(payload),utf16:payload.length*2,envelopeUtf8:Buffer.byteLength(envelope),envelopeUtf16:envelope.length*2};
+  assert(Math.max(...Object.values(bytes))<=256*1024);
   assert.equal(before.stats.totals.quality.miss,3);
   assert.equal(before.stats.totals.scoredBody,fixture.result.height-1+fixture.result.misses);
   await click("Statistics");await panelLayoutSmoke(kind,"statistics-overview-en");
@@ -113,7 +120,35 @@ async function trackingSmoke(kind,url,key) {
   assert.equal(await evaluate('document.querySelector("[data-motion]").getAttribute("aria-pressed")'),"true");
   assert.deepEqual((await read()).stats,before.stats);
   await click("Sound off");await click("Reduced motion");await delay(40);
-  return {schema:4,history:"details/filter/pin/reload EN/VI",statistics:"overview/skill/class; foundation and roof excluded",settings:"mute/motion restored",rewards:"replay/read screens do not settle runs"};
+  return {schema:4,bytes,history:"details/filter/pin/reload EN/VI",statistics:"overview/skill/class; foundation and roof excluded",settings:"mute/motion restored",rewards:"replay/read screens do not settle runs"};
+}
+async function recoverySmoke(kind,url,key) {
+  await navigate(kind,url,"read-failure");
+  const legacy=await evaluate(`JSON.stringify({schema:3,standardQuickBest:88,assistQuickBest:22,runs:10,city:CityBloxx.emptySave().city})`);
+  const encoded=kind==="web"?legacy:JSON.stringify({v:1,d:JSON.parse(legacy)});
+  await evaluate(`window.__storageSet.call(localStorage,${JSON.stringify(key)},${JSON.stringify(encoded)})`);
+  await click("Recover saved progress");await click("Retry load");
+  await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Quick Tower"');
+  assert.equal(await evaluate(`window.__storageGet.call(localStorage,${JSON.stringify(key)})`),encoded);
+  await click("Play Standard");await evaluate("window.__step()");await click("Pause");await click("Home");
+  assert.equal(await evaluate(`window.__storageGet.call(localStorage,${JSON.stringify(key)})`),encoded);
+  await evaluate('Storage.prototype.getItem=window.__storageGet');
+  await click("Recover saved progress");await panelLayoutSmoke(kind,"recovery-en");
+  await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"recovery-vi");await switchLanguage(kind,"en");
+  await click("Retry load");await waitFor('document.querySelector("[data-best]").textContent==="88"');await delay(50);
+  const recovered=await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(key)}))`),value=kind==="web"?recovered:recovered.d;
+  assert.equal(value.schema,4);assert.equal(value.standardQuickBest,88);assert.equal(value.runs,10);assert.equal(value.stats.totals.attempts,0);
+  fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-before-migration.json`),legacy);
+  fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-after-migration.json`),JSON.stringify(value,null,2));
+  for(const broken of ["{corrupt",JSON.stringify(kind==="web"?{schema:999}:{v:1,d:{schema:999}})]) {
+    // Inject at the next document's boot, after the old session's pagehide flush.
+    await navigate(kind,url,"preserve",broken);
+    assert((await evaluate('document.querySelector(".cb-notice").textContent')).includes("without saving"));
+    await click("Recover saved progress");await click("Retry load");
+    await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Quick Tower"');
+    assert.equal(await evaluate(`localStorage.getItem(${JSON.stringify(key)})`),broken);
+  }
+  return {failedRead:"raw preserved during retry and unsaved play",retry:"saved PB/counters restored",corrupt:"raw JSON and unknown schema preserved",ui:"recovery EN/VI mobile"};
 }
 async function driveCity(record,startTick=0,endTick=record.endTick) {
   await evaluate(`{window.__step();const arena=document.querySelector('.cb-arena');const record=${JSON.stringify(record)};
@@ -329,12 +364,14 @@ async function citySmoke(kind,url,key) {
   await switchLanguage(kind,"en");await waitFor('document.querySelector(".cb-game").lang==="en"');
   saved=await readCity();assert(saved.city.pending);assert.equal(saved.city.lots[12],null);
   const quickBest=saved.standardQuickBest;
+  const finishedXP=saved.progression.xp,finishedStats=saved.stats;
   await navigate(kind,url,"preserve");await click("Build City");await click("Resume tower");
   await waitFor('document.querySelector(".cb-panel h2")?.textContent.includes("City tower complete")');
   await click("Accept building");await delay(50);
   saved=await readCity();assert.equal(saved.city.pending,null);assert.equal(saved.city.lots[12].floors,10);
   assert(saved.city.unlocked.includes("industrial"));assert.equal(saved.city.stats.builds,1);
   assert.equal(saved.standardQuickBest,quickBest);
+  assert.equal(saved.progression.xp,finishedXP);assert.deepEqual(saved.stats,finishedStats);
   const population=saved.city.lots[12].population;
   await screenshot(`${kind}-city-populated`);
   await evaluate('document.querySelector(".cb-panel").scrollTop=document.querySelector(".cb-panel").scrollHeight');
@@ -342,6 +379,12 @@ async function citySmoke(kind,url,key) {
   await click("Rebuild selected lot");await waitFor('document.querySelector(".cb-panel").hidden');
   await click("Pause");await click("City map");await click("Cancel pending tower");await click("Confirm cancel");await delay(50);
   saved=await readCity();assert.equal(saved.city.pending,null);assert.equal(saved.city.lots[12].population,population);
+  assert.equal(saved.progression.xp,finishedXP);
+  await click("Rebuild selected lot");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(planned.record);
+  const rebuilt=await readCity();assert(rebuilt.progression.xp>finishedXP);
+  await click("Keep old building");await delay(50);
+  saved=await readCity();assert.equal(saved.city.lots[12].population,population);assert.equal(saved.progression.xp,rebuilt.progression.xp);
+  assert.deepEqual(saved.stats,rebuilt.stats);assert.equal(saved.city.stats.builds,1);
   await click("Demolish");await click("Confirm demolition");await delay(50);
   saved=await readCity();assert.equal(saved.city.lots[12],null);assert(saved.city.unlocked.includes("industrial"));
   await click("Home");
@@ -459,6 +502,8 @@ async function main() {
     assert(replayText.includes("Replay complete")&&replayText.includes(String(fixture.result.population)));
     const afterReplay=await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(key)}))`);
     assert.equal((kind==="web"?afterReplay:afterReplay.d).runs,1);
+    assert.deepEqual((kind==="web"?afterReplay:afterReplay.d).stats,saved.stats);
+    assert.deepEqual((kind==="web"?afterReplay:afterReplay.d).progression,saved.progression);
     await click("Home");
     const tracking=await trackingSmoke(kind,url,key);
     const assistRecord=await evaluate(`(()=>{const g=new CityBloxx.QuickTowerGame({seed:42,mode:'quick',assist:true});for(let i=0;i<5000&&g.getPhase()!=='ended';i++){const s=g.getSnapshot(),x=s.floors.length?s.floors[s.floors.length-1].x:0;if(s.phase==='swing'&&Math.abs(s.current.x-x)>115)g.drop(0);g.advanceTicks(1);}return g.getRecord();})()`);
@@ -526,6 +571,7 @@ async function main() {
     await click("Back");
     await navigate(kind,url,"read-failure");
     assert((await evaluate('document.querySelector(".cb-notice").textContent')).includes("without saving"));
+    const recovery=await recoverySmoke(kind,url,key);
     await navigate(kind,url,"write-failure");await recordedRun(false,fastRecord);
     assert((await evaluate('document.querySelector(".cb-notice").textContent')).includes("Save failed"));
     // Exercise the shared score/lifecycle ports independently of the preview SDK.
@@ -558,7 +604,7 @@ async function main() {
     await evaluate('window.__testSession.dispose()');
     assert.equal(await evaluate('window.__frames.size'),0);
     if(kind==="web")await siteI18nSmoke();
-    report.push({platform:kind,tracking,feedback,population,language:"EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",combo:"hidden for foundation, visible after scored Perfect",renderTimingCaveat:"Headless CPU submission only, not GPU/frame presentation or real-phone FPS",goldenBrowserResult:fixture.result,portrait:390,landscape:900,retries:30,heapGrowthBytes:heapAfter-heapBefore,storageFaults:"read/write verified",input:"double pointer and held key verified",replay:"pause/restart/result verified",city:"25 lots, locked tiers, two-floor reload/resume, roof, accept, rebuild/cancel and demolition verified",scoreGuard:"standard only; Assist/replay/City excluded",lifecycle:"host pause/resume/dispose stops RAF"});
+    report.push({platform:kind,tracking,recovery,feedback,population,language:"EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",combo:"hidden for foundation, visible after scored Perfect",renderTimingCaveat:"Headless CPU submission only, not GPU/frame presentation or real-phone FPS",goldenBrowserResult:fixture.result,portrait:390,landscape:900,retries:30,heapGrowthBytes:heapAfter-heapBefore,storageFaults:"read/write/recovery/corrupted raw verified",input:"double pointer and held key verified",replay:"pause/restart/result and XP/stat idempotency verified",city:"25 lots, locked tiers, two-floor reload/resume, roof, accept, rebuild/keep-old/cancel and demolition; XP/stat idempotency verified",scoreGuard:"standard only; Assist/replay/City excluded",lifecycle:"host pause/resume/dispose stops RAF"});
   }
   report[0].realTimeRender=await realFrameSmoke();
   assert.deepEqual(errors,[]);

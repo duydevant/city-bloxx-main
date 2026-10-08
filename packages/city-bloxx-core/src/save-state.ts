@@ -3,7 +3,7 @@ import { validateRecord, verifyRecord } from "./replay";
 import { emptyCity, validateCity, type CitySave } from "./city";
 import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { QUALITIES, type RunMetrics } from "./metrics";
-import { applySummary, emptyStats, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { applySummary, emptyStats, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
@@ -57,7 +57,8 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
     typeof s.assist === "boolean" && !(s.mode === "city" && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
     ["ended", "abandoned"].includes(s.outcome) && s.complete === (s.mode === "city" && s.outcome === "ended" && s.result.height === BUILDINGS[s.building].floors) &&
-    s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus);
+    s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
+    (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion));
 }
 function validTotals(t: StatTotals): boolean {
   return !!t && [t.attempts, t.abandoned, t.landedBody, t.scoredBody, t.population, t.bestHeight, t.bestStreak, t.completed, t.maxCombo, t.errorCount].every(integer) &&
@@ -181,13 +182,16 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   const quickEnded = summary.mode === "quick" && summary.outcome === "ended";
   const ranked = quickEnded && !summary.assist;
   const nextBest = ranked && summary.result.population > save.standardQuickBest;
+  const xpEarned = runXP(summary);
+  if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
   const next: GameSave = { ...save,
     standardQuickBest: ranked ? Math.max(save.standardQuickBest, summary.result.population) : save.standardQuickBest,
     assistQuickBest: quickEnded && summary.assist ? Math.max(save.assistQuickBest, summary.result.population) : save.assistQuickBest,
     runs: save.runs + Number(quickEnded),
     stats: { ...save.stats, totals: applySummary(save.stats.totals, summary), byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
       byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) } },
-    history: [copy(summary), ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
+    history: [{ ...copy(summary), xpEarned, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
+    progression: { ...save.progression, xp: save.progression.xp + xpEarned, masteryXP: { ...save.progression.masteryXP, [summary.building]: save.progression.masteryXP[summary.building] + xpEarned } },
     tracking: { ...save.tracking, settled: receiptRanges(save.tracking.settled, summary.identity.sequence),
       activeQuick: save.tracking.activeQuick?.identity.id === summary.identity.id ? null : save.tracking.activeQuick } };
   if (record && quickEnded && record.inputs.length <= 4096 && record.endTick <= 432000) {

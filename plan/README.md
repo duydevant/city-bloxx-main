@@ -15,7 +15,7 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi
 | Tài liệu | Dependency | Trạng thái |
 |---|---|---|
 | [00 — Project audit](00-project-audit.md) | Code/GDD hiện tại | Audit snapshot |
-| [01 — C4.0 Save, stats, history](01-C4.0-save-stats-history.md) | C0–C3 hiện tại | In progress — chưa đạt DoD |
+| [01 — C4.0 Save, stats, history](01-C4.0-save-stats-history.md) | C0–C3 hiện tại | Implemented — hoàn thành triển khai |
 | [02 — C4.1 Daily Tower](02-C4.1-daily-tower.md) | C4.0 | Planned |
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Planned |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Planned |
@@ -30,7 +30,7 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
 | [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 08/10/2026 | Audit snapshot |
 
-Chưa có phase nâng cấp 01–11 nào đủ điều kiện đánh dấu hoàn thành. Code C4.0 được lưu bằng commit WIP `wip(c4.0): checkpoint save tracking and shared statistics`: 131/131 tests, lint, asset checks, Web production build và Playable package qua; browser smoke còn lỗi assertion và một số hợp đồng/kiểm tra còn thiếu. Commit code không đổi trạng thái C4.0 khỏi In progress. Các phase C4.1 trở đi vẫn Planned; các tính năng shell/adapter có sẵn không chứng minh đã hoàn thành W0/Y0–Y2.
+C4.0 đã hoàn thành triển khai: 139/139 unit tests, lint, asset/boundary checks, hai production build/package, save evidence và Chrome headless smoke Web/Playable đều qua. Đã bổ sung recovery load, serial immutable writes, XP settlement idempotent và catalog EN/VI. [Evidence C4.0](evidence/C4.0-validation.json) ghi kết quả và kích thước save. Actual SDK/điện thoại thật và release vẫn thuộc các gate tương ứng; các phase C4.1 trở đi giữ Planned.
 
 ## Các quyết định đã chốt
 

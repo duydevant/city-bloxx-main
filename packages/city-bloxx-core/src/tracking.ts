@@ -1,6 +1,7 @@
 import { BUILDING_IDS, BUILDINGS, type BuildingId } from "./buildings";
 import { emptyQualities, type QualityCounts, type RunMetrics } from "./metrics";
 import type { QuickTowerGame, RunConfig, RunResult } from "./run";
+import { SETTLEMENT_REWARDS } from "../../city-bloxx-content/settlement";
 
 export type StatsGroup = "quick-standard" | "quick-assist" | "city";
 export interface RunIdentity { id: string; installationId: string; sequence: number }
@@ -11,6 +12,7 @@ export interface RunSummary extends RunContext {
   result: RunResult; metrics: RunMetrics | null;
   outcome: "ended" | "abandoned"; complete: boolean;
   verification: "local"; replayStatus: "available" | "pruned" | "unsupported" | "not-recorded";
+  xpEarned?: number; rewardVersion?: string;
 }
 export interface StatTotals {
   attempts: number; abandoned: number; landedBody: number; scoredBody: number;
@@ -56,3 +58,10 @@ export function applySummary(totals: StatTotals, summary: RunSummary): StatTotal
 export function perfectRate(totals: StatTotals): number | null {
   return totals.scoredBody ? Math.round(totals.quality.perfect / totals.scoredBody * 1000) / 10 : null;
 }
+export function runXP(summary: RunSummary): number {
+  if (!summary.metrics) return 0; // Never invent body rewards for legacy unknown data.
+  const body = summary.metrics.body;
+  return (body.perfect + body.great + body.good + body.risky) * SETTLEMENT_REWARDS.landedBody +
+    body.perfect * SETTLEMENT_REWARDS.perfectBody + Number(summary.complete) * SETTLEMENT_REWARDS.finiteCompletion;
+}
+export const RUN_REWARD_VERSION = SETTLEMENT_REWARDS.version;

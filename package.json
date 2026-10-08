@@ -9,6 +9,7 @@
     "assets:check": "node scripts/check-game-assets.cjs",
     "test": "npm --prefix base-game-nextjs test",
     "test:browser": "node scripts/browser-smoke.cjs",
+    "test:save": "node scripts/c4-save-evidence.cjs",
     "lint": "npm --prefix base-game-nextjs run lint",
     "build:web": "npm run assets:check && npm --prefix base-game-nextjs run build",
     "build:playable": "npm run assets:check && npm --prefix base-playable-main run package",

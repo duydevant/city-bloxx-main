@@ -4,6 +4,10 @@ Cập nhật 08/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## C4.0 — hoàn thành triển khai 08/10/2026
+
+Save schema 4, stable run identity/sequence receipts, lifetime stats/history/replay pin, settings, base run XP settlement, recovery load và serial immutable save writes đã xong. Shared EN/VI catalog/menu dùng cho Web và Playable. 139/139 unit tests, lint/assets/boundaries, hai production builds, save evidence và Chrome smoke cả hai shell đều qua. Save mẫu 70 runs còn 50 summaries, giữ pending City v12/receipts/2.590 XP; envelope UTF-16 95.102 bytes dưới budget 256 KiB. Phase ở mức Implemented; Daily/missions/levels/cosmetics, server verification và actual-host/device/release gates vẫn riêng. Chi tiết: [C4.0](plan/01-C4.0-save-stats-history.md), [evidence](plan/evidence/C4.0-validation.json).
+
 ## Tuning mới — dây thu theo tầng, độ khó tới 50 tầng và icon UI
 
 Lượt mới dùng physics/Quick `0.13.0`, City `build-city-7`. Chu kỳ một vòng ngắn thêm 10% so với 0.12 ở mọi tầng, cả Standard và Assist (còn 81% chu kỳ của 0.11). Dây giữ kích thước 0.12: dài nhất 206,82, rút dần theo số tầng đã đặt. Móc rỗng thu về mắt dây cách puly 18 world units sau 18 ticks (~0,3 giây). Cung ngang bằng 80% chiều dài dây để không vượt bán kính. Pha dao động tích phân liên tục, không nhảy khi tăng tầng.
