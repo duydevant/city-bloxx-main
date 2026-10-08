@@ -1,6 +1,6 @@
 # City Bloxx — kế hoạch nâng cấp sau core
 
-Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả công việc tương lai, không xác nhận các phase đã được triển khai.
+Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
 
 ## Đọc từ đâu?
 
@@ -15,7 +15,7 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả công việc tương 
 | Tài liệu | Dependency | Trạng thái |
 |---|---|---|
 | [00 — Project audit](00-project-audit.md) | Code/GDD hiện tại | Audit snapshot |
-| [01 — C4.0 Save, stats, history](01-C4.0-save-stats-history.md) | C0–C3 hiện tại | Planned |
+| [01 — C4.0 Save, stats, history](01-C4.0-save-stats-history.md) | C0–C3 hiện tại | In progress — chưa đạt DoD |
 | [02 — C4.1 Daily Tower](02-C4.1-daily-tower.md) | C4.0 | Planned |
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Planned |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Planned |
@@ -28,6 +28,9 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả công việc tương 
 | [11 — C7 Weekly, modes, LiveOps](11-C7-weekly-modes-liveops.md) | C5/C6 + vận hành ổn định | Planned |
 | [12 — Art requirements](12-art-requirements.md) | Theo phase tương ứng | Planned |
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
+| [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 08/10/2026 | Audit snapshot |
+
+Chưa có phase nâng cấp 01–11 nào đủ điều kiện đánh dấu hoàn thành. C4.0 có implementation trong working tree: 131/131 tests, lint, asset checks, Web production build và Playable package qua; browser smoke còn lỗi assertion và một số hợp đồng/kiểm tra còn thiếu. Code C4.0 chưa được commit thành phase hoàn tất. Các phase C4.1 trở đi vẫn Planned; các tính năng shell/adapter có sẵn không chứng minh đã hoàn thành W0/Y0–Y2.
 
 ## Các quyết định đã chốt
 
