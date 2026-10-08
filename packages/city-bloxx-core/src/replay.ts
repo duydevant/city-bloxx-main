@@ -31,6 +31,7 @@ export class QuickTowerReplay {
   getInterpolationAlpha(): number { return this.accumulator; }
   getPreviousRenderSnapshot(snapshot?: QuickTowerSnapshot): QuickTowerSnapshot { return this.run.getPreviousRenderSnapshot(snapshot); }
   getResult() { return this.run.getResult(); }
+  getMetrics() { return this.run.getMetrics(); }
   update(seconds: number): void {
     if (this.paused || !Number.isFinite(seconds)) return;
     this.accumulator += Math.max(0, Math.min(.1, seconds)) * 60;

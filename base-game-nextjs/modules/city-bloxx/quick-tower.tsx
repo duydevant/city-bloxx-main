@@ -37,6 +37,8 @@ export function QuickTower() {
       assets: "/game", save: createLocalSave(), audio: createTowerAudio(),
       seed: () => Date.now() & 0x7fffffff, locale: localeRef.current,
       showLanguageSwitch: false,
+      capabilities: { platform: "web", externalServices: true, standardScore: false },
+      tracking: { installationId: () => [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2,"0")).join(""), now: () => Date.now() },
       onLocaleChange: next => setLocale(next === "vi" ? "vi" : "en"),
     })
     sessionRef.current = session

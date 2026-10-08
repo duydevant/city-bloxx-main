@@ -88,6 +88,33 @@ async function screenshot(name) {
   const result=await send("Page.captureScreenshot",{format:"png"});
   fs.writeFileSync(path.join(reportDir,name+".png"),Buffer.from(result.data,"base64"));
 }
+async function trackingSmoke(kind,url,key) {
+  const read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
+  const before=await read();assert.equal(before.schema,4);assert.equal(before.stats.totals.attempts,1);
+  assert.equal(before.stats.totals.quality.miss,3);
+  assert.equal(before.stats.totals.scoredBody,fixture.result.height-1+fixture.result.misses);
+  await click("Statistics");await panelLayoutSmoke(kind,"statistics-overview-en");
+  await click("Next");await panelLayoutSmoke(kind,"statistics-skill-en");
+  assert((await evaluate('document.querySelector(".cb-panel").innerText')).includes("Perfect rate"));
+  await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"statistics-skill-vi");
+  assert((await evaluate('document.querySelector(".cb-panel").innerText')).includes("Tỷ lệ Perfect"));
+  await switchLanguage(kind,"en");await click("Next");await panelLayoutSmoke(kind,"statistics-class-en");
+  await click("History");await panelLayoutSmoke(kind,"history-en");
+  await evaluate('document.querySelector("[data-history-id]").click()');
+  await click("Drop quality");await panelLayoutSmoke(kind,"history-quality-en");
+  assert((await evaluate('document.querySelector(".cb-panel").innerText')).includes("Foundation · unscored"));
+  await click("Pin replay");assert.equal((await read()).replayRefs.pinned,(await read()).history[0].identity.id);
+  await click("Back");await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"history-vi");
+  await switchLanguage(kind,"en");await click("Home");
+  await click("Sound on");await click("Reduced motion");await delay(40);
+  assert.equal((await read()).settings.muted,true);assert.equal((await read()).settings.reducedMotion,true);
+  await navigate(kind,url,"preserve");
+  assert.equal(await evaluate('document.querySelector("[data-sound]").getAttribute("aria-pressed")'),"true");
+  assert.equal(await evaluate('document.querySelector("[data-motion]").getAttribute("aria-pressed")'),"true");
+  assert.deepEqual((await read()).stats,before.stats);
+  await click("Sound off");await click("Reduced motion");await delay(40);
+  return {schema:4,history:"details/filter/pin/reload EN/VI",statistics:"overview/skill/class; foundation and roof excluded",settings:"mute/motion restored",rewards:"replay/read screens do not settle runs"};
+}
 async function driveCity(record,startTick=0,endTick=record.endTick) {
   await evaluate(`{window.__step();const arena=document.querySelector('.cb-arena');const record=${JSON.stringify(record)};
     let index=record.inputs.findIndex(d=>d.tick>=${startTick});if(index<0)index=record.inputs.length;
@@ -287,7 +314,7 @@ async function citySmoke(kind,url,key) {
   await click("Build selected lot");await waitFor('document.querySelector(".cb-panel").hidden');
   await driveCity(planned.record,0,planned.stopTick);
   const readCity=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"};})()`);
-  let saved=await readCity();assert.equal(saved.schema,3);
+  let saved=await readCity();assert.equal(saved.schema,4);
   assert.equal(saved.city.pending.checkpoint.tick,planned.stopTick);
   assert.equal(await evaluate(`CityBloxx.restoreTower(${JSON.stringify(saved.city.pending.checkpoint)}).getSnapshot().floors.length`),2);
   await screenshot(`${kind}-city-checkpoint`);
@@ -397,7 +424,7 @@ async function main() {
   // Offline preview uses the template mock SDK; certification runs against the real SDK separately.
   await send("Network.setBlockedURLs",{urls:["https://www.youtube.com/game_api/*"]});
   const report=[];
-  for(const [kind,url] of [["web","http://127.0.0.1:3010/play"],["playable","http://127.0.0.1:4173/"]]){
+  for(const [kind,url] of [["web","http://127.0.0.1:3010/play"],["playable",process.env.CITY_BLOXX_PLAYABLE_SMOKE_URL||"http://127.0.0.1:4173/"]]){
     console.log(`Testing ${kind}`);
     await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await navigate(kind,url);
@@ -433,6 +460,7 @@ async function main() {
     const afterReplay=await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(key)}))`);
     assert.equal((kind==="web"?afterReplay:afterReplay.d).runs,1);
     await click("Home");
+    const tracking=await trackingSmoke(kind,url,key);
     const assistRecord=await evaluate(`(()=>{const g=new CityBloxx.QuickTowerGame({seed:42,mode:'quick',assist:true});for(let i=0;i<5000&&g.getPhase()!=='ended';i++){const s=g.getSnapshot(),x=s.floors.length?s.floors[s.floors.length-1].x:0;if(s.phase==='swing'&&Math.abs(s.current.x-x)>115)g.drop(0);g.advanceTicks(1);}return g.getRecord();})()`);
     const assistText=await recordedRun(true,assistRecord);assert(assistText.includes("Assist · unranked"));
     const afterAssist=await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(key)}))`);
@@ -530,7 +558,7 @@ async function main() {
     await evaluate('window.__testSession.dispose()');
     assert.equal(await evaluate('window.__frames.size'),0);
     if(kind==="web")await siteI18nSmoke();
-    report.push({platform:kind,feedback,population,language:"EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",combo:"hidden for foundation, visible after scored Perfect",renderTimingCaveat:"Headless CPU submission only, not GPU/frame presentation or real-phone FPS",goldenBrowserResult:fixture.result,portrait:390,landscape:900,retries:30,heapGrowthBytes:heapAfter-heapBefore,storageFaults:"read/write verified",input:"double pointer and held key verified",replay:"pause/restart/result verified",city:"25 lots, locked tiers, two-floor reload/resume, roof, accept, rebuild/cancel and demolition verified",scoreGuard:"standard only; Assist/replay/City excluded",lifecycle:"host pause/resume/dispose stops RAF"});
+    report.push({platform:kind,tracking,feedback,population,language:"EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",combo:"hidden for foundation, visible after scored Perfect",renderTimingCaveat:"Headless CPU submission only, not GPU/frame presentation or real-phone FPS",goldenBrowserResult:fixture.result,portrait:390,landscape:900,retries:30,heapGrowthBytes:heapAfter-heapBefore,storageFaults:"read/write verified",input:"double pointer and held key verified",replay:"pause/restart/result verified",city:"25 lots, locked tiers, two-floor reload/resume, roof, accept, rebuild/cancel and demolition verified",scoreGuard:"standard only; Assist/replay/City excluded",lifecycle:"host pause/resume/dispose stops RAF"});
   }
   report[0].realTimeRender=await realFrameSmoke();
   assert.deepEqual(errors,[]);

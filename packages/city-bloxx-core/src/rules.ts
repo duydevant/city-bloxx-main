@@ -4,7 +4,7 @@ export const ASSIST_RULESET_VERSION = "quick-tower-assist-0.13.0";
 export const CITY_RULESET_VERSION = "build-city-7";
 export const CITY_RATING_VERSION = "city-rating-1";
 export const RATING_VERSION = "quick-rating-1";
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export const QUICK_TOWER_RULES = Object.freeze({
   tickRate: 60,

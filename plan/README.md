@@ -30,7 +30,7 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
 | [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 08/10/2026 | Audit snapshot |
 
-Chưa có phase nâng cấp 01–11 nào đủ điều kiện đánh dấu hoàn thành. C4.0 có implementation trong working tree: 131/131 tests, lint, asset checks, Web production build và Playable package qua; browser smoke còn lỗi assertion và một số hợp đồng/kiểm tra còn thiếu. Code C4.0 chưa được commit thành phase hoàn tất. Các phase C4.1 trở đi vẫn Planned; các tính năng shell/adapter có sẵn không chứng minh đã hoàn thành W0/Y0–Y2.
+Chưa có phase nâng cấp 01–11 nào đủ điều kiện đánh dấu hoàn thành. Code C4.0 được lưu bằng commit WIP `wip(c4.0): checkpoint save tracking and shared statistics`: 131/131 tests, lint, asset checks, Web production build và Playable package qua; browser smoke còn lỗi assertion và một số hợp đồng/kiểm tra còn thiếu. Commit code không đổi trạng thái C4.0 khỏi In progress. Các phase C4.1 trở đi vẫn Planned; các tính năng shell/adapter có sẵn không chứng minh đã hoàn thành W0/Y0–Y2.
 
 ## Các quyết định đã chốt
 

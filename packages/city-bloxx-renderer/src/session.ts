@@ -1,11 +1,13 @@
-import { acceptCityTower, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, commitRun, demolishCityBuilding, emptySave, placementStatus, QuickTowerGame, QuickTowerReplay, restoreTower, updateCityCheckpoint, type AudioPort, type BuildingId, type GameSave, type LifecyclePort, type RunRecord, type SavePort, type ScorePort } from "../../city-bloxx-core/src/index";
+import { acceptCityTower, allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, migrateSave, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type TrackingPort } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
+import { createDataScreens } from "./data-screens";
 
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
   audio: AudioPort; seed: () => number; locale?: string; onLocaleChange?: (locale:string) => void;
   showLanguageSwitch?: boolean;
+  capabilities?: Capabilities; tracking?: TrackingPort;
 }
 export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
@@ -21,6 +23,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let storageWritable = true;
   let save = emptySave();
   let saveQueue = Promise.resolve();
+  let saveTimer = 0;
+  let runContext: RunContext | null = null;
+  const now = () => options.tracking?.now() ?? Date.now();
+  const installationId = () => options.tracking?.installationId() ?? [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2,"0")).join("");
   let run: QuickTowerGame | null = null;
   let replay: QuickTowerReplay | null = null;
   let finishedRecord: RunRecord | null = null;
@@ -89,7 +95,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     b.addEventListener("click", action); return b;
   }
   function showPanel(title: string, body: string, actions: HTMLButtonElement[]): void {
-    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel");
+    dataScreens.clear();
+    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
@@ -106,12 +113,54 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     panel.querySelector(".cb-actions")!.before(grid);
   }
   function persist(): void {
-    if (!storageWritable) return;
-    const value = JSON.parse(JSON.stringify(save)) as GameSave;
+    if (!storageWritable || !ready || saveTimer) return;
+    // Serialization runs in a separate task, never inside the drop/RAF call stack.
+    saveTimer = window.setTimeout(flushSave, 0);
+  }
+  function flushSave(): void {
+    window.clearTimeout(saveTimer); saveTimer = 0;
+    if (!storageWritable || !ready) return;
+    let value: GameSave;
+    try { value = prepareSave(save); save = { ...value }; }
+    catch { message(t("Save exceeds its budget. Your previous saved progress is preserved.", "Save vượt giới hạn. Tiến trình đã lưu trước đó được giữ nguyên.")); return; }
     saveQueue = saveQueue.then(async () => {
       try { if (!await options.save.save(value)) message(t("Save failed. Your result is kept for this session; retry saving.", "Lưu thất bại. Kết quả vẫn còn trong phiên này; bấm lưu lại.")); }
       catch { message(t("Save failed; retry saving.", "Lưu thất bại; bấm lưu lại.")); }
     });
+  }
+  const dataScreens = createDataScreens({ panel, save: () => save, t, className, showPanel, showStats, button, home,
+    replay: record => { dataScreens.clear(); void startReplay(record); },
+    pin: id => { save = pinReplay(save, id); persist(); } });
+  function openData(history = false): void {
+    checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
+    cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
+    if (history) dataScreens.history(); else dataScreens.statistics();
+  }
+  function ensurePendingContext(startedAt = 0): void {
+    const pending = save.city.pending;
+    if (!pending || save.tracking.pendingCity?.cityRunId === pending.runId) return;
+    const allocated = allocateRun(save, startedAt); save = allocated.save;
+    save = { ...save, tracking: { ...save.tracking, pendingCity: { ...allocated.context, cityRunId: pending.runId } } };
+  }
+  function settleCurrent(): void {
+    if (!run || !runContext || isSettled(save, runContext.identity) || run.getPhase() !== "ended") return;
+    const summary = makeSummary(run, runContext, now());
+    if (run.config.mode === "quick") finishedRecord = run.getRecord();
+    save = settleRun(save, summary, run.config.mode === "quick" ? finishedRecord! : undefined); persist();
+  }
+  function abandonQuick(): void {
+    if (!run || cityActive || replay || !runContext) return;
+    if (run.getPhase() === "ended") settleCurrent();
+    else if (!isSettled(save, runContext.identity)) { save = settleRun(save, makeSummary(run, runContext, now(), "abandoned")); persist(); }
+    runContext = null;
+  }
+  function discardPendingCity(): void {
+    const pending = save.city.pending; if (!pending) return;
+    ensurePendingContext();
+    const game = cityActive && run ? run : restoreTower(pending.checkpoint), context = save.tracking.pendingCity!;
+    save = settleRun(save, makeSummary(game, context, now(), game.getPhase() === "ended" ? "ended" : "abandoned"));
+    save = { ...save, city: cancelCityTower(save.city), tracking: { ...save.tracking, pendingCity: null } };
+    runContext = null; cityActive = false; persist();
   }
   const idleSnapshot = new QuickTowerGame(1).getSnapshot();
   function current() { return replay?.getSnapshot() ?? run?.getSnapshot() ?? idleSnapshot; }
@@ -146,7 +195,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function schedule(): void { if (!disposed && !raf && !userPaused && !hostPaused && (run || replay) && ((replay?.getPhase() ?? run?.getPhase()) !== "ended" || celebrating)) raf = requestAnimationFrame(frame); }
   async function start(assist = false): Promise<void> {
     mapView=false;
-    checkpointCity(); cityActive = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
     cancelFrame(); replay = null; finishedRecord = null;
     run = null;pauseButton.disabled=true;
     renderer.resetEffects(); celebrating = false;
@@ -154,13 +203,15 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     // Lazy assets still load only after Play, but decoding never competes with a moving crane.
     await renderer.loadPopulation("residential");if(disposed)return;
     run = new QuickTowerGame({ seed: options.seed(), mode: "quick", assist });
+    const allocated = allocateRun(save, now()); save = allocated.save; runContext = allocated.context;
+    save = { ...save, tracking: { ...save.tracking, activeQuick: { ...runContext, progress: makeSummary(run, runContext, now(), "abandoned") } } }; persist();
     lastFeedback = 0; userPaused = false;
     panel.hidden = true; pauseButton.textContent = t("Pause", "Tạm dừng"); arena.focus(); paint();
     syncPause(); schedule();
   }
   async function startReplay(record: RunRecord): Promise<void> {
     mapView=false;
-    checkpointCity(); cityActive = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
     try { replay = new QuickTowerReplay(record); } catch { message(t("Replay is incompatible.", "Replay không tương thích.")); return; }
     cancelFrame(); run = null; userPaused = false; lastFeedback = 0;
     renderer.resetEffects(); celebrating = false;
@@ -171,20 +222,22 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   function home(): void {
     mapView=false;
-    checkpointCity(); cityActive = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
     cancelFrame(); run = null; replay = null; userPaused = false; paint();
     celebrating=false; renderer.resetEffects();
     const actions = [button(t("Play Standard", "Chơi tiêu chuẩn"), () => start()), button(t("Play Assist", "Chơi hỗ trợ"), () => start(true)), button(t("Build City", "Xây thành phố"), cityMap)];
     if (save.lastReplay) actions.push(button(t("Last replay", "Xem lượt trước"), () => startReplay(save.lastReplay!)));
     actions.push(button(t("Build City guide", "Hướng dẫn xây thành phố"), () => showGuide(0,home)));
+    actions.push(button(t("Statistics", "Thống kê"), () => openData()), button(t("History", "Lịch sử"), () => openData(true)));
     showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score.", "Xây tháp cao nhất có thể. Trượt ba lần sẽ kết thúc. Hỗ trợ đung đưa chậm hơn và có kỷ lục riêng."), actions);
   }
   function results(isReplay = false): void {
     if (cityActive && !isReplay) { cityResults(); return; }
     const result = isReplay ? replay!.getResult() : run!.getResult();
     if (!isReplay) {
-      finishedRecord = run!.getRecord(); save = commitRun(save, finishedRecord); persist();
-      if (result.ranked) void options.score?.submitStandardQuick(result.population).catch(() => message(t("Score submission failed.", "Gửi điểm thất bại.")));
+      const wasSettled = !!runContext && isSettled(save, runContext.identity);
+      settleCurrent();
+      if (!wasSettled && result.ranked && options.capabilities?.standardScore !== false) void options.score?.submitStandardQuick(result.population).catch(() => message(t("Score submission failed.", "Gửi điểm thất bại.")));
     }
     const record = isReplay ? replay!.record : finishedRecord;
     const actions = [button(t("Build again", "Xây lại"), () => start(!result.ranked))];
@@ -236,8 +289,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (run?.drop(run.getInterpolationAlpha())) checkpointCity();
   }
   function checkpointCity(): void {
-    if (!cityActive || !run || !save.city.pending) return;
-    save.city = updateCityCheckpoint(save.city, run); persist();
+    if (!ready || !run || replay) return;
+    if (cityActive && save.city.pending) {
+      save.city = updateCityCheckpoint(save.city, run);
+      if (run.getPhase() === "ended") settleCurrent();
+      persist();
+    } else if (runContext && !isSettled(save, runContext.identity) && run.getPhase() !== "ended") {
+      save = { ...save, tracking: { ...save.tracking, activeQuick: { ...runContext, progress: makeSummary(run, runContext, now(), "abandoned") } } }; persist();
+    }
   }
   function className(id: BuildingId): string {
     return ({ residential: t("Residential", "Nhà ở"), industrial: t("Industrial", "Công nghiệp"), office: t("Office", "Văn phòng"), highrise: t("High-rise", "Cao tầng") })[id];
@@ -258,13 +317,13 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   function cityMap(): void {
     mapView=true;
-    checkpointCity(); cancelFrame(); run = null; replay = null; cityActive = false; userPaused = false; paint();
+    checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; userPaused = false; paint();
     const city = save.city, status = placementStatus(city, selectedLot, selectedClass), old = city.lots[selectedLot];
     const summary = `${cityPopulation(city)} ${t("city population", "dân số thành phố")} · ${city.lots.filter(Boolean).length}/25 ${t("lots", "ô đất")}\n${t("Select a lot and class. Green highlights legal locations.", "Chọn ô và loại nhà. Màu xanh đánh dấu vị trí hợp lệ.")}`;
     const actions: HTMLButtonElement[] = [];
     if (city.pending) {
       actions.push(button(t("Resume tower", "Tiếp tục nhà đang xây"), () => { void resumeCity(); }), button(t("Cancel pending tower", "Hủy nhà đang xây"), () => {
-        showPanel(t("Cancel construction?", "Hủy công trình?"), t("The old building, if any, will be kept. Pending progress will be discarded.", "Nhà cũ vẫn được giữ. Tiến trình công trình mới sẽ bị bỏ."), [button(t("Confirm cancel", "Xác nhận hủy"), () => { save.city = cancelCityTower(save.city); persist(); cityMap(); }), button(t("Back", "Quay lại"), cityMap)]);
+        showPanel(t("Cancel construction?", "Hủy công trình?"), t("The old building, if any, will be kept. Pending progress will be discarded.", "Nhà cũ vẫn được giữ. Tiến trình công trình mới sẽ bị bỏ."), [button(t("Confirm cancel", "Xác nhận hủy"), () => { discardPendingCity(); cityMap(); }), button(t("Back", "Quay lại"), cityMap)]);
       }));
     } else {
       const build = button(old ? t("Rebuild selected lot", "Xây lại ô đã chọn") : t("Build selected lot", "Xây ô đã chọn"), () => { void beginSelectedCity(); });
@@ -318,7 +377,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     showPanel(t("Preparing construction", "Chuẩn bị xây"), t("Loading building artwork…", "Đang tải ảnh nhà…"), []);
     try { await renderer.loadBuilding(id); } catch { message(t("Building art unavailable; using colored fallback.", "Chưa tải được ảnh nhà; dùng hình màu dự phòng.")); }
     loadingCity = false; if (disposed) return;
-    save.city = beginCityTower(save.city, lot, id, options.seed()); persist();
+    save.city = beginCityTower(save.city, lot, id, options.seed()); ensurePendingContext(now()); persist();
     await resumeCity();
   }
   async function resumeCity(): Promise<void> {
@@ -326,6 +385,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     loadingCity = true;
     try { await renderer.loadBuilding(pending.classId); } catch { message(t("Using fallback building art.", "Đang dùng hình nhà dự phòng.")); }
     loadingCity = false; if (disposed || save.city.pending?.runId !== pending.runId) return;
+    ensurePendingContext(); runContext = save.tracking.pendingCity;
     cancelFrame(); run = restoreTower(pending.checkpoint); replay = null; cityActive = true;
     renderer.resetEffects(run.getSnapshot().feedbackId); celebrating=false;
     userPaused = false; lastFeedback = run.getSnapshot().feedbackId; panel.hidden = true;
@@ -339,8 +399,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const complete = result.height === BUILDINGS[pending.classId].floors;
     const body = `${className(pending.classId)}\n${s.roof ? t("Roof placed", "Đã đặt mái") : complete ? t("Body complete, roof missed", "Thân nhà hoàn thành, trượt mái") : t("Unfinished tower · no completion unlock", "Nhà dở · không nhận mở khóa")}\n${old ? `${t("Old building stays until you accept", "Nhà cũ giữ đến khi nhận kết quả")}: ${old.population}` : ""}`;
     const actions = [button(result.height ? t("Accept building", "Nhận tòa nhà") : t("Return to city", "Về thành phố"), () => {
-      save.city = acceptCityTower(save.city, pending.runId); cityActive = false; persist(); cityMap();
-    }), button(old ? t("Keep old building", "Giữ nhà cũ") : t("Discard tower", "Bỏ tòa nhà"), () => { save.city = cancelCityTower(save.city); cityActive = false; persist(); cityMap(); }), button(t("Retry save", "Lưu lại"), persist)];
+      save = { ...save, city: acceptCityTower(save.city, pending.runId), tracking: { ...save.tracking, pendingCity: null } }; cityActive = false; runContext = null; persist(); cityMap();
+    }), button(old ? t("Keep old building", "Giữ nhà cũ") : t("Discard tower", "Bỏ tòa nhà"), () => { discardPendingCity(); cityMap(); }), button(t("Retry save", "Lưu lại"), persist)];
     showPanel(`${t("City tower complete", "Kết quả nhà thành phố")} · ${result.rating}`, body, actions);
     showStats([[t("Population","Dân số"),String(result.population)],[t("Floors","Tầng"),`${result.height}/${BUILDINGS[pending.classId].floors}`],
       [t("Accuracy","Độ chính xác"),`${result.accuracy.toFixed(1)}%`],[t("Perfect","Hoàn hảo"),String(result.perfectCount)],
@@ -367,22 +427,24 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       const value=element.getAttribute(attr);if(value)element.setAttribute(attr,translate(value));
     }
     vi=next;root.lang=vi?"vi":"en";renderer.setLocale(locale);
+    save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } }; persist();
     // Pause and Paused share a Vietnamese translation; restore controls from state, not reverse text.
     pauseButton.textContent=userPaused?t("Resume","Tiếp tục"):t("Pause","Tạm dừng");
     el("[data-sound]").textContent=muted?t("Sound off","Tắt tiếng"):t("Sound on","Bật tiếng");
     el("[data-motion]").textContent=t("Reduced motion","Giảm chuyển động");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(dataScreens.isOpen())dataScreens.refresh();else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
   }
   const languageButton=root.querySelector("[data-language]");
   if(languageButton)listen(languageButton,"click",()=>{const locale=vi?"en":"vi";setLocale(locale);options.onLocaleChange?.(locale);});
-  listen(window, "pagehide", checkpointCity);
+  listen(window, "pagehide", () => { checkpointCity(); flushSave(); });
   listen(el("[data-sound]"), "click", () => {
     muted = !muted; if (muted) options.audio.suspend();
     el("[data-sound]").textContent = muted ? t("Sound off", "Tắt tiếng") : t("Sound on", "Bật tiếng");
     el("[data-sound]").setAttribute("aria-pressed", String(muted));
+    save = { ...save, settings: { ...save.settings, muted } }; persist();
   });
-  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); });
+  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); });
   if (options.lifecycle) {
     cleanups.push(options.lifecycle.onPause(() => { hostPaused = true; syncPause(); }), options.lifecycle.onResume(() => { hostPaused = false; syncPause(); }));
   } else listen(document, "visibilitychange", () => { hostPaused = document.hidden; syncPause(); });
@@ -396,15 +458,25 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
         options.save.load(),
         new Promise<GameSave>((_, reject) => { loadTimer = window.setTimeout(() => reject(new Error("Save load timeout")), 5000); }),
       ]);
+      save = initializeTracking(migrateSave(save), installationId(), now());
+      if (save.tracking.activeQuick?.progress) save = settleRun(save, save.tracking.activeQuick.progress);
+      ensurePendingContext();
     }
     catch { storageWritable = false; message(t("Save could not be read. Playing without saving to protect your old progress.", "Không đọc được save. Phiên này không ghi đè tiến trình cũ.")); }
     finally { window.clearTimeout(loadTimer); }
     await load;
     if (disposed) return;
-    ready = true; renderer.resize(arena.clientWidth, arena.clientHeight); home();
+    muted = save.settings.muted; reducedMotion = save.settings.reducedMotion ?? motionQuery.matches;
+    if (muted) options.audio.suspend();
+    el("[data-sound]").textContent = muted ? t("Sound off", "Tắt tiếng") : t("Sound on", "Bật tiếng");
+    el("[data-sound]").setAttribute("aria-pressed", String(muted));
+    el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion));
+    if (options.showLanguageSwitch !== false && save.settings.locale) setLocale(save.settings.locale);
+    save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } };
+    ready = true; renderer.resize(arena.clientWidth, arena.clientHeight); home(); persist();
   })();
   return { ready: readyPromise, setLocale, dispose() {
-    checkpointCity();
+    checkpointCity(); abandonQuick(); flushSave();
     disposed = true; cancelFrame(); abort.abort(); cleanups.forEach(fn => fn());
     options.audio.dispose(); root.replaceChildren();
   } };

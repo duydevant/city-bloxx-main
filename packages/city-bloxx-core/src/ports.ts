@@ -7,3 +7,4 @@ export interface ClockPort { seed(): number }
 export interface AssetPort { baseUrl: string }
 export interface AnalyticsPort { event(name: string, data?: Record<string, number | string>): void }
 export interface Capabilities { platform: "web" | "playable"; externalServices: boolean; standardScore: boolean }
+export interface TrackingPort { installationId(): string; now(): number }

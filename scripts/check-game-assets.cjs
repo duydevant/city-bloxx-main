@@ -20,7 +20,14 @@ for (const target of ["web", "playable"]) {
   console.log(`${target}: ${manifest.assets.length} approved assets, ${(bytes / 1048576).toFixed(2)} MiB`);
 }
 const core = path.join(root, "packages", "city-bloxx-core", "src");
-for (const file of fs.readdirSync(core).filter(f => f.endsWith(".ts"))) {
-  if (/\b(?:window|document|fetch|Date\.now|Math\.random)\b/.test(fs.readFileSync(path.join(core,file),"utf8"))) throw new Error(`Platform dependency in core: ${file}`);
+function sourceFiles(dir) {
+  return fs.readdirSync(dir, {withFileTypes:true}).flatMap(entry=>entry.isDirectory()?sourceFiles(path.join(dir,entry.name)):entry.name.endsWith(".ts")?[path.join(dir,entry.name)]:[]);
 }
+for (const file of sourceFiles(core)) {
+  if (/\b(?:window|document|fetch|Date\.now|Math\.random)\b/.test(fs.readFileSync(file,"utf8"))) throw new Error(`Platform dependency in core: ${path.relative(core,file)}`);
+}
+const esbuild = require("node:module").createRequire(path.join(root,"base-playable-main","package.json"))("esbuild");
+const graph = esbuild.buildSync({entryPoints:[path.join(root,"base-playable-main/src/game/index.ts")],bundle:true,platform:"browser",format:"esm",metafile:true,write:false,outdir:path.join(root,"tmp","boundary-check")}).metafile;
+if (Object.keys(graph.inputs).some(file=>/(?:^|[/\\])base-game-nextjs[/\\]|(?:^|[/\\])server[/\\]/.test(file))) throw new Error("Web/backend dependency leaked into Playable game");
 console.log("Shared core has no DOM, network or wall-clock dependency.");
+console.log("Playable game dependency graph excludes Web/backend modules.");

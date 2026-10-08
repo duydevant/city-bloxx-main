@@ -139,7 +139,7 @@ describe("C3 Build City",()=>{
   })
   it("migrates old Quick saves, falls back unknown skins and preserves corrupt city saves",()=>{
     const migrated=migrateSave({schema:2,standardQuickBest:88,runs:5})
-    expect(migrated.schema).toBe(3);expect(migrated.standardQuickBest).toBe(88)
+    expect(migrated.schema).toBe(4);expect(migrated.standardQuickBest).toBe(88)
     expect(migrated.city.lots).toHaveLength(25)
     const city=fixtureCity();(city.lots[7]! as {skin:string}).skin="unknown"
     expect(validateCity(city).lots[7]?.skin).toBe("default")

@@ -4,7 +4,7 @@
 
 ## Kết luận
 
-Chưa có phase nâng cấp C4.0–C7, Web W0/W1 hoặc Playable Y0–Y2 nào đạt đầy đủ DoD để đánh dấu hoàn thành và commit implementation thành phase hoàn tất. C4.0 đã có phần lớn nền code, nhưng phải giữ **In progress** vì còn các task và gate chưa qua. Commit audit chỉ gồm tài liệu; code đang làm được giữ nguyên, chưa stage/commit.
+Chưa có phase nâng cấp C4.0–C7, Web W0/W1 hoặc Playable Y0–Y2 nào đạt đầy đủ DoD để đánh dấu hoàn thành và commit implementation thành phase hoàn tất. C4.0 đã có phần lớn nền code, nhưng phải giữ **In progress** vì còn các task và gate chưa qua. Commit audit `00b33f2` chỉ gồm tài liệu. Sau yêu cầu commit code, 19 file implementation/test được lưu bằng commit WIP `wip(c4.0): checkpoint save tracking and shared statistics`; trạng thái phase và kết quả kiểm tra không đổi.
 
 | Phase/tài liệu | Trạng thái thực tế | Bằng chứng / phần còn thiếu |
 |---|---|---|

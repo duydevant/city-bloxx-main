@@ -102,11 +102,13 @@ describe("C0–C2 acceptance", () => {
     expect(Math.abs(s.swayOffset)).toBeGreaterThan(0)
     expect(floorSway(s,s.floors.length-1)).toBe(s.swayOffset)
   })
-  it("keeps only the last bounded replay across 30 completed runs", () => {
+  it("bounds the archive while retaining the latest and Standard PB replay across 30 completed runs", () => {
     const record=fixtureRun(); let save=emptySave()
     for(let i=0;i<30;i++) save=commitRun(save,record)
     expect(save.runs).toBe(30)
-    expect(JSON.stringify(save).length).toBeLessThan(16000)
+    expect(save.history).toHaveLength(30)
+    expect(save.replays.length).toBeLessThanOrEqual(3)
+    expect(JSON.stringify(save).length*2).toBeLessThan(256*1024)
     expect(save.lastReplay).toEqual(record)
   })
 })

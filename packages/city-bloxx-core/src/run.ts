@@ -1,6 +1,7 @@
 import { ASSIST_RULESET_VERSION, CITY_RATING_VERSION, CITY_RULESET_VERSION, getQuickDifficulty, PHYSICS_VERSION, QUALITY_POPULATION_FACTORS, QUICK_RATING_RULES as Rating, QUICK_TOWER_RULES as R, RATING_VERSION, RULESET_VERSION, type QuickDifficulty } from "./rules";
 import { BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { sweepTower } from "./collision";
+import { emptyMetrics, recordMetric, type RunMetrics } from "./metrics";
 
 export type PlacementQuality = "perfect" | "great" | "good" | "risky" | "miss";
 export type RunPhase = "preparing" | "swing" | "falling" | "settling" | "miss" | "ended";
@@ -91,6 +92,7 @@ export class QuickTowerGame {
   private readonly floors: PlacedFloor[] = [];
   private readonly drops: DropInput[] = [];
   private roof: PlacedFloor | null = null;
+  private readonly metrics = emptyMetrics();
   private readonly phaseOffset: number;
   private swingPhase = 0;
   private swayPhase = 0;
@@ -112,6 +114,7 @@ export class QuickTowerGame {
   setPaused(paused: boolean): void { this.paused = paused; }
   getTick(): number { return this.tickCount; }
   getPhase(): RunPhase { return this.phase; }
+  getMetrics(): RunMetrics { return { ...this.metrics, body: { ...this.metrics.body }, signedErrors: [...this.metrics.signedErrors] }; }
   getInterpolationAlpha(): number { return this.accumulator; }
   getPreviousRenderSnapshot(snapshot = this.getSnapshot()): QuickTowerSnapshot {
     if (this.previousFloorCount !== snapshot.floors.length) return snapshot;
@@ -236,6 +239,7 @@ export class QuickTowerGame {
       // Ground has no alignment target. Never snap to center or award a Perfect/combo.
       const population = this.config.mode === "city" ? BUILDINGS[this.config.building!].population : R.basePopulation;
       this.floors.push({ x:this.currentX, quality:"good", population, error:0 });
+      this.metrics.foundation = 1;
       this.population += population; this.currentY = targetY;
       this.lastPlacement = null; this.feedbackId++; this.feedbackTicks = 0;
       this.phase = "settling"; this.transitionTicks = R.landingHoldTicks; return;
@@ -244,11 +248,12 @@ export class QuickTowerGame {
     const offset = this.swayOffset();
     const targetX = previousX + offset * floorSwayWeight(this.floors.length - 1);
     const error = q(Math.abs(this.currentX - targetX));
+    const signedError = q((this.currentX - targetX) / R.floorWidth);
     // New runs miss AT 40% displacement; legacy pending City towers keep the old 18% overlap rule.
     const missed = this.config.legacyOverlap
       ? R.floorWidth - error < R.floorWidth * .18
       : error >= q(R.floorWidth * (1 - R.minimumOverlapRatio));
-    if (missed) { this.registerMiss(); return; }
+    if (missed) { recordMetric(this.metrics, "miss", signedError, this.isRoof()); this.registerMiss(); return; }
     const normalized = q(error / R.floorWidth);
     const threshold = this.config.legacyScoring && this.config.assist ? R.assistThresholdMultiplier : 1;
     // Compare raw error so 94.999% cannot round up into Perfect. Assist uses the same band.
@@ -259,6 +264,8 @@ export class QuickTowerGame {
     const greatMatch = this.config.legacyScoring ? normalized <= great * threshold : error <= q(R.floorWidth * great);
     const goodMatch = this.config.legacyScoring ? normalized <= good * threshold : error <= q(R.floorWidth * good);
     const quality = error <= perfectWindow ? "perfect" : greatMatch ? "great" : goodMatch ? "good" : "risky";
+    if (!this.floors.length) this.metrics.foundation = 1;
+    else recordMetric(this.metrics, quality, signedError, this.isRoof());
     const basePopulation = this.config.mode === "city" ? BUILDINGS[this.config.building!].population : R.basePopulation;
     const population = Math.max(1, Math.round(basePopulation * QUALITY_POPULATION_FACTORS[quality] * (this.comboTicks > 0 ? 1 + this.comboLevel * R.comboBonus : 1)));
     if (this.isRoof()) {
@@ -273,6 +280,7 @@ export class QuickTowerGame {
     if (quality === "perfect") {
       this.perfectCount++; this.streak++; this.bestStreak = Math.max(this.bestStreak, this.streak);
       this.comboLevel++; this.comboTicks = R.comboDurationTicks;
+      this.metrics.maxCombo = Math.max(this.metrics.maxCombo, this.comboLevel);
       this.sway = q(Math.max(0, this.sway - R.perfectRecovery));
     } else {
       this.streak = 0;
