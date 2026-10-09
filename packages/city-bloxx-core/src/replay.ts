@@ -5,11 +5,17 @@ export const MAX_REPLAY_TICKS = 60 * 60 * 60 * 2;
 export function validateRecord(value: unknown): RunRecord {
   if (!value || typeof value !== "object") throw new Error("Invalid replay");
   const r = value as RunRecord;
-  if (r.schema !== 1 || r.physicsVersion !== PHYSICS_VERSION || !r.config || r.config.mode !== "quick" ||
+  if (r.schema !== 1 || r.physicsVersion !== PHYSICS_VERSION || !r.config || !["quick", "daily"].includes(r.config.mode) ||
     !Number.isInteger(r.config.seed) || typeof r.config.assist !== "boolean" ||
-    r.rulesetVersion !== (r.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION) ||
+    r.rulesetVersion !== (r.config.mode === "daily" ? r.config.daily?.rulesetVersion : r.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION) ||
     !Number.isInteger(r.endTick) || r.endTick < 1 || r.endTick > MAX_REPLAY_TICKS ||
     !Array.isArray(r.inputs) || r.inputs.length < 3 || r.inputs.length > MAX_REPLAY_INPUTS || !r.result) throw new Error("Unsupported replay version or bounds");
+  const game = new QuickTowerGame(r.config);
+  if (r.config.mode === "daily") {
+    const result = r.result;
+    if (r.inputs.length < 4 || r.inputs.length > 23 || ![result.height, result.population, result.perfectCount, result.bestStreak, result.misses].every(n => Number.isSafeInteger(n) && n >= 0) || result.height < 1 || result.height > game.getSnapshot().targetFloors || result.ranked !== false || result.misses > 3 || result.durationTicks !== r.endTick || !Number.isFinite(result.accuracy) || result.accuracy < 0 || result.accuracy > 100 || result.ratingVersion !== "city-rating-1" || !["S", "A", "B", "C", "D"].includes(result.rating) ||
+      (result.height < 20 ? result.misses !== 3 || r.inputs.length !== result.height + 3 : ![result.height + result.misses, result.height + result.misses + 1].includes(r.inputs.length))) throw new Error("Invalid Daily replay bounds");
+  }
   let previous = -1;
   r.inputs.forEach((input, index) => {
     if (!input || !Number.isInteger(input.tick) || input.tick <= previous || input.tick >= r.endTick || input.sequence !== index || !Number.isInteger(input.fraction) || input.fraction < 0 || input.fraction > 1000) throw new Error("Invalid replay inputs");

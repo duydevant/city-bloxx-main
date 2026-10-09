@@ -10,7 +10,7 @@ export function checkpointTower(game: QuickTowerGame): TowerCheckpoint {
 export function restoreTower(value: unknown): QuickTowerGame {
   if (!value || typeof value !== "object") throw new Error("Invalid checkpoint; original preserved");
   const c = value as TowerCheckpoint;
-  if (![PHYSICS_VERSION, "physics-0.7.0", "physics-0.8.0", "physics-0.9.0", "physics-0.10.0", "physics-0.11.0", "physics-0.12.0"].includes(c.version) || !Number.isInteger(c.tick) || c.tick < 0 || c.tick > 432000 || !Array.isArray(c.inputs) || c.inputs.length > 4096 || c.config?.mode !== "city") throw new Error("Unsupported checkpoint; original preserved");
+  if (![PHYSICS_VERSION, "physics-0.7.0", "physics-0.8.0", "physics-0.9.0", "physics-0.10.0", "physics-0.11.0", "physics-0.12.0"].includes(c.version) || !Number.isInteger(c.tick) || c.tick < 0 || c.tick > 432000 || !Array.isArray(c.inputs) || c.inputs.length > 4096 || !(c.config?.mode === "city" || c.config?.mode === "daily" && c.version === PHYSICS_VERSION)) throw new Error("Unsupported checkpoint; original preserved");
   const config: RunConfig = c.version === "physics-0.7.0" ? { ...c.config, legacyPerfect: true, legacyOverlap: true, legacyScoring:true }
     : c.version === "physics-0.8.0" ? { ...c.config, legacyOverlap: true, legacyScoring:true }
     : c.version === "physics-0.9.0" ? { ...c.config, legacyScoring:true }

@@ -15,7 +15,7 @@ export function createDataScreens(o: DataScreenOptions) {
   const percent = (totals: StatTotals) => perfectRate(totals) === null ? t("No scored drops") : `${perfectRate(totals)}%`;
   const date = (stamp: number) => stamp ? new Intl.DateTimeFormat(locale(), { dateStyle: "short", timeStyle: "short" }).format(stamp) : t("Time unavailable");
   const qualityName = (quality: string | null) => quality === null ? "—" : ({ perfect: t("Perfect"), great: t("Great"), good: t("Good"), risky: t("Risky"), miss: t("Miss") })[quality as "perfect"];
-  const modeName = (s: RunSummary) => s.mode === "city" ? t("Build City") : s.assist ? t("Assist") : t("Standard");
+  const modeName = (s: RunSummary) => s.mode === "daily" ? `${t("Daily Tower")} · ${s.daily!.dateUTC} UTC` : s.mode === "city" ? t("Build City") : s.assist ? t("Assist") : t("Standard");
   const label = (page: number) => [t("Overview"), t("Skill"), t("Class")][page];
   function selector<T extends string>(choices: [T, string][], selected: T, change: (value: T) => void): void {
     const select = document.createElement("select"); select.className = "cb-data-select";
@@ -32,7 +32,7 @@ export function createDataScreens(o: DataScreenOptions) {
     actions.push(button(t("History"), () => history()), button(t("Home"), o.home));
     o.showPanel(`${t("Statistics")} · ${label(page)} · ${page + 1}/3`, `${t("Tracking since")}: ${date(save.stats.trackedSince)}\n${t("Older totals are not reconstructed.")}`, actions);
     if (page === 2) selector(BUILDING_IDS.map(id => [id, o.className(id)]), building, next => statistics(page, group, next));
-    else selector([["all", t("All tracked runs")], ["quick-standard", t("Quick Standard")], ["quick-assist", t("Quick Assist")], ["city", t("Build City")]], group, next => statistics(page, next, building));
+    else selector([["all", t("All tracked runs")], ["quick-standard", t("Quick Standard")], ["quick-assist", t("Quick Assist")], ["city", t("Build City")], ["daily", t("Daily Tower")]], group, next => statistics(page, next, building));
     const quality = totals.quality;
     o.showStats(page === 1 ? [[t("Perfect rate"), percent(totals)], [t("Scored body drops"), number(totals.scoredBody)],
       [t("Great / Good / Risky"), `${quality.great} / ${quality.good} / ${quality.risky}`], [t("Body misses"), number(quality.miss)],
@@ -44,14 +44,14 @@ export function createDataScreens(o: DataScreenOptions) {
     o.panel.classList.add("cb-data-panel"); refresh = () => statistics(page, group, building);
   }
   function history(page = 0, filter: "all" | StatsGroup = "all"): void {
-    const rows = o.save().history.filter(s => filter === "all" || filter === "city" ? filter === "all" || s.mode === "city" : s.mode === "quick" && s.assist === (filter === "quick-assist"));
+    const rows = o.save().history.filter(s => filter === "all" || (filter === "city" || filter === "daily" ? s.mode === filter : s.mode === "quick" && s.assist === (filter === "quick-assist")));
     const pages = Math.max(1, Math.ceil(rows.length / 3)); page = Math.max(0, Math.min(page, pages - 1));
     const actions: HTMLButtonElement[] = [];
     if (page > 0) actions.push(button(t("Previous"), () => history(page - 1, filter)));
     if (page < pages - 1) actions.push(button(t("Next"), () => history(page + 1, filter)));
     actions.push(button(t("Statistics"), () => statistics()), button(t("Home"), o.home));
-    o.showPanel(`${t("History")} · ${page + 1}/${pages}`, rows.length ? t("Up to 50 recent summaries; only retained Quick replays can be played.") : t("No tracked runs yet. Play a tower to add its result here."), actions);
-    selector([["all", t("All modes")], ["quick-standard", t("Quick Standard")], ["quick-assist", t("Quick Assist")], ["city", t("Build City")]], filter, next => history(0, next));
+    o.showPanel(`${t("History")} · ${page + 1}/${pages}`, rows.length ? t("Up to 50 recent summaries; retained Quick and Daily replays can be played.") : t("No tracked runs yet. Play a tower to add its result here."), actions);
+    selector([["all", t("All modes")], ["quick-standard", t("Quick Standard")], ["quick-assist", t("Quick Assist")], ["city", t("Build City")], ["daily", t("Daily Tower")]], filter, next => history(0, next));
     const list = document.createElement("div"); list.className = "cb-history-list";
     for (const s of rows.slice(page * 3, page * 3 + 3)) {
       const b = button(`${modeName(s)} · ${o.className(s.building)}\n${s.result.height} ${t("floors")} · ${number(s.result.population)} ${t("people")} · ${s.outcome === "abandoned" ? t("Stopped") : s.result.rating}`, () => details(s.identity.id, () => history(page, filter)));

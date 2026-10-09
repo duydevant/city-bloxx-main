@@ -3,14 +3,17 @@ import { validateRecord, verifyRecord } from "./replay";
 import { emptyCity, validateCity, type CitySave } from "./city";
 import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { QUALITIES, type RunMetrics } from "./metrics";
-import { applySummary, emptyStats, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { applySummary, emptyStats, emptyTotals, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { emptyDaily, settleDaily, validateDailyState, type DailyState } from "./daily-state";
+import { validateDaily } from "./daily";
+import { restoreTower } from "./checkpoint";
+export type { DailyState } from "./daily-state";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
 export interface ProgressionState { version: 1; xp: number; masteryXP: Record<BuildingId, number>; achievements: string[] }
 export interface InventoryState { owned: string[]; equipment: { buildings: Record<BuildingId, string>; roofs: Record<BuildingId, string>; crane: string } }
-export interface DailyState { version: 1; creditedDates: string[]; streak: number; longestStreak: number }
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
@@ -27,7 +30,7 @@ export function emptySave(): GameSave {
     settings: { muted: false, reducedMotion: null, locale: null }, stats: emptyStats(),
     progression: { version: 1, xp: 0, masteryXP: classMap(0), achievements: [] },
     inventory: { owned: ["default"], equipment: { buildings: classMap("default"), roofs: classMap("default"), crane: "default" } },
-    daily: { version: 1, creditedDates: [], streak: 0, longestStreak: 0 }, history: [], replays: [],
+    daily: emptyDaily(), history: [], replays: [],
     replayRefs: { latest: null, best: null, pinned: null },
     tracking: { installationId: "", nextSequence: 1, settled: [], activeQuick: null, pendingCity: null } };
 }
@@ -52,11 +55,14 @@ function validResult(r: RunRecord["result"]): boolean {
     ["S", "A", "B", "C", "D"].includes(r.rating) && tag(r.ratingVersion);
 }
 function validSummary(s: RunSummary, next: number, installation: string): boolean {
+  if (s?.mode === "daily") {
+    try { const d = validateDaily(s.daily); if (s.building !== d.classId || s.seed !== d.seed || s.physicsVersion !== d.physicsVersion || s.rulesetVersion !== d.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > d.targetBodyFloors) return false; } catch { return false; }
+  } else if (s?.daily !== undefined) return false;
   return !!s && validIdentity(s.identity, next, installation) && integer(s.startedAt) && integer(s.endedAt) &&
-    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city"].includes(s.mode) && isBuildingId(s.building) &&
+    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city", "daily"].includes(s.mode) && isBuildingId(s.building) &&
     typeof s.assist === "boolean" && !(s.mode === "city" && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
-    ["ended", "abandoned"].includes(s.outcome) && s.complete === (s.mode === "city" && s.outcome === "ended" && s.result.height === BUILDINGS[s.building].floors) &&
+    ["ended", "abandoned"].includes(s.outcome) && s.complete === (s.mode !== "quick" && s.outcome === "ended" && s.result.height === BUILDINGS[s.building].floors) &&
     s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
     (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion));
 }
@@ -75,14 +81,15 @@ function validateV4(s: GameSave): GameSave {
   }
   if (!s.settings || typeof s.settings.muted !== "boolean" || ![null, true, false].includes(s.settings.reducedMotion) || ![null, "en", "vi"].includes(s.settings.locale)) reject();
   if (!s.stats || !integer(s.stats.trackedSince) || !validTotals(s.stats.totals) || !s.stats.byMode || !s.stats.byClass ||
-    !["quick-standard", "quick-assist", "city"].every(k => validTotals(s.stats.byMode[k as StatsGroup])) || !BUILDING_IDS.every(k => validTotals(s.stats.byClass[k]))) reject();
+    !["quick-standard", "quick-assist", "city", "daily"].every(k => validTotals(s.stats.byMode[k as StatsGroup])) || !BUILDING_IDS.every(k => validTotals(s.stats.byClass[k]))) reject();
   if (!s.progression || s.progression.version !== 1 || !integer(s.progression.xp) || !s.progression.masteryXP || !BUILDING_IDS.every(k => integer(s.progression.masteryXP[k])) ||
     !Array.isArray(s.progression.achievements) || s.progression.achievements.length > 128 || !s.progression.achievements.every(tag)) reject();
   if (!s.inventory || !Array.isArray(s.inventory.owned) || s.inventory.owned.length > 128 || !s.inventory.owned.includes("default") || !s.inventory.owned.every(tag) ||
     new Set(s.inventory.owned).size !== s.inventory.owned.length || !s.inventory.equipment || !tag(s.inventory.equipment.crane) || !s.inventory.owned.includes(s.inventory.equipment.crane) ||
     ![s.inventory.equipment.buildings, s.inventory.equipment.roofs].every(map => !!map && BUILDING_IDS.every(k => tag(map[k]) && s.inventory.owned.includes(map[k])))) reject();
-  if (!s.daily || s.daily.version !== 1 || !integer(s.daily.streak) || !integer(s.daily.longestStreak) || s.daily.longestStreak < s.daily.streak ||
-    !Array.isArray(s.daily.creditedDates) || s.daily.creditedDates.length > 7 || !s.daily.creditedDates.every(d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) || new Set(s.daily.creditedDates).size !== s.daily.creditedDates.length) reject();
+  s = { ...s, daily: validateDailyState(s.daily) };
+  const dp = s.daily.pending;
+  if (dp && (!validIdentity(dp.identity, tr.nextSequence, tr.installationId) || isSettled(s, dp.identity) && restoreTower(dp.checkpoint).getPhase() !== "ended" || dp.identity.id === tr.activeQuick?.identity.id || dp.identity.id === tr.pendingCity?.identity.id)) reject();
   if (!Array.isArray(s.history) || s.history.length > HISTORY_LIMIT || !s.history.every(summary => validSummary(summary, tr.nextSequence, tr.installationId)) ||
     new Set(s.history.map(h => h.identity.id)).size !== s.history.length || !Array.isArray(s.replays) || s.replays.length > 3 || !s.replayRefs) reject();
   if (tr.activeQuick !== null && (!tr.activeQuick || !validIdentity(tr.activeQuick.identity, tr.nextSequence, tr.installationId) || !integer(tr.activeQuick.startedAt) ||
@@ -92,7 +99,7 @@ function validateV4(s: GameSave): GameSave {
   if (s.history.some(h => !isSettled(s, h.identity))) reject();
   const next = copy(s), ids = new Set<string>();
   next.replays = next.replays.filter(entry => {
-    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && h.mode === "quick" && h.outcome === "ended")) reject();
+    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && ["quick", "daily"].includes(h.mode) && h.outcome === "ended")) reject();
     ids.add(entry.id);
     try { entry.record = validateRecord(entry.record); return true; } catch { return false; }
   });
@@ -111,7 +118,7 @@ export function migrateSave(value: unknown): GameSave {
   if (![1, 2, 3, 4].includes(s.schema)) throw new Error("Unknown save schema; original save preserved");
   if (s.schema === 4) {
     if (![s.standardQuickBest, s.assistQuickBest, s.runs].every(integer)) reject();
-    return validateV4({ ...s, city: validateCity(s.city) });
+    return validateV4({ ...s, city: validateCity(s.city), stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
   }
   const next = emptySave();
   next.standardQuickBest = integer(s.standardQuickBest) ? s.standardQuickBest : 0;
@@ -178,7 +185,7 @@ function retained(save: GameSave): GameSave {
 export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecord): GameSave {
   if (!validSummary(summary, save.tracking.nextSequence, save.tracking.installationId)) throw new Error("Invalid run settlement");
   if (isSettled(save, summary.identity)) return save;
-  const group: StatsGroup = summary.mode === "city" ? "city" : summary.assist ? "quick-assist" : "quick-standard";
+  const group: StatsGroup = summary.mode === "daily" ? "daily" : summary.mode === "city" ? "city" : summary.assist ? "quick-assist" : "quick-standard";
   const quickEnded = summary.mode === "quick" && summary.outcome === "ended";
   const ranked = quickEnded && !summary.assist;
   const nextBest = ranked && summary.result.population > save.standardQuickBest;
@@ -188,15 +195,16 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     standardQuickBest: ranked ? Math.max(save.standardQuickBest, summary.result.population) : save.standardQuickBest,
     assistQuickBest: quickEnded && summary.assist ? Math.max(save.assistQuickBest, summary.result.population) : save.assistQuickBest,
     runs: save.runs + Number(quickEnded),
+    daily: summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily,
     stats: { ...save.stats, totals: applySummary(save.stats.totals, summary), byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
       byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) } },
     history: [{ ...copy(summary), xpEarned, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
     progression: { ...save.progression, xp: save.progression.xp + xpEarned, masteryXP: { ...save.progression.masteryXP, [summary.building]: save.progression.masteryXP[summary.building] + xpEarned } },
     tracking: { ...save.tracking, settled: receiptRanges(save.tracking.settled, summary.identity.sequence),
       activeQuick: save.tracking.activeQuick?.identity.id === summary.identity.id ? null : save.tracking.activeQuick } };
-  if (record && quickEnded && record.inputs.length <= 4096 && record.endTick <= 432000) {
+  if (record && summary.outcome === "ended" && ["quick", "daily"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
     const valid = validateRecord(record);
-    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
+    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.config.daily?.id !== summary.daily?.id || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
     next.replays.push({ id: summary.identity.id, record: valid }); next.replayRefs.latest = summary.identity.id;
     if (nextBest) next.replayRefs.best = summary.identity.id;
   }

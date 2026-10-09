@@ -1,8 +1,14 @@
 # City Bloxx — trạng thái hiện tại
 
-Cập nhật 08/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
+Cập nhật 09/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
+
+## C4.1 — hoàn thành triển khai 09/10/2026
+
+Tiếp tục sau C4.0 commit `11c3901`: Daily Tower Industrial 20 body + một roof, recipe `daily-v1`, hash UTC date, ruleset `daily-tower-1`, pending checkpoint riêng, resume/result/replay, complete personal best, failed height, attempts và streak đã xong. Giữ longest/lifetime khi prune bảy ngày; chặn credit ngày cũ khi clock rollback. Daily không đổi Quick PB hoặc unlock City. Shared entry/history/guide/result EN/VI; retry replay cũ xác nhận trước khi thay pending khác.
+
+171/171 tests (32 Daily), lint/assets/boundaries, Web/Playable production builds, save/Daily evidence và Chrome smoke hai shell qua ở 320×568, 390×844, 900×430. Reload foundation falling/scored body/result, UTC midnight, host pause/resume và replay không nhân attempts/streak/XP; Daily không gửi Standard score. Golden complete 1.305 population / 20 body, roof Miss vẫn complete; failed height lưu riêng. Mẫu Daily save 19.792 bytes, một settlement 183 XP. Chi tiết: [C4.1](plan/02-C4.1-daily-tower.md), [evidence](plan/evidence/C4.1-validation.json). Commit: `feat(c4.1): complete Daily Tower and UTC streaks`. Phase tiếp theo **C4.2**; SDK/thiết bị thật/server ranking vẫn thuộc gate đã lập kế hoạch.
 
 ## C4.0 — hoàn thành triển khai 08/10/2026
 

@@ -1,6 +1,6 @@
 # City Bloxx — kế hoạch nâng cấp sau core
 
-Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
+Ngày cập nhật: 09/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
 
 ## Đọc từ đâu?
 
@@ -16,7 +16,7 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi
 |---|---|---|
 | [00 — Project audit](00-project-audit.md) | Code/GDD hiện tại | Audit snapshot |
 | [01 — C4.0 Save, stats, history](01-C4.0-save-stats-history.md) | C0–C3 hiện tại | Implemented — hoàn thành triển khai |
-| [02 — C4.1 Daily Tower](02-C4.1-daily-tower.md) | C4.0 | Planned |
+| [02 — C4.1 Daily Tower](02-C4.1-daily-tower.md) | C4.0 | Implemented — hoàn thành triển khai |
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Planned |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Planned |
 | [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4; shell có thể làm sớm | Planned |
@@ -28,9 +28,9 @@ Ngày audit: 08/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi
 | [11 — C7 Weekly, modes, LiveOps](11-C7-weekly-modes-liveops.md) | C5/C6 + vận hành ổn định | Planned |
 | [12 — Art requirements](12-art-requirements.md) | Theo phase tương ứng | Planned |
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
-| [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 08/10/2026 | Audit snapshot |
+| [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 09/10/2026 | Audit snapshot |
 
-C4.0 đã hoàn thành triển khai: 139/139 unit tests, lint, asset/boundary checks, hai production build/package, save evidence và Chrome headless smoke Web/Playable đều qua. Đã bổ sung recovery load, serial immutable writes, XP settlement idempotent và catalog EN/VI. [Evidence C4.0](evidence/C4.0-validation.json) ghi kết quả và kích thước save. Actual SDK/điện thoại thật và release vẫn thuộc các gate tương ứng; các phase C4.1 trở đi giữ Planned.
+C4.0 đã hoàn thành và commit `11c3901`; [evidence C4.0](evidence/C4.0-validation.json) giữ kết quả nghiệm thu lịch sử. **C4.1 cũng đã hoàn thành triển khai**: Daily Industrial 20 body + roof, recipe/seed UTC, pending/resume, personal best, seven-day history, streak và EN/VI. 171/171 tests, lint, hai production builds, save/Daily evidence và Chrome smoke Web/Playable đều qua; [evidence C4.1](evidence/C4.1-validation.json). Actual SDK/điện thoại thật và release vẫn thuộc các gate tương ứng. Phase tiếp theo là **C4.2 — progression, missions, achievements**; C4.2 trở đi giữ Planned.
 
 ## Các quyết định đã chốt
 

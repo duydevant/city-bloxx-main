@@ -1,0 +1,49 @@
+{
+  "phase": "C4.1",
+  "status": "Implemented",
+  "date": "2026-10-09",
+  "baselineCommit": "11c3901",
+  "completionCommitTitle": "feat(c4.1): complete Daily Tower and UTC streaks",
+  "sourceSHA256": "83a09ed59037a29179c6385d979f9a9325ffcf393ed5ce90c32bacd42102f541",
+  "sourceFingerprint": "Ordered sourceFiles from scripts/daily-evidence.cjs; file path plus UTF-8 content, CRLF normalized to LF",
+  "versions": { "schema": 4, "physics": "physics-0.13.0", "quickRuleset": "quick-tower-0.13.0", "cityRuleset": "build-city-7", "dailySchedule": "daily-v1", "dailyRuleset": "daily-tower-1", "reward": "run-xp-1" },
+  "checks": {
+    "npm.cmd run check": "passed",
+    "unitTests": { "passed": 171, "files": 15, "daily": 32 },
+    "lint": "passed",
+    "assetsAndDependencyBoundaries": "passed; 29 approved assets, 12.52 MiB per target; simulation has no clock/DOM/network reads",
+    "productionBuilds": { "web": "passed", "playable": "typecheck/build/check/zip passed", "initialMiB": 1.48, "totalMiB": 12.66 },
+    "npm.cmd run test:save": "passed; C4.0 regression",
+    "npm.cmd run test:daily": "passed; golden fixture and settlement evidence",
+    "npm.cmd run test:browser": "passed on Web production and Playable production preview"
+  },
+  "fixtures": {
+    "file": "packages/city-bloxx-core/fixtures/daily-v1.json",
+    "definitionDates": ["1970-01-01", "2024-02-29", "2026-03-08", "2026-10-09", "2026-11-01", "2026-12-31", "2027-01-01"],
+    "class": "industrial", "targetBodyFloors": 20, "roofAttempts": 1, "lives": 3,
+    "complete": { "population": 1305, "height": 20, "accuracy": 98.8, "perfectCount": 19, "endTick": 2226, "misses": 0, "rating": "S" },
+    "roofMiss": { "population": 1206, "height": 20, "endTick": 2249, "misses": 1, "complete": true },
+    "failed": { "population": 20, "height": 1, "endTick": 403, "misses": 3, "complete": false },
+    "foundation": "unscored; excluded from Perfect rate and skill XP"
+  },
+  "browser": {
+    "environment": "Chrome headless, GPU disabled; Playable mock SDK",
+    "locales": ["en", "vi"],
+    "viewports": [[320, 568], [390, 844], [900, 430]],
+    "verified": ["same date definitions and three golden input/result fixtures on both production targets", "entry/guide/history/result without clipping or outer scrolling", "reload during foundation falling, scored body and result", "UTC midnight keeps original date/seed/config", "new date requires explicit discard/resume/keep confirmation", "retry from old replay preserves another pending Daily until confirmed", "foundation does not credit; scored body credits starting day once", "unlimited retry, complete PB isolated from failed height", "roof Miss remains completed", "resume/replay do not duplicate attempts/streak/XP", "available before Industrial City unlock; City/Quick unchanged", "host pause/resume during falling; Daily and Daily replay never submit Standard Quick score"],
+    "uncaughtExceptions": 0,
+    "artifacts": ["tmp/c0-c2-qa/browser-report.json", "tmp/c0-c2-qa/web-daily-save.json", "tmp/c0-c2-qa/playable-daily-save.json", "tmp/c0-c2-qa/*daily*.png"]
+  },
+  "unitAcceptance": ["all body/roof checkpoint phases", "UTC midnight/local offsets/DST/leap days/year rollover/invalid dates", "13-day streak then pruning; skipped day resets current streak; longest/lifetime retained", "same-day dedupe and monotonic rollback watermark", "Daily-specific replay input/version/result bounds", "completed PB tie-break by population/height/Perfect rate/misses/duration/received time", "C4.0 Daily scaffold migration; unsupported pinned definition preserves raw save"],
+  "saveEvidence": {
+    "completedDailyBytes": 19792, "budgetBytes": 262144,
+    "attempts": 1, "creditedDates": ["2026-10-09"], "xp": 183,
+    "repeatedSettlement": "no mutation after migrate/resume",
+    "endedCheckpoint": "retained until explicit retry/discard; result reload does not settle again",
+    "legacyRegression": { "settlements": 70, "history": 50, "xp": 2590, "envelopeUTF16Bytes": 95842, "pendingCityPhysics": "physics-0.12.0" },
+    "artifacts": ["tmp/c4-daily-qa/daily-report.json", "tmp/c4-daily-qa/settled-save.json", "tmp/c4-qa/save-size-report.json"]
+  },
+  "nextPhase": "C4.2",
+  "remainingExternalGates": ["Daily server definition/ticket/leaderboard in W1", "actual YouTube SDK acceptance in Y0-Y2", "real-device QA and release gates"],
+  "deferredToC4_2": ["Daily mission/reward bonus", "builder/mastery levels", "missions/reroll/claims", "achievements"]
+}

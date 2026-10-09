@@ -2,10 +2,11 @@ import { ASSIST_RULESET_VERSION, CITY_RATING_VERSION, CITY_RULESET_VERSION, getQ
 import { BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { sweepTower } from "./collision";
 import { emptyMetrics, recordMetric, type RunMetrics } from "./metrics";
+import { validateDaily, type DailyDefinition } from "./daily";
 
 export type PlacementQuality = "perfect" | "great" | "good" | "risky" | "miss";
 export type RunPhase = "preparing" | "swing" | "falling" | "settling" | "miss" | "ended";
-export interface RunConfig { seed: number; mode: "quick" | "city"; assist: boolean; building?: BuildingId; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
+export interface RunConfig { seed: number; mode: "quick" | "city" | "daily"; assist: boolean; building?: BuildingId; daily?: DailyDefinition; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
 export interface DropInput { tick: number; sequence: number; fraction: number }
 export type DropEvent = DropInput;
 export interface PlacedFloor { x: number; quality: Exclude<PlacementQuality, "miss">; population: number; error: number }
@@ -98,13 +99,15 @@ export class QuickTowerGame {
   private swayPhase = 0;
   constructor(config: number | RunConfig = 1) {
     const value = typeof config === "number" ? { seed: config, mode: "quick" as const, assist: false } : config;
-    if (!Number.isInteger(value.seed) || !["quick", "city"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
+    if (!Number.isInteger(value.seed) || !["quick", "city", "daily"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
+    const daily = value.mode === "daily" ? validateDaily(value.daily) : undefined;
+    if (daily ? value.assist || value.seed !== daily.seed || value.building !== daily.classId : value.daily !== undefined) throw new Error("Invalid Daily config");
     if (value.legacyPerfect !== undefined && (value.mode !== "city" || typeof value.legacyPerfect !== "boolean")) throw new Error("Invalid legacy rules");
     if (value.legacyOverlap !== undefined && (value.mode !== "city" || typeof value.legacyOverlap !== "boolean")) throw new Error("Invalid legacy overlap rules");
     if (value.legacyScoring !== undefined && (value.mode !== "city" || typeof value.legacyScoring !== "boolean")) throw new Error("Invalid legacy scoring rules");
     if (value.legacyMotion !== undefined && (value.mode !== "city" || typeof value.legacyMotion !== "boolean")) throw new Error("Invalid legacy motion rules");
     if (value.motionVersion !== undefined && (value.mode !== "city" || ![11,12].includes(value.motionVersion))) throw new Error("Invalid motion version");
-    this.config = Object.freeze({ ...value, seed: value.seed | 0 });
+    this.config = Object.freeze({ ...value, ...(daily ? { daily } : {}), seed: value.seed | 0 });
     this.phaseOffset = seedPhase(this.config.seed);
     this.swingPhase = (this.phaseOffset % R.swingPeriodTicks) * 1000;
     this.swayPhase = (this.phaseOffset % R.swayPeriodTicks) * 1000;
@@ -147,7 +150,7 @@ export class QuickTowerGame {
   }
   getSnapshot(): QuickTowerSnapshot {
     return {
-      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
+      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "daily" ? this.config.daily!.rulesetVersion : this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
       seed: this.config.seed, assist: this.config.assist, tick: this.tickCount, phase: this.phase,
       lives: this.lives, population: this.population, perfectCount: this.perfectCount,
       streak: this.streak, bestStreak: this.bestStreak, comboLevel: this.comboLevel,
@@ -157,7 +160,7 @@ export class QuickTowerGame {
       crane: { x: this.craneX, y: R.cablePivotY - this.cameraY }, released: { ...this.released },
       loadProgress: this.phase === "preparing" ? 1 - this.transitionTicks / R.prepareTicks : 1,
       floors: this.floors.map(f => ({ ...f })), building: this.config.building ?? "residential",
-      targetFloors: this.config.mode === "city" ? BUILDINGS[this.config.building!].floors : 0,
+      targetFloors: this.targetFloors(),
       isRoof: this.isRoof(), roof: this.roof ? { ...this.roof } : null,
       current: { x: this.currentX, y: this.currentY, rotation: this.currentRotation },
       impact: this.impact ? {...this.impact} : null,
@@ -169,10 +172,10 @@ export class QuickTowerGame {
     const scored = this.config.legacyScoring ? this.floors : this.floors.slice(1);
     const accuracy = scored.length ? q(scored.reduce((sum, f) => sum + 1 - f.error, 0) / scored.length * 100) : 0;
     const rating = this.floors.length >= Rating.sHeight && accuracy >= Rating.sAccuracy ? "S" : this.floors.length >= Rating.aHeight && accuracy >= Rating.aAccuracy ? "A" : this.floors.length >= Rating.bHeight && accuracy >= Rating.bAccuracy ? "B" : this.floors.length > 0 ? "C" : "D";
-    const cityRating = this.config.mode === "city" ? (this.floors.length < BUILDINGS[this.config.building!].floors ? "D" : this.roof && accuracy >= 94 && this.roof.error <= .08 ? "S" : this.roof && accuracy >= 85 ? "A" : accuracy >= 70 ? "B" : "C") : rating;
+    const cityRating = this.config.mode !== "quick" ? (this.floors.length < this.targetFloors() ? "D" : this.roof && accuracy >= 94 && this.roof.error <= .08 ? "S" : this.roof && accuracy >= 85 ? "A" : accuracy >= 70 ? "B" : "C") : rating;
     return { population: this.population, height: this.floors.length, accuracy, perfectCount: this.perfectCount,
       bestStreak: this.bestStreak, durationTicks: this.tickCount, misses: R.lives - this.lives,
-      ranked: this.config.mode === "quick" && !this.config.assist, rating: cityRating, ratingVersion: this.config.mode === "city" ? CITY_RATING_VERSION : RATING_VERSION };
+      ranked: this.config.mode === "quick" && !this.config.assist, rating: cityRating, ratingVersion: this.config.mode !== "quick" ? CITY_RATING_VERSION : RATING_VERSION };
   }
   getRecord(): RunRecord {
     if (this.phase !== "ended") throw new Error("Cannot record unfinished run");
@@ -237,7 +240,7 @@ export class QuickTowerGame {
   private resolveLanding(targetY: number): void {
     if (!this.floors.length && !this.config.legacyScoring) {
       // Ground has no alignment target. Never snap to center or award a Perfect/combo.
-      const population = this.config.mode === "city" ? BUILDINGS[this.config.building!].population : R.basePopulation;
+      const population = this.config.mode !== "quick" ? BUILDINGS[this.config.building!].population : R.basePopulation;
       this.floors.push({ x:this.currentX, quality:"good", population, error:0 });
       this.metrics.foundation = 1;
       this.population += population; this.currentY = targetY;
@@ -266,7 +269,7 @@ export class QuickTowerGame {
     const quality = error <= perfectWindow ? "perfect" : greatMatch ? "great" : goodMatch ? "good" : "risky";
     if (!this.floors.length) this.metrics.foundation = 1;
     else recordMetric(this.metrics, quality, signedError, this.isRoof());
-    const basePopulation = this.config.mode === "city" ? BUILDINGS[this.config.building!].population : R.basePopulation;
+    const basePopulation = this.config.mode !== "quick" ? BUILDINGS[this.config.building!].population : R.basePopulation;
     const population = Math.max(1, Math.round(basePopulation * QUALITY_POPULATION_FACTORS[quality] * (this.comboTicks > 0 ? 1 + this.comboLevel * R.comboBonus : 1)));
     if (this.isRoof()) {
       const bonus = Math.round(basePopulation * 5 * (1 - normalized));
@@ -343,7 +346,8 @@ export class QuickTowerGame {
       else this.spawnFloor();
     }
   }
-  private isRoof(): boolean { return this.config.mode === "city" && this.floors.length >= BUILDINGS[this.config.building!].floors; }
+  private targetFloors(): number { return this.config.mode === "daily" ? this.config.daily!.targetBodyFloors : this.config.mode === "city" ? BUILDINGS[this.config.building!].floors : 0; }
+  private isRoof(): boolean { return this.targetFloors() > 0 && this.floors.length >= this.targetFloors(); }
   private spawnFloor(): void { this.phase = "preparing"; this.transitionTicks = R.prepareTicks; this.fallSpeed = 0; this.impact = null; this.updateSwing(); }
   private updateCamera(): void {
     const top = this.floors.length ? this.floors[this.floors.length - 1].x : 0;

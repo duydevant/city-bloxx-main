@@ -1,9 +1,10 @@
-import { BUILDING_IDS, BUILDINGS, type BuildingId } from "./buildings";
+import { BUILDING_IDS, type BuildingId } from "./buildings";
 import { emptyQualities, type QualityCounts, type RunMetrics } from "./metrics";
 import type { QuickTowerGame, RunConfig, RunResult } from "./run";
 import { SETTLEMENT_REWARDS } from "../../city-bloxx-content/settlement";
+import { type DailyDefinition } from "./daily";
 
-export type StatsGroup = "quick-standard" | "quick-assist" | "city";
+export type StatsGroup = "quick-standard" | "quick-assist" | "city" | "daily";
 export interface RunIdentity { id: string; installationId: string; sequence: number }
 export interface RunContext { identity: RunIdentity; startedAt: number }
 export interface RunSummary extends RunContext {
@@ -13,6 +14,7 @@ export interface RunSummary extends RunContext {
   outcome: "ended" | "abandoned"; complete: boolean;
   verification: "local"; replayStatus: "available" | "pruned" | "unsupported" | "not-recorded";
   xpEarned?: number; rewardVersion?: string;
+  daily?: DailyDefinition;
 }
 export interface StatTotals {
   attempts: number; abandoned: number; landedBody: number; scoredBody: number;
@@ -28,7 +30,7 @@ export function emptyTotals(): StatTotals {
     bestHeight: 0, bestStreak: 0, completed: 0, roof: emptyQualities(), maxCombo: 0, errorCount: 0, signedErrorSum: 0 };
 }
 export function emptyStats(): LifetimeStats {
-  return { trackedSince: 0, totals: emptyTotals(), byMode: { "quick-standard": emptyTotals(), "quick-assist": emptyTotals(), city: emptyTotals() },
+  return { trackedSince: 0, totals: emptyTotals(), byMode: { "quick-standard": emptyTotals(), "quick-assist": emptyTotals(), city: emptyTotals(), daily: emptyTotals() },
     byClass: Object.fromEntries(BUILDING_IDS.map(id => [id, emptyTotals()])) as Record<BuildingId, StatTotals> };
 }
 export function makeSummary(game: QuickTowerGame, context: RunContext, endedAt: number, outcome: RunSummary["outcome"] = "ended"): RunSummary {
@@ -37,7 +39,8 @@ export function makeSummary(game: QuickTowerGame, context: RunContext, endedAt: 
   return { ...context, mode: game.config.mode, building: state.building, assist: game.config.assist, seed: game.config.seed,
     physicsVersion: state.physicsVersion, rulesetVersion: state.rulesetVersion, endedAt: Math.max(context.startedAt, endedAt), endTick: state.tick,
     result, metrics: game.getMetrics(), outcome,
-    complete: outcome === "ended" && game.config.mode === "city" && result.height === BUILDINGS[state.building].floors,
+    complete: outcome === "ended" && game.config.mode !== "quick" && result.height === state.targetFloors,
+    ...(game.config.mode === "daily" ? { daily: game.config.daily } : {}),
     verification: "local", replayStatus: "not-recorded" };
 }
 export function applySummary(totals: StatTotals, summary: RunSummary): StatTotals {

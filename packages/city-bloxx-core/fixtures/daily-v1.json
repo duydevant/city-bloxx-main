@@ -1,0 +1,433 @@
+{
+  "recipe": "daily-v1",
+  "definitions": [
+    {
+      "id": "daily-v1|1970-01-01",
+      "dateUTC": "1970-01-01",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": -1377465911,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2024-02-29",
+      "dateUTC": "2024-02-29",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": -1431460055,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2026-03-08",
+      "dateUTC": "2026-03-08",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": -2103781221,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2026-10-09",
+      "dateUTC": "2026-10-09",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": -1761354664,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2026-11-01",
+      "dateUTC": "2026-11-01",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": 1024438401,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2026-12-31",
+      "dateUTC": "2026-12-31",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": 1507223705,
+      "physicsVersion": "physics-0.13.0"
+    },
+    {
+      "id": "daily-v1|2027-01-01",
+      "dateUTC": "2027-01-01",
+      "scheduleVersion": "daily-v1",
+      "rulesetVersion": "daily-tower-1",
+      "classId": "industrial",
+      "targetBodyFloors": 20,
+      "roofEnabled": true,
+      "objective": "population",
+      "seed": -843726211,
+      "physicsVersion": "physics-0.13.0"
+    }
+  ],
+  "complete": {
+    "schema": 1,
+    "config": {
+      "mode": "daily",
+      "assist": false,
+      "seed": -1761354664,
+      "building": "industrial",
+      "daily": {
+        "id": "daily-v1|2026-10-09",
+        "dateUTC": "2026-10-09",
+        "scheduleVersion": "daily-v1",
+        "rulesetVersion": "daily-tower-1",
+        "classId": "industrial",
+        "targetBodyFloors": 20,
+        "roofEnabled": true,
+        "objective": "population",
+        "seed": -1761354664,
+        "physicsVersion": "physics-0.13.0"
+      }
+    },
+    "physicsVersion": "physics-0.13.0",
+    "rulesetVersion": "daily-tower-1",
+    "inputs": [
+      {
+        "tick": 44,
+        "sequence": 0,
+        "fraction": 0
+      },
+      {
+        "tick": 275,
+        "sequence": 1,
+        "fraction": 0
+      },
+      {
+        "tick": 383,
+        "sequence": 2,
+        "fraction": 0
+      },
+      {
+        "tick": 491,
+        "sequence": 3,
+        "fraction": 0
+      },
+      {
+        "tick": 598,
+        "sequence": 4,
+        "fraction": 0
+      },
+      {
+        "tick": 704,
+        "sequence": 5,
+        "fraction": 0
+      },
+      {
+        "tick": 809,
+        "sequence": 6,
+        "fraction": 0
+      },
+      {
+        "tick": 914,
+        "sequence": 7,
+        "fraction": 0
+      },
+      {
+        "tick": 1017,
+        "sequence": 8,
+        "fraction": 0
+      },
+      {
+        "tick": 1121,
+        "sequence": 9,
+        "fraction": 0
+      },
+      {
+        "tick": 1223,
+        "sequence": 10,
+        "fraction": 0
+      },
+      {
+        "tick": 1325,
+        "sequence": 11,
+        "fraction": 0
+      },
+      {
+        "tick": 1426,
+        "sequence": 12,
+        "fraction": 0
+      },
+      {
+        "tick": 1525,
+        "sequence": 13,
+        "fraction": 0
+      },
+      {
+        "tick": 1623,
+        "sequence": 14,
+        "fraction": 0
+      },
+      {
+        "tick": 1721,
+        "sequence": 15,
+        "fraction": 0
+      },
+      {
+        "tick": 1817,
+        "sequence": 16,
+        "fraction": 0
+      },
+      {
+        "tick": 1913,
+        "sequence": 17,
+        "fraction": 0
+      },
+      {
+        "tick": 2008,
+        "sequence": 18,
+        "fraction": 0
+      },
+      {
+        "tick": 2101,
+        "sequence": 19,
+        "fraction": 0
+      },
+      {
+        "tick": 2195,
+        "sequence": 20,
+        "fraction": 0
+      }
+    ],
+    "endTick": 2226,
+    "result": {
+      "population": 1305,
+      "height": 20,
+      "accuracy": 98.8,
+      "perfectCount": 19,
+      "bestStreak": 19,
+      "durationTicks": 2226,
+      "misses": 0,
+      "ranked": false,
+      "rating": "S",
+      "ratingVersion": "city-rating-1"
+    }
+  },
+  "roofMiss": {
+    "schema": 1,
+    "config": {
+      "mode": "daily",
+      "assist": false,
+      "seed": -1761354664,
+      "building": "industrial",
+      "daily": {
+        "id": "daily-v1|2026-10-09",
+        "dateUTC": "2026-10-09",
+        "scheduleVersion": "daily-v1",
+        "rulesetVersion": "daily-tower-1",
+        "classId": "industrial",
+        "targetBodyFloors": 20,
+        "roofEnabled": true,
+        "objective": "population",
+        "seed": -1761354664,
+        "physicsVersion": "physics-0.13.0"
+      }
+    },
+    "physicsVersion": "physics-0.13.0",
+    "rulesetVersion": "daily-tower-1",
+    "inputs": [
+      {
+        "tick": 44,
+        "sequence": 0,
+        "fraction": 0
+      },
+      {
+        "tick": 275,
+        "sequence": 1,
+        "fraction": 0
+      },
+      {
+        "tick": 383,
+        "sequence": 2,
+        "fraction": 0
+      },
+      {
+        "tick": 491,
+        "sequence": 3,
+        "fraction": 0
+      },
+      {
+        "tick": 598,
+        "sequence": 4,
+        "fraction": 0
+      },
+      {
+        "tick": 704,
+        "sequence": 5,
+        "fraction": 0
+      },
+      {
+        "tick": 809,
+        "sequence": 6,
+        "fraction": 0
+      },
+      {
+        "tick": 914,
+        "sequence": 7,
+        "fraction": 0
+      },
+      {
+        "tick": 1017,
+        "sequence": 8,
+        "fraction": 0
+      },
+      {
+        "tick": 1121,
+        "sequence": 9,
+        "fraction": 0
+      },
+      {
+        "tick": 1223,
+        "sequence": 10,
+        "fraction": 0
+      },
+      {
+        "tick": 1325,
+        "sequence": 11,
+        "fraction": 0
+      },
+      {
+        "tick": 1426,
+        "sequence": 12,
+        "fraction": 0
+      },
+      {
+        "tick": 1525,
+        "sequence": 13,
+        "fraction": 0
+      },
+      {
+        "tick": 1623,
+        "sequence": 14,
+        "fraction": 0
+      },
+      {
+        "tick": 1721,
+        "sequence": 15,
+        "fraction": 0
+      },
+      {
+        "tick": 1817,
+        "sequence": 16,
+        "fraction": 0
+      },
+      {
+        "tick": 1913,
+        "sequence": 17,
+        "fraction": 0
+      },
+      {
+        "tick": 2008,
+        "sequence": 18,
+        "fraction": 0
+      },
+      {
+        "tick": 2101,
+        "sequence": 19,
+        "fraction": 0
+      },
+      {
+        "tick": 2166,
+        "sequence": 20,
+        "fraction": 0
+      }
+    ],
+    "endTick": 2249,
+    "result": {
+      "population": 1206,
+      "height": 20,
+      "accuracy": 98.8,
+      "perfectCount": 19,
+      "bestStreak": 19,
+      "durationTicks": 2249,
+      "misses": 1,
+      "ranked": false,
+      "rating": "B",
+      "ratingVersion": "city-rating-1"
+    }
+  },
+  "failed": {
+    "schema": 1,
+    "config": {
+      "mode": "daily",
+      "assist": false,
+      "seed": -1761354664,
+      "building": "industrial",
+      "daily": {
+        "id": "daily-v1|2026-10-09",
+        "dateUTC": "2026-10-09",
+        "scheduleVersion": "daily-v1",
+        "rulesetVersion": "daily-tower-1",
+        "classId": "industrial",
+        "targetBodyFloors": 20,
+        "roofEnabled": true,
+        "objective": "population",
+        "seed": -1761354664,
+        "physicsVersion": "physics-0.13.0"
+      }
+    },
+    "physicsVersion": "physics-0.13.0",
+    "rulesetVersion": "daily-tower-1",
+    "inputs": [
+      {
+        "tick": 44,
+        "sequence": 0,
+        "fraction": 0
+      },
+      {
+        "tick": 119,
+        "sequence": 1,
+        "fraction": 0
+      },
+      {
+        "tick": 220,
+        "sequence": 2,
+        "fraction": 0
+      },
+      {
+        "tick": 322,
+        "sequence": 3,
+        "fraction": 0
+      }
+    ],
+    "endTick": 403,
+    "result": {
+      "population": 20,
+      "height": 1,
+      "accuracy": 0,
+      "perfectCount": 0,
+      "bestStreak": 0,
+      "durationTicks": 403,
+      "misses": 3,
+      "ranked": false,
+      "rating": "D",
+      "ratingVersion": "city-rating-1"
+    }
+  }
+}

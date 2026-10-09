@@ -4,6 +4,7 @@ const { spawn } = require("node:child_process");
 const assert = require("node:assert/strict");
 const esbuild = require("node:module").createRequire(path.resolve(__dirname,"../base-playable-main/package.json"))("esbuild");
 const fixture = require("../packages/city-bloxx-core/fixtures/quick-mixed-v13.json");
+const dailyFixture = require("../packages/city-bloxx-core/fixtures/daily-v1.json");
 const root = path.resolve(__dirname,"..");
 const reportDir = path.join(root,"tmp","c0-c2-qa");
 fs.mkdirSync(reportDir,{recursive:true});
@@ -41,7 +42,7 @@ function initScript(kind,storageMode="normal",rawOverride) {
     window.requestAnimationFrame=cb=>{const id=++window.__rafId;window.__frames.set(id,cb);return id};
     window.cancelAnimationFrame=id=>window.__frames.delete(id);
     window.__step=()=>{const entries=[...window.__frames.values()];window.__frames.clear();const time=100+(++window.__frameCount)*1000/60;entries.forEach(cb=>cb(time))};
-    Date.now=()=>42;
+    window.__clock=42;Date.now=()=>window.__clock;
     ${bundle}
     window.__fixture=${JSON.stringify(fixture)};
     window.__storageGet=Storage.prototype.getItem;window.__storageSet=Storage.prototype.setItem;
@@ -158,6 +159,76 @@ async function driveCity(record,startTick=0,endTick=record.endTick) {
       window.__step();
     }if(${endTick}===record.endTick)for(let i=0;i<240;i++)window.__step();}`);
   await delay(50);
+}
+async function dailySmoke(kind,url,key) {
+  console.log("Testing Daily",kind);
+  const read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
+  const stamp=Date.parse("2026-10-09T23:59:00Z"), midnight=Date.parse("2026-10-10T00:00:00Z");
+  await navigate(kind,url);await evaluate(`window.__clock=${stamp}`);
+  const baseline=await read();assert.deepEqual(baseline.city.unlocked,["residential"]);
+  for(const d of dailyFixture.definitions)assert.deepEqual(await evaluate(`CityBloxx.resolveDaily(${JSON.stringify(d.dateUTC)})`),d);
+  await click("Daily Tower");await panelLayoutSmoke(kind,"daily-entry-en");
+  assert.equal(await evaluate('document.querySelectorAll(".cb-daily-strip [data-date]").length'),7);
+  await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"daily-entry-vi");await switchLanguage(kind,"en");
+  for(const locale of ["en","vi"]) {
+    if(locale==="vi")await switchLanguage(kind,"vi");
+    await click(locale==="en"?"Daily guide":"Hướng dẫn Daily");
+    for(let page=0;page<3;page++){await panelLayoutSmoke(kind,`daily-guide-${locale}-${page+1}`);if(page<2)await click(locale==="en"?"Next":"Tiếp");}
+    await click(locale==="en"?"Back":"Quay lại");if(locale==="vi")await switchLanguage(kind,"en");
+  }
+  await click("History");await panelLayoutSmoke(kind,"daily-history-en");
+  await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"daily-history-vi");await switchLanguage(kind,"en");await click("Back");
+  await click("Play Daily");await waitFor('document.querySelector(".cb-panel").hidden');
+  const record=dailyFixture.complete, fallingTick=record.inputs[0].tick+1;
+  await driveCity(record,0,fallingTick);await click("Pause");await click("Home");await delay(50);
+  const falling=await read();assert.equal(falling.daily.pending.checkpoint.tick,fallingTick);
+  assert.equal(falling.daily.days[0].attempts,1);assert.equal(falling.daily.lifetimeCreditedDays,0);
+  assert.equal(await evaluate(`CityBloxx.restoreTower(${JSON.stringify(falling.daily.pending.checkpoint)}).getPhase()`),"falling");
+  await navigate(kind,url,"preserve");await evaluate(`window.__clock=${midnight}`);await click("Daily Tower");
+  await click("Play Daily");assert.equal(await evaluate('document.querySelector(".cb-panel h2").textContent'),"Replace pending Daily?");
+  await panelLayoutSmoke(kind,"daily-replace-confirm-en");await click("Keep pending Daily");
+  assert.deepEqual((await read()).daily.pending,falling.daily.pending);
+  await click("Resume Daily");await waitFor('document.querySelector(".cb-panel").hidden');
+  assert.equal(await evaluate('document.querySelector("[data-mode]").textContent'),"2026-10-09 UTC");
+  await switchLanguage(kind,"vi");await switchLanguage(kind,"en");
+  await driveCity(record,fallingTick,record.inputs[1].tick);await click("Pause");await delay(50);
+  const foundation=await read();assert.equal(foundation.daily.lifetimeCreditedDays,0);assert.equal(await evaluate('window.__frames.size'),0);await click("Resume");
+  await driveCity(record,record.inputs[1].tick,record.inputs[2].tick);await click("Pause");await click("Home");await delay(50);
+  const scored=await read();assert.deepEqual(scored.daily.creditedDates,["2026-10-09"]);assert.equal(scored.daily.lifetimeCreditedDays,1);
+  await click("Daily Tower");await click("Resume Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(record,record.inputs[2].tick);
+  await waitFor('document.querySelector(".cb-panel h2")?.textContent.startsWith("Daily complete")');
+  await panelLayoutSmoke(kind,"daily-result-en");await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"daily-result-vi");await switchLanguage(kind,"en");
+  const completed=await read();assert.deepEqual(completed.daily.days[0].bestComplete.result,record.result);
+  assert.equal(completed.daily.days[0].attempts,1);assert.equal(completed.daily.longestStreak,1);assert.equal(completed.daily.lifetimeCreditedDays,1);
+  assert.deepEqual(completed.city,baseline.city);assert.equal(completed.standardQuickBest,baseline.standardQuickBest);assert.equal(completed.runs,baseline.runs);
+  assert.equal(completed.progression.xp,183);assert.equal(completed.stats.byMode.daily.completed,1);
+  await click("Replay / restart");await waitFor('document.querySelector(".cb-panel").hidden');await evaluate(`window.__step();for(let i=0;i<${record.endTick+250};i++)window.__step()`);await delay(50);
+  assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).startsWith("Replay complete"));
+  assert.deepEqual((await read()).daily,completed.daily);assert.deepEqual((await read()).progression,completed.progression);
+  await navigate(kind,url,"preserve");await evaluate(`window.__clock=${midnight}`);await click("Daily Tower");await click("Resume Daily");
+  await waitFor('document.querySelector(".cb-panel h2")?.textContent.startsWith("Daily complete")');await delay(50);
+  assert.deepEqual((await read()).stats,completed.stats);assert.equal((await read()).progression.xp,183);
+  await click("Retry this Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(dailyFixture.roofMiss);
+  assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).startsWith("Daily complete"));
+  const roofMiss=await read();assert.equal(roofMiss.daily.days[0].attempts,2);assert.equal(roofMiss.history[0].metrics.roof,"miss");assert.deepEqual(roofMiss.daily.days[0].bestComplete,completed.daily.days[0].bestComplete);
+  await click("Retry this Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(dailyFixture.failed);
+  assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).startsWith("Daily incomplete"));await panelLayoutSmoke(kind,"daily-failed-en");
+  const failed=await read();assert.equal(failed.daily.days[0].attempts,3);assert.equal(failed.daily.days[0].bestFailedHeight,1);assert.deepEqual(failed.daily.days[0].bestComplete,completed.daily.days[0].bestComplete);
+  assert.equal(failed.daily.lifetimeCreditedDays,1);assert.equal(failed.history[0].complete,false);
+  await click("Home");await click("History");await evaluate('const select=document.querySelector(".cb-data-select");select.value="daily";select.dispatchEvent(new Event("change"))');
+  await panelLayoutSmoke(kind,"daily-filtered-history-en");await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"daily-filtered-history-vi");await switchLanguage(kind,"en");
+  fs.writeFileSync(path.join(reportDir,`${kind}-daily-save.json`),JSON.stringify(failed,null,2));
+  await click("Home");await click("Daily Tower");await click("Play Daily");await click("Discard and play today");await waitFor('document.querySelector(".cb-panel").hidden');
+  await click("Pause");await click("Home");await delay(50);
+  const today=await read();assert.equal(today.daily.pending.checkpoint.config.daily.dateUTC,"2026-10-10");assert.equal(today.daily.days[0].attempts,1);assert.equal(today.daily.lifetimeCreditedDays,1);
+  await click("Last replay");await waitFor('document.querySelector(".cb-panel").hidden');
+  await evaluate(`window.__step();for(let i=0;i<${dailyFixture.failed.endTick+250};i++)window.__step()`);
+  await click("Retry this Daily");assert.equal(await evaluate('document.querySelector(".cb-panel h2").textContent'),"Replace pending Daily?");
+  await click("Keep pending Daily");await delay(50);assert.deepEqual((await read()).daily.pending,today.daily.pending);
+  const bytes=Math.max(JSON.stringify(failed).length*2,Buffer.byteLength(JSON.stringify(failed)));assert(bytes<=256*1024);
+  await navigate(kind,url);
+  return {definitions:dailyFixture.definitions,complete:record.result,roofMiss:dailyFixture.roofMiss.result,failed:dailyFixture.failed.result,bytes,attempts:3,lifetimeCreditedDays:1,
+    resume:"foundation falling, scored body, result; pinned date across UTC midnight",ui:"entry/guide/history/results EN/VI at 320x568,390x844,900x430; no clipping/scroll",isolation:"City unlocks/Quick best unchanged",settlement:"no duplicate attempts/streak/XP on resume/replay; failed PB separate; roof Miss complete"};
 }
 async function captureClassSeams(kind) {
   await evaluate(rendererBundle);
@@ -522,6 +593,7 @@ async function main() {
     assert(await evaluate('document.querySelector(".cb-arena").getBoundingClientRect().height >= 100'));
     await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
     const cityRecord=await citySmoke(kind,url,key);
+    tracking.daily=await dailySmoke(kind,url,key);
     await captureClassSeams(kind);
     await captureHighRig(kind);
     await captureMiss(kind);
@@ -596,7 +668,18 @@ async function main() {
     await click("Home");await click("Build City");await click("Build selected lot");
     await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(cityRecord);
     assert.deepEqual(await evaluate('window.__scores'),[fixture.result.population]);
-    await click("Discard tower");await click("Home");await click("Play Standard");
+    await click("Discard tower");await click("Home");
+    await evaluate(`window.__clock=${Date.parse("2026-10-09T12:00:00Z")}`);
+    await click("Daily Tower");await click("Play Daily");await waitFor('document.querySelector(".cb-panel").hidden');
+    await driveCity(dailyFixture.complete,0,dailyFixture.complete.inputs[0].tick+1);
+    await evaluate('window.__pauseHost()');assert.equal(await evaluate('window.__frames.size'),0);
+    await evaluate('window.__resumeHost()');
+    await driveCity(dailyFixture.complete,dailyFixture.complete.inputs[0].tick+1);
+    assert.deepEqual(await evaluate('window.__scores'),[fixture.result.population]);
+    await click("Replay / restart");await waitFor('document.querySelector(".cb-panel").hidden');
+    await evaluate(`window.__step();for(let i=0;i<${dailyFixture.complete.endTick+250};i++)window.__step()`);
+    assert.deepEqual(await evaluate('window.__scores'),[fixture.result.population]);
+    await click("Home");await evaluate('window.__clock=42');await click("Play Standard");
     await evaluate(`window.__step();document.querySelector('.cb-arena').dispatchEvent(new PointerEvent('pointerdown',{isPrimary:true,button:0,bubbles:true}));window.__step();window.__pauseHost();`);
     assert.equal(await evaluate('window.__frames.size'),0);
     await evaluate('window.__resumeHost();window.__step()');
