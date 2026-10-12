@@ -1,0 +1,367 @@
+{
+  "phase": "C4.3",
+  "date": "2026-10-12",
+  "status": "Implemented",
+  "commitTitle": "feat(c4.3): complete Classic Brick cosmetics and Architecture Book",
+  "sourceFiles": [
+    "packages/city-bloxx-content/cosmetics.ts",
+    "packages/city-bloxx-content/assets.manifest.json",
+    "packages/city-bloxx-core/src/cosmetics.ts",
+    "packages/city-bloxx-core/src/city.ts",
+    "packages/city-bloxx-core/src/save-state.ts",
+    "packages/city-bloxx-core/src/tracking.ts",
+    "packages/city-bloxx-core/src/index.ts",
+    "packages/city-bloxx-renderer/src/index.ts",
+    "packages/city-bloxx-renderer/src/sprites.ts",
+    "packages/city-bloxx-renderer/src/book-screens.ts",
+    "packages/city-bloxx-renderer/src/session.ts",
+    "packages/city-bloxx-renderer/src/session.css",
+    "packages/city-bloxx-renderer/src/progression-screens.ts",
+    "base-game-nextjs/modules/city-bloxx/cosmetics.test.ts",
+    "scripts/import-brick-assets.cjs",
+    "scripts/browser-smoke.cjs",
+    "scripts/check-game-assets.cjs",
+    "scripts/cosmetics-evidence.cjs",
+    "art/qa/brick-import.json"
+  ],
+  "sourceSHA256": "d91d1ca3d8670da0ac756f57c3e64f4081ef878d22315d13da6c657be9045325",
+  "commands": [
+    "npm.cmd run check",
+    "npm.cmd run test:browser",
+    "npm.cmd run test:save",
+    "npm.cmd run test:daily",
+    "npm.cmd run test:cosmetics"
+  ],
+  "unitTests": {
+    "total": 228,
+    "files": 17,
+    "cosmetics": 13
+  },
+  "catalogVersion": "cosmetics-1",
+  "catalogItems": 19,
+  "art": {
+    "generator": "built-in image_gen",
+    "promptSpec": "plan/12-art-requirements.md",
+    "provenance": "art/source/brick-prompts.md",
+    "sourceRoot": "art/source",
+    "approvedRoot": "art/approved",
+    "gameplayPNG": 18,
+    "codeBadge": 1,
+    "packBytes": 1095236,
+    "approvedAssets": 48,
+    "qa": [
+      {
+        "path": "stack/brick/bldg_residential_brick_base.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_residential_brick_mid.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_residential_brick_roof.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_industrial_brick_base.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_industrial_brick_mid.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_industrial_brick_roof.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_office_brick_base.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_office_brick_mid.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_office_brick_roof.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_highrise_brick_base.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_highrise_brick_mid.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "stack/brick/bldg_highrise_brick_roof.png",
+        "dimensions": [
+          512,
+          256
+        ],
+        "bounds": [
+          160,
+          48,
+          352,
+          208
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "city/brick/city_residential_brick_mini.png",
+        "dimensions": [
+          256,
+          384
+        ],
+        "bounds": [
+          32,
+          64,
+          224,
+          320
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "city/brick/city_industrial_brick_mini.png",
+        "dimensions": [
+          256,
+          384
+        ],
+        "bounds": [
+          32,
+          64,
+          224,
+          320
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "city/brick/city_office_brick_mini.png",
+        "dimensions": [
+          256,
+          384
+        ],
+        "bounds": [
+          32,
+          64,
+          224,
+          320
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "city/brick/city_highrise_brick_mini.png",
+        "dimensions": [
+          256,
+          384
+        ],
+        "bounds": [
+          32,
+          64,
+          224,
+          320
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "rig/brick/crane_rig_brick_sprite.png",
+        "dimensions": [
+          1024,
+          512
+        ],
+        "bounds": [
+          64,
+          96,
+          960,
+          416
+        ],
+        "alphaOutside": 0
+      },
+      {
+        "path": "rig/brick/crane_hook_brick_sprite.png",
+        "dimensions": [
+          128,
+          128
+        ],
+        "bounds": [
+          40,
+          16,
+          88,
+          112
+        ],
+        "alphaOutside": 0
+      }
+    ],
+    "normalization": "subject alpha threshold/canonical facade backing and crop; originals retained"
+  },
+  "capacity": {
+    "utf8": 57031,
+    "utf16": 113998,
+    "envelopeUtf8": 57043,
+    "envelopeUtf16": 114022,
+    "history": 50,
+    "cosmeticGrants": 10,
+    "legacyCityPendingPreserved": true,
+    "fixture": "70 simulated settlements plus seeded validated lifetime cosmetic milestones; not a manual playthrough"
+  },
+  "browser": [
+    {
+      "platform": "web",
+      "catalogItems": 19,
+      "brickOwnership": 10,
+      "grantsOnce": true,
+      "boot": "zero Brick requests before preview/start",
+      "preview": "locked watermark, no stats/XP/equipment mutation",
+      "styles": "Default/Brick/mixed Quick and finite City reproduce exact golden records/results",
+      "pinning": "pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",
+      "failure": "blocked Brick texture cannot equip; EN/VI failure, retry then equip",
+      "keyboard": "Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",
+      "cache": {
+        "sprites": 28,
+        "canvasBytes": 1785012,
+        "decodedSpriteImages": 8,
+        "afterResizeSprites": 28,
+        "imageDraws": 0,
+        "canvasDraws": 1200,
+        "meanRenderMs": 0.03233333349227905
+      },
+      "cacheCaveat": "Headless CPU/canvas cache profile; not actual phone FPS/host certification",
+      "ui": "four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"
+    },
+    {
+      "platform": "playable",
+      "catalogItems": 19,
+      "brickOwnership": 10,
+      "grantsOnce": true,
+      "boot": "zero Brick requests before preview/start",
+      "preview": "locked watermark, no stats/XP/equipment mutation",
+      "styles": "Default/Brick/mixed Quick and finite City reproduce exact golden records/results",
+      "pinning": "pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",
+      "failure": "blocked Brick texture cannot equip; EN/VI failure, retry then equip",
+      "keyboard": "Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",
+      "cache": {
+        "sprites": 28,
+        "canvasBytes": 1785012,
+        "decodedSpriteImages": 8,
+        "afterResizeSprites": 28,
+        "imageDraws": 0,
+        "canvasDraws": 1200,
+        "meanRenderMs": 0.023333333333333334
+      },
+      "cacheCaveat": "Headless CPU/canvas cache profile; not actual phone FPS/host certification",
+      "ui": "four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"
+    }
+  ],
+  "boundaries": "Physics/scoring unchanged. Guest/SDK cosmetic ownership is local. Headless preview/cache checks are not real-phone FPS, actual host certification or release. Historical C4.0/C4.1/C4.2 evidence is preserved."
+}

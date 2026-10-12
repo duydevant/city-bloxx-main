@@ -3,10 +3,11 @@ import { emptyQualities, type QualityCounts, type RunMetrics } from "./metrics";
 import type { QuickTowerGame, RunConfig, RunResult } from "./run";
 import { SETTLEMENT_REWARDS } from "../../city-bloxx-content/settlement";
 import { type DailyDefinition } from "./daily";
+import type { RunEquipment } from "./cosmetics";
 
 export type StatsGroup = "quick-standard" | "quick-assist" | "city" | "daily";
 export interface RunIdentity { id: string; installationId: string; sequence: number }
-export interface RunContext { identity: RunIdentity; startedAt: number }
+export interface RunContext { identity: RunIdentity; startedAt: number; equipment?: RunEquipment }
 export interface RunSummary extends RunContext {
   mode: RunConfig["mode"]; building: BuildingId; assist: boolean; seed: number;
   physicsVersion: string; rulesetVersion: string; endedAt: number; endTick: number;
@@ -16,6 +17,7 @@ export interface RunSummary extends RunContext {
   xpEarned?: number; rewardVersion?: string;
   baseXPEarned?: number; bonusXPEarned?: number; builderXPBefore?: number;
   unlockedAchievements?: string[]; progressionRewardVersion?: string;
+  unlockedCosmetics?: string[];
   daily?: DailyDefinition;
 }
 export interface StatTotals {

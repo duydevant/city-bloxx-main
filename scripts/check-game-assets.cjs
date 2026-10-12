@@ -10,7 +10,8 @@ for (const target of ["web", "playable"]) {
     const file = path.join(base, asset.path);
     if (!fs.existsSync(file)) throw new Error(`Missing ${target} asset: ${asset.path}`);
     const data = fs.readFileSync(file);
-    const width = data.readUInt32BE(16), height = data.readUInt32BE(20);
+    const svg = asset.path.endsWith(".svg") ? data.toString("utf8") : null;
+    const width = svg ? Number(svg.match(/width="(\d+)"/)?.[1]) : data.readUInt32BE(16), height = svg ? Number(svg.match(/height="(\d+)"/)?.[1]) : data.readUInt32BE(20);
     if (width !== asset.width || height !== asset.height) throw new Error(`Wrong dimensions: ${target}/${asset.path}`);
     if (data.length > manifest.budget.maxFileBytes) throw new Error(`Asset exceeds budget: ${asset.path}`);
     if (crypto.createHash("sha256").update(data).digest("hex") !== asset.sha256) throw new Error(`Asset differs from approved manifest: ${target}/${asset.path}`);

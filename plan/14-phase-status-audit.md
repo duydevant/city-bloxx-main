@@ -1,10 +1,10 @@
 # 14 — Audit trạng thái phase cập nhật 12/10/2026
 
-Audit ban đầu đối chiếu HEAD `1e0ebdc` và 19 file code/test thay đổi với task/DoD của `plan/`. Cập nhật sau khi hoàn thiện C4.0, C4.1 và C4.2 theo yêu cầu người dùng; evidence audit cũ được giữ riêng bên dưới.
+Audit ban đầu đối chiếu HEAD `1e0ebdc` và 19 file code/test thay đổi với task/DoD của `plan/`. Cập nhật sau khi hoàn thiện C4.0–C4.3 theo yêu cầu người dùng; evidence audit cũ được giữ riêng bên dưới.
 
 ## Kết luận
 
-**C4.0, C4.1 và C4.2 đã hoàn thành triển khai (Implemented)**. C4.0 commit `11c3901`, C4.1 commit `ab4d02d`; C4.2 commit `feat(c4.2): complete progression missions and achievements` bổ sung builder/mastery levels, Daily bonus, deterministic missions/claim/reroll và 20 achievements. 215/215 tests, lint, hai builds, save/Daily/progression evidence và Chrome smoke cả hai shell qua. [Evidence C4.2](evidence/C4.2-validation.json). Phase tiếp theo là C4.3; actual SDK/thiết bị/server verification/release giữ gate riêng.
+**C4.0–C4.3 đã hoàn thành triển khai (Implemented)**. C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10`; C4.3 commit `feat(c4.3): complete Classic Brick cosmetics and Architecture Book` bổ sung full Brick, unlock/equip/snapshots, Book/customizer. 228/228 tests, lint, hai production builds, save/Daily/cosmetics evidence và toàn bộ Chrome smoke cả hai shell qua. [Evidence C4.3](evidence/C4.3-validation.json). Phase tiếp theo là W0; actual SDK/thiết bị/server verification/release giữ gate riêng.
 
 | Phase/tài liệu | Trạng thái thực tế | Bằng chứng / phần còn thiếu |
 |---|---|---|
@@ -12,15 +12,15 @@ Audit ban đầu đối chiếu HEAD `1e0ebdc` và 19 file code/test thay đổi
 | C4.0 — Save/stats/history | Implemented — hoàn thành | 139/139 tests, lint/assets/boundaries, hai builds, browser smoke cả hai shell và save-size evidence qua. Recovery, serial snapshots, base XP/receipts, 160 EN/VI catalog strings đã có. |
 | C4.1 — Daily Tower | Implemented — hoàn thành | Recipe `daily-v1`, ruleset `daily-tower-1`, Industrial 20 body + một roof; pinned UTC date, pending/resume, complete PB/failed height, streak/longest/lifetime và seven-day strip. 32 Daily tests, golden fixtures và browser EN/VI/rollover/replay/lifecycle hai shell qua; Quick PB/City unlock giữ nguyên. |
 | C4.2 — Progression/missions/achievements | Implemented — hoàn thành | 44 progression tests, đủ 20 achievement boundary fixtures, XP curve/caps/overflow; missions UTC/availability/fallback/claim/reroll, crash/reload idempotency và shared result/menu EN/VI. Browser hai shell qua ở ba kích thước; grouped unlocks, skip/Reduced Motion/pause/save retry qua. [Evidence](evidence/C4.2-validation.json). |
-| C4.3 — Cosmetics/Architecture Book | Planned | Chỉ có inventory/equipment scaffold default; chưa Classic Brick catalog/art, equip/unlock, Book, renderer resolve equipment. |
+| C4.3 — Cosmetics/Architecture Book | Implemented — hoàn thành | Catalog 19 items, Brick 18 PNG + badge, lifetime grants một lần, inventory migration, mix building/roof/crane và City/pending pin. 13 tests cosmetics; browser EN/VI/keyboard/layout/failure/retry/golden fairness hai shell, alpha/seam/budget/cache qua. [Evidence](evidence/C4.3-validation.json). |
 | W0 — Web routes/responsive | Planned; có baseline shell | Có Home/play/guide/profile/auth, EN/VI và viewport layout từ C0–C3. Chưa `/daily`, `/statistics`, `/my-towers`, `/buildings`, `/guide/daily`, initialScreen/deep-link/tutorial flags và đầy đủ accessibility/navigation QA. Stats/history trong shared menu chưa thay cho routes W0. |
 | W1 — Backend/auth/cloud/leaderboards | Planned | Auth API vẫn throw TODO; chưa Route Handlers/database/Prisma, sessions/cloud conflicts/tickets/server verifier/boards/restore evidence. |
-| Y0–Y2 — Playable integration/release | Planned; có adapters/package | Preview/host adapters/save envelope tồn tại; package mới qua. Chưa actual-host SDK acceptance, persisted score retry/ack, C4 content, device/Test Suite/Portal approval. |
+| Y0–Y2 — Playable integration/release | Planned; có adapters/package và C4 content | Preview/host adapters/save envelope tồn tại; C4 content/package mới qua. Chưa actual-host SDK acceptance, persisted score retry/ack, device/Test Suite/Portal approval. |
 | Soft launch | Planned | C4/W0/W1 và Y0–Y2 gate chưa hoàn tất; automated tests/build không chứng minh release. |
 | C5 — Districts/landmarks | Planned | City vẫn một Downtown; chưa schema 5/district operations/Harbor/landmarks. |
 | C6 — Challenges/replay/social | Planned | Có Last replay/history pin cơ bản; chưa One Drop config, speeds/seek/heatmap/ghost/Album/public publish/share/challenge. |
 | C7 — Weekly/modes/LiveOps | Planned | Chưa weekly contracts, Perfect Rush/Sprint recipes, LiveOps catalogs/admin/layered audio. |
-| 12 — Art requirements | Planned; baseline art có sẵn | 29 runtime assets/target qua hashes/budgets. Compact-v3 mới có Residential mid và Industrial mid source, chưa thay runtime; chưa full Brick/district/landmark art. |
+| 12 — Art requirements | Brick approved/imported; các bộ sau Planned | 48 runtime assets/target, full Brick pack 1.095.236 bytes; hashes/alpha/bbox/seams/anchors/cache qua. Compact-v3 chỉ hai mids source chưa import; district/landmark/Winter và device QA còn Planned. |
 | 13 — Backlog | Deferred | Giữ gate riêng; không biến các mục backlog thành phase đã xong. |
 
 Nền C0, Quick C2 và City C3 đã có code trong lịch sử trước bộ plan này; C1 còn playtest/benchmark thật. Việc đó không đồng nghĩa các phase nâng cấp trong `plan/` hoàn tất. Evidence lịch sử ở [00](00-project-audit.md), [PROGRESS](../PROGRESS.md) và [review checklist](../PROJECT_REVIEW_CHECKLIST.md).

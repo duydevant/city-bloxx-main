@@ -1,20 +1,21 @@
 import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { checkpointTower, restoreTower, type TowerCheckpoint } from "./checkpoint";
 import { QuickTowerGame, type RunResult } from "./run";
+import { DEFAULT_EQUIPMENT, validateRunEquipment, type RunEquipment } from "./cosmetics";
 
 export interface CityBuilding {
-  runId: string; classId: BuildingId; skin: "default"; floors: number; population: number;
+  runId: string; classId: BuildingId; skin: string; roofSkin?: string; floors: number; population: number;
   roof: boolean; complete: boolean; accuracy: number; rating: RunResult["rating"];
 }
-export interface PendingCityTower { runId: string; lot: number; classId: BuildingId; checkpoint: TowerCheckpoint }
+export interface PendingCityTower { runId: string; lot: number; classId: BuildingId; checkpoint: TowerCheckpoint; equipment?: RunEquipment }
 export interface CitySave {
   version: 1; lots: (CityBuilding | null)[]; unlocked: BuildingId[]; nextRun: number;
-  pending: PendingCityTower | null; inventory: { skins: string[] };
+  pending: PendingCityTower | null;
   stats: { builds: number; floors: number; completed: number; byClass: Record<BuildingId, number> };
 }
 export function emptyCity(): CitySave {
   return { version: 1, lots: Array.from({ length: 25 }, () => null), unlocked: ["residential"], nextRun: 1, pending: null,
-    inventory: { skins: ["default"] }, stats: { builds: 0, floors: 0, completed: 0, byClass: { residential: 0, industrial: 0, office: 0, highrise: 0 } } };
+    stats: { builds: 0, floors: 0, completed: 0, byClass: { residential: 0, industrial: 0, office: 0, highrise: 0 } } };
 }
 export function cityPopulation(city: CitySave): number { return city.lots.reduce((sum, lot) => sum + (lot?.population ?? 0), 0); }
 export function adjacentLots(lot: number): number[] {
@@ -29,11 +30,11 @@ export function placementStatus(city: CitySave, lot: number, classId: BuildingId
   return { valid: Number.isInteger(lot) && lot >= 0 && lot < 25 && !locked && missing.length === 0, locked, missing };
 }
 const copy = (city: CitySave): CitySave => JSON.parse(JSON.stringify(city));
-export function beginCityTower(city: CitySave, lot: number, classId: BuildingId, seed: number): CitySave {
+export function beginCityTower(city: CitySave, lot: number, classId: BuildingId, seed: number, equipment: RunEquipment = { ...DEFAULT_EQUIPMENT }): CitySave {
   if (city.pending) throw new Error("Finish or cancel the pending tower first");
   if (!placementStatus(city, lot, classId).valid) throw new Error("Invalid city placement");
   const next = copy(city), game = new QuickTowerGame({ seed, mode: "city", assist: false, building: classId });
-  next.pending = { runId: `city-${next.nextRun++}`, lot, classId, checkpoint: checkpointTower(game) };
+  next.pending = { runId: `city-${next.nextRun++}`, lot, classId, checkpoint: checkpointTower(game), equipment: validateRunEquipment(equipment,classId) };
   return next;
 }
 export function updateCityCheckpoint(city: CitySave, game: QuickTowerGame): CitySave {
@@ -52,7 +53,7 @@ export function acceptCityTower(city: CitySave, runId: string): CitySave {
   next.pending = null;
   if (result.height === 0) return next; // Preserve an old building on a failed rebuild.
   const complete = result.height === BUILDINGS[pending.classId].floors;
-  next.lots[pending.lot] = { runId, classId: pending.classId, skin: "default", floors: result.height,
+  next.lots[pending.lot] = { runId, classId: pending.classId, skin: pending.equipment?.building ?? "default", roofSkin: pending.equipment?.roof ?? "default", floors: result.height,
     population: result.population, roof: !!s.roof, complete, accuracy: result.accuracy, rating: result.rating };
   next.stats.builds++; next.stats.floors += result.height;
   if (complete) {
@@ -85,7 +86,9 @@ export function validateCity(value: unknown): CitySave {
     if (game.config.building !== p.classId) throw new Error("Pending class mismatch");
   }
   const next = copy(city);
-  next.lots.forEach(lot => { if (lot) lot.skin = "default"; }); // Unknown skins are cosmetic only.
-  next.inventory = { skins: ["default"] };
+  const validItemId = (id: unknown) => typeof id === "string" && /^[a-zA-Z0-9_.-]{1,80}$/.test(id);
+  next.lots.forEach(lot => { if (lot) { if(!validItemId(lot.skin) || lot.roofSkin !== undefined && !validItemId(lot.roofSkin))throw new Error("Invalid City cosmetic snapshot");validateRunEquipment({building:lot.skin,roof:lot.roofSkin??"default",crane:"default"},lot.classId); } });
+  if (next.pending) next.pending.equipment = validateRunEquipment(next.pending.equipment,next.pending.classId);
+  delete (next as CitySave & { inventory?: unknown }).inventory; // GameSave owns the only inventory.
   return next;
 }

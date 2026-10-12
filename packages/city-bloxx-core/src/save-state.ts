@@ -1,20 +1,21 @@
 import type { RunRecord } from "./run";
 import { validateRecord, verifyRecord } from "./replay";
 import { acceptCityTower, emptyCity, validateCity, type CitySave } from "./city";
-import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
+import { BUILDING_IDS, BUILDINGS, isBuildingId } from "./buildings";
 import { QUALITIES, type RunMetrics } from "./metrics";
 import { applySummary, emptyStats, emptyTotals, makeSummary, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
 import { emptyDaily, settleDaily, validateDailyState, type DailyState } from "./daily-state";
 import { validateDaily } from "./daily";
 import { restoreTower } from "./checkpoint";
 import { acceptedProgression, emptyProgression, normalizeProgression, settleProgression, type ProgressionState } from "./progression";
+import { emptyInventory, grantCosmetics, normalizeInventory, validateRunEquipment, type InventoryState } from "./cosmetics";
 export type { DailyState } from "./daily-state";
 export type { ProgressionState } from "./progression-types";
+export type { InventoryState } from "./cosmetics";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
-export interface InventoryState { owned: string[]; equipment: { buildings: Record<BuildingId, string>; roofs: Record<BuildingId, string>; crane: string } }
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
@@ -25,12 +26,11 @@ export interface GameSave {
   replayRefs: { latest: string | null; best: string | null; pinned: string | null };
   tracking: { installationId: string; nextSequence: number; settled: [number, number][]; activeQuick: ActiveQuick | null; pendingCity: PendingCity | null };
 }
-const classMap = <T>(value: T): Record<BuildingId, T> => Object.fromEntries(BUILDING_IDS.map(id => [id, value])) as Record<BuildingId, T>;
 export function emptySave(): GameSave {
   return { schema: 4, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(),
     settings: { muted: false, reducedMotion: null, locale: null }, stats: emptyStats(),
     progression: emptyProgression(),
-    inventory: { owned: ["default"], equipment: { buildings: classMap("default"), roofs: classMap("default"), crane: "default" } },
+    inventory: emptyInventory(),
     daily: emptyDaily(), history: [], replays: [],
     replayRefs: { latest: null, best: null, pinned: null },
     tracking: { installationId: "", nextSequence: 1, settled: [], activeQuick: null, pendingCity: null } };
@@ -56,6 +56,7 @@ function validResult(r: RunRecord["result"]): boolean {
     ["S", "A", "B", "C", "D"].includes(r.rating) && tag(r.ratingVersion);
 }
 function validSummary(s: RunSummary, next: number, installation: string): boolean {
+  try { validateRunEquipment(s?.equipment,s?.building); } catch { return false; }
   if (s?.mode === "daily") {
     try { const d = validateDaily(s.daily); if (s.building !== d.classId || s.seed !== d.seed || s.physicsVersion !== d.physicsVersion || s.rulesetVersion !== d.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > d.targetBodyFloors) return false; } catch { return false; }
   } else if (s?.daily !== undefined) return false;
@@ -68,7 +69,8 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
     (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion)) &&
     [s.baseXPEarned, s.bonusXPEarned, s.builderXPBefore].every(n => n === undefined || integer(n)) &&
     (s.progressionRewardVersion === undefined || tag(s.progressionRewardVersion)) &&
-    (s.unlockedAchievements === undefined || Array.isArray(s.unlockedAchievements) && s.unlockedAchievements.length <= 128 && s.unlockedAchievements.every(tag));
+    (s.unlockedAchievements === undefined || Array.isArray(s.unlockedAchievements) && s.unlockedAchievements.length <= 128 && s.unlockedAchievements.every(tag)) &&
+    (s.unlockedCosmetics === undefined || Array.isArray(s.unlockedCosmetics) && s.unlockedCosmetics.length <= 128 && s.unlockedCosmetics.every(tag));
 }
 function validTotals(t: StatTotals): boolean {
   return !!t && [t.attempts, t.abandoned, t.landedBody, t.scoredBody, t.population, t.bestHeight, t.bestStreak, t.completed, t.maxCombo, t.errorCount].every(integer) &&
@@ -88,9 +90,8 @@ function validateV4(s: GameSave): GameSave {
     !["quick-standard", "quick-assist", "city", "daily"].every(k => validTotals(s.stats.byMode[k as StatsGroup])) || !BUILDING_IDS.every(k => validTotals(s.stats.byClass[k]))) reject();
   if (!s.progression || s.progression.version !== 1 || !integer(s.progression.xp) || !s.progression.masteryXP || !BUILDING_IDS.every(k => integer(s.progression.masteryXP[k])) ||
     !Array.isArray(s.progression.achievements) || s.progression.achievements.length > 128 || !s.progression.achievements.every(tag)) reject();
-  if (!s.inventory || !Array.isArray(s.inventory.owned) || s.inventory.owned.length > 128 || !s.inventory.owned.includes("default") || !s.inventory.owned.every(tag) ||
-    new Set(s.inventory.owned).size !== s.inventory.owned.length || !s.inventory.equipment || !tag(s.inventory.equipment.crane) || !s.inventory.owned.includes(s.inventory.equipment.crane) ||
-    ![s.inventory.equipment.buildings, s.inventory.equipment.roofs].every(map => !!map && BUILDING_IDS.every(k => tag(map[k]) && s.inventory.owned.includes(map[k])))) reject();
+  s = { ...s, inventory: normalizeInventory(s.inventory) };
+  validateRunEquipment(tr.activeQuick?.equipment,"residential"); validateRunEquipment(tr.pendingCity?.equipment,s.city.pending?.classId); validateRunEquipment(s.daily.pending?.equipment,s.daily.pending?.checkpoint.config.building);
   s = { ...s, daily: validateDailyState(s.daily) };
   s = { ...s, progression: normalizeProgression(s) };
   const dp = s.daily.pending;
@@ -123,13 +124,14 @@ export function migrateSave(value: unknown): GameSave {
   if (![1, 2, 3, 4].includes(s.schema)) throw new Error("Unknown save schema; original save preserved");
   if (s.schema === 4) {
     if (![s.standardQuickBest, s.assistQuickBest, s.runs].every(integer)) reject();
-    return validateV4({ ...s, city: validateCity(s.city), stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
+    const legacyOwned = (s.city as CitySave & { inventory?: { skins: string[] } }).inventory?.skins ?? [];
+    return validateV4({ ...s, inventory: normalizeInventory(s.inventory, legacyOwned), city: validateCity(s.city), stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
   }
   const next = emptySave();
   next.standardQuickBest = integer(s.standardQuickBest) ? s.standardQuickBest : 0;
   next.assistQuickBest = integer(s.assistQuickBest) ? s.assistQuickBest : 0;
   next.runs = integer(s.runs) ? s.runs : 0;
-  if ((s.schema as number) === 3) next.city = validateCity(s.city);
+  if ((s.schema as number) === 3) { next.city = validateCity(s.city); next.inventory = normalizeInventory(next.inventory, (s.city as CitySave & { inventory?: { skins: string[] } }).inventory?.skins ?? []); }
   if (s.lastReplay) {
     let supported: RunRecord | null = null;
     try { supported = verifyRecord(s.lastReplay); } catch { /* Optional playback must not destroy supported summary metadata. */ }
@@ -217,7 +219,9 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     next.replays.push({ id: summary.identity.id, record: valid }); next.replayRefs.latest = summary.identity.id;
     if (nextBest) next.replayRefs.best = summary.identity.id;
   }
-  return retained(next);
+  const awarded = grantCosmetics(next, summary.endedAt), items = awarded.inventory.owned.filter(id => !save.inventory.owned.includes(id));
+  if (items.length) awarded.history = awarded.history.map((h,i) => i ? h : { ...h,unlockedCosmetics:items });
+  return retained(awarded);
 }
 export function acceptTrackedCity(save: GameSave, runId: string, at: number): GameSave {
   const pending = save.city.pending, context = save.tracking.pendingCity;

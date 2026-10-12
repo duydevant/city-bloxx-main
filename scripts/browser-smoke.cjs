@@ -13,7 +13,7 @@ const chrome = spawn("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
   "--headless=new","--disable-gpu","--no-sandbox","--no-first-run","--no-default-browser-check",
   "--remote-debugging-port=9224",`--user-data-dir=${profile}`,"about:blank"
 ],{windowsHide:true,stdio:"ignore"});
-let socket; let sequence=0; const pending=new Map(); const errors=[];
+let socket; let sequence=0; const pending=new Map(); const errors=[], requests=[];
 const delay = ms => new Promise(resolve=>setTimeout(resolve,ms));
 function send(method,params={}) {
   const id=++sequence;
@@ -192,7 +192,13 @@ async function dailySmoke(kind,url,key) {
   assert.equal(await evaluate('document.querySelector("[data-mode]").textContent'),"2026-10-09 UTC");
   await switchLanguage(kind,"vi");await switchLanguage(kind,"en");
   await driveCity(record,fallingTick,record.inputs[1].tick);await click("Pause");await delay(50);
-  const foundation=await read();assert.equal(foundation.daily.lifetimeCreditedDays,0);assert.equal(await evaluate('window.__frames.size'),0,await evaluate('JSON.stringify({panel:document.querySelector(".cb-panel").innerText,frames:[...window.__frames.values()].map(fn=>String(fn).slice(0,300))})'));await click("Resume");
+  const foundation=await read();assert.equal(foundation.daily.lifetimeCreditedDays,0);
+  // Next's link observer may queue one UI frame after focus changes. Drain it;
+  // a live game loop would schedule another frame and advance the checkpoint.
+  await evaluate('window.__step();window.__step()');
+  assert.equal(await evaluate('window.__frames.size'),0);
+  assert.deepEqual((await read()).daily.pending.checkpoint,foundation.daily.pending.checkpoint);
+  await click("Resume");
   await driveCity(record,record.inputs[1].tick,record.inputs[2].tick);await click("Pause");await click("Home");await delay(50);
   const scored=await read();assert.deepEqual(scored.daily.creditedDates,["2026-10-09"]);assert.equal(scored.daily.lifetimeCreditedDays,1);
   await click("Daily Tower");await click("Resume Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(record,record.inputs[2].tick);
@@ -301,7 +307,7 @@ async function panelLayoutSmoke(kind,name) {
     await delay(80);await evaluate("window.__step()");
     const layout=await evaluate(`(()=>{
       const panel=document.querySelector('.cb-panel'),bounds=panel.getBoundingClientRect(),toolbar=document.querySelector('.cb-toolbar').getBoundingClientRect();
-      const outside=[...panel.querySelectorAll('h2,h3,li,dt,dd,button,.cb-progression-content strong,.cb-progression-content small,.cb-progression-content progress,.cb-progression-content select,[data-reward-save]')].filter(el=>{const r=el.getBoundingClientRect();return r.left<bounds.left-1||r.right>bounds.right+1||r.top<bounds.top-1||r.bottom>bounds.bottom+1}).map(el=>el.textContent);
+      const outside=[...panel.querySelectorAll('h2,h3,li,dt,dd,button,.cb-progression-content strong,.cb-progression-content small,.cb-progression-content progress,.cb-progression-content select,[data-reward-save],.cb-book-content strong,.cb-book-content small,.cb-book-preview')].filter(el=>{if(el.hidden)return false;const r=el.getBoundingClientRect();return r.left<bounds.left-1||r.right>bounds.right+1||r.top<bounds.top-1||r.bottom>bounds.bottom+1}).map(el=>el.textContent);
       const controls=[...document.querySelectorAll('.cb-toolbar-controls button')].map(el=>({y:el.getBoundingClientRect().top,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,clip:el.scrollWidth>el.clientWidth+1}));
       const title=document.querySelector('.cb-toolbar-title strong').getBoundingClientRect(),mode=document.querySelector('[data-mode]').getBoundingClientRect();
       return {outside,controls,toolbar:{left:toolbar.left,right:toolbar.right},titleY:title.top+title.height/2,modeY:mode.top+mode.height/2,scroll:[document.scrollingElement.scrollWidth,document.scrollingElement.scrollHeight]};
@@ -377,6 +383,87 @@ async function progressionSmoke(kind,url,key) {
   await click("Back");await click("Home");
   fs.writeFileSync(path.join(reportDir,`${kind}-c4-progression-save.json`),JSON.stringify(await read(),null,2));
   return {builderXP:653,industrialMasteryXP:183,achievementUnlocks:6,claimedMissions:3,reroll:"one unstarted slot; receipt survives redraw",reward:"skip, Reduced Motion instant, visibility pause, grouped unlocks",save:"duplicate click, failed write retained in session, same snapshot retry, reload idempotent",layout:"5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"};
+}
+async function cosmeticsSmoke(kind,url,key,cityRecord) {
+  console.log("Testing cosmetics",kind);
+  const read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
+  const encode=s=>JSON.stringify(kind==="web"?s:{v:1,d:s});
+  const ready=()=>waitFor('document.querySelector("[data-book-asset]")?.dataset.state === "ready"');
+  const select=async id=>{await evaluate(`document.querySelector('[data-cosmetic-id=${JSON.stringify(id)}]').click()`);await ready();};
+  const requestStart=requests.length;await navigate(kind,url);await delay(80);
+  assert.equal(requests.slice(requestStart).filter(url=>url.includes("/game/")&&url.includes("/brick/")).length,0,"Brick eagerly fetched at boot");
+  const before=await read();await click("Architecture Book");await ready();
+  for(let page=0;page<5;page++){
+    if(page<4)await ready();await panelLayoutSmoke(kind,`book-${page}-en`);
+    await switchLanguage(kind,"vi");if(page<4)await ready();await panelLayoutSmoke(kind,`book-${page}-vi`);await switchLanguage(kind,"en");
+    if(page<4){await ready();await click("Customize");await ready();
+      for(let step=0;step<3;step++){
+        const id=["residential","industrial","office","highrise"][page],category=["building","roof","crane"][step];
+        if(page===0&&step===0){
+          assert.equal(await evaluate('document.activeElement.textContent'),"Next");
+          for(let tab=0;tab<2;tab++){
+            await send("Input.dispatchKeyEvent",{type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,modifiers:8});await send("Input.dispatchKeyEvent",{type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,modifiers:8});
+            if(tab===0)assert.equal(await evaluate('document.activeElement.hasAttribute("data-cosmetic-equip")'),true);
+          }
+          assert.equal(await evaluate('document.activeElement.dataset.cosmeticId'),"brick-building-residential");
+          await send("Input.dispatchKeyEvent",{type:"keyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,text:"\r",unmodifiedText:"\r"});await send("Input.dispatchKeyEvent",{type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13});await ready();
+          assert.equal(await evaluate('document.querySelector("[data-cosmetic-id=brick-building-residential]").getAttribute("aria-pressed")'),"true");
+        }else await select(category==="crane"?"brick-crane":`brick-${category}-${id}`);
+        assert.equal(await evaluate('document.querySelector("[data-cosmetic-equip]").disabled'),true);
+        assert((await evaluate('document.querySelector("[data-book-asset]").textContent')).includes("Locked preview"));
+        await panelLayoutSmoke(kind,`customize-locked-${page}-${step}-en`);await switchLanguage(kind,"vi");await ready();await panelLayoutSmoke(kind,`customize-locked-${page}-${step}-vi`);await switchLanguage(kind,"en");await ready();
+        if(step<2)await click("Next");
+      }
+      await click("Back to Book");await ready();
+    }
+    if(page<4)await click("Next");
+  }
+  await click("More items");await panelLayoutSmoke(kind,"collection-items-2");await click("More items");await panelLayoutSmoke(kind,"collection-items-3");await click("Home");
+  const after=await read();assert.deepEqual(after.stats,before.stats);assert.deepEqual(after.inventory,before.inventory);assert.equal(after.progression.xp,before.progression.xp);
+  const seed=await evaluate(`(()=>{const s=CityBloxx.initializeTracking(CityBloxx.emptySave(),'cosmetics-browser',42);for(const id of CityBloxx.BUILDING_IDS){s.progression.counts.classes[id]=20;const t=s.stats.byClass[id];t.quality.perfect=50;t.scoredBody=50;t.landedBody=50;t.errorCount=50;}s.daily.lifetimeCreditedDays=7;s.progression.counts.daily=7;return CityBloxx.migrateSave(s);})()`);
+  await navigate(kind,url,"preserve",encode(seed));await delay(80);assert.equal((await read()).inventory.grants.length,10);
+  await navigate(kind,url,"preserve");await delay(80);assert.equal((await read()).inventory.grants.length,10);
+  await click("Architecture Book");await ready();for(let i=0;i<4;i++)await click("Next");await panelLayoutSmoke(kind,"collection-owned-en");await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"collection-owned-vi");await switchLanguage(kind,"en");await click("Home");
+  const styles=[{name:"default",building:"default-building-residential",roof:"default-roof-residential",crane:"default-crane"},{name:"brick",building:"brick-building-residential",roof:"brick-roof-residential",crane:"brick-crane"},{name:"mixed",building:"brick-building-residential",roof:"default-roof-residential",crane:"brick-crane"}];
+  let pinnedFixture;
+  for(const style of styles){
+    const configured=await evaluate(`(()=>{let s=CityBloxx.grantCosmetics(${JSON.stringify(seed)},42);for(const id of ${JSON.stringify([style.building,style.roof,style.crane])})s=CityBloxx.equipCosmetic(s,id,'residential');return s;})()`);
+    if(style.name==="brick")pinnedFixture=configured;
+    await navigate(kind,url,"preserve",encode(configured));await recordedRun();await delay(80);
+    let saved=await read();const summary=saved.history[0];assert.deepEqual(summary.result,fixture.result);assert.deepEqual(summary.equipment,{building:style.building,roof:style.roof,crane:style.crane});
+    assert.deepEqual(saved.replays.find(r=>r.id===summary.identity.id).record,fixture);
+    await click("Home");await click("Build City");await click("Build selected lot");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(cityRecord);await delay(80);
+    saved=await read();assert.deepEqual(saved.history[0].result,cityRecord.result);await screenshot(`${kind}-cosmetics-${style.name}-city-result`);
+    await click("Accept building");await delay(80);saved=await read();assert.equal(saved.city.lots[12].skin,style.building);assert.equal(saved.city.lots[12].roofSkin,style.roof);
+    assert(await evaluate(`document.querySelector('[data-lot="12"] img').src.includes('/city/${style.name==="default"?"default":"brick"}/')`));
+  }
+  await navigate(kind,url,"preserve",encode(pinnedFixture));await click("Build City");await click("Build selected lot");await waitFor('document.querySelector(".cb-panel").hidden');
+  const stop=cityRecord.inputs[1].tick+1;await driveCity(cityRecord,0,stop);await screenshot(`${kind}-cosmetics-brick-active-rig`);await click("Pause");await click("City map");await click("Home");await delay(80);const pendingBefore=(await read()).city.pending;
+  await click("Architecture Book");await ready();await click("Customize");await ready();await select("default-building-residential");await click("Next");await ready();await select("default-roof-residential");await click("Next");await ready();await select("default-crane");
+  await waitFor('document.querySelector("[data-cosmetic-equip]").disabled===false');await click("Equip selection");await delay(80);assert.deepEqual((await read()).city.pending,pendingBefore);
+  await click("Back to Book");await ready();await click("Home");await navigate(kind,url,"preserve");await click("Build City");await click("Resume tower");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(cityRecord,stop);await click("Accept building");await delay(80);
+  let saved=await read();assert.equal(saved.city.lots[12].skin,"brick-building-residential");assert.equal(saved.city.lots[12].roofSkin,"brick-roof-residential");assert.equal(saved.inventory.equipment.buildings.residential,"default-building-residential");
+  await screenshot(`${kind}-cosmetics-pinned-city-mini`);await navigate(kind,url,"preserve");saved=await read();assert.equal(saved.city.lots[12].skin,"brick-building-residential");assert.equal(saved.inventory.grants.length,10);
+  await send("Network.setBlockedURLs",{urls:["https://www.youtube.com/game_api/*","*/game/stack/brick/bldg_office_brick_mid.png"]});
+  await navigate(kind,url,"preserve",encode(seed));await click("Architecture Book");await ready();await click("Next");await ready();await click("Next");await ready();await click("Customize");await ready();
+  await evaluate('document.querySelector("[data-cosmetic-id=brick-building-office]").click()');await waitFor('document.querySelector("[data-book-asset]")?.dataset.state==="error"');
+  assert.equal(await evaluate('document.querySelector("[data-cosmetic-equip]").disabled'),true);assert.equal((await read()).inventory.equipment.buildings.office,"default");await panelLayoutSmoke(kind,"cosmetics-artwork-failure-en");await switchLanguage(kind,"vi");await waitFor('document.querySelector("[data-book-asset]")?.dataset.state==="error"');await panelLayoutSmoke(kind,"cosmetics-artwork-failure-vi");await switchLanguage(kind,"en");
+  await send("Network.setBlockedURLs",{urls:["https://www.youtube.com/game_api/*"]});await click("Retry artwork");await ready();await waitFor('document.querySelector("[data-cosmetic-equip]").disabled===false');await click("Equip selection");await delay(80);assert.equal((await read()).inventory.equipment.buildings.office,"brick-building-office");
+  fs.writeFileSync(path.join(reportDir,`${kind}-c4-cosmetics-save.json`),JSON.stringify(await read(),null,2));
+  await click("Back to Book");await ready();await click("Home");
+  await evaluate(rendererBundle);
+  const cache=await evaluate(`(async()=>{
+    const canvas=document.createElement('canvas'),renderer=new CityRender.QuickTowerRenderer(canvas,${JSON.stringify(kind==="web"?"/game":"./game")});await renderer.load();renderer.resize(390,700,2);
+    for(const id of CityBloxx.BUILDING_IDS){await renderer.loadEquipment(id,{building:'brick-building-'+id,roof:'brick-roof-'+id,crane:'brick-crane'});await renderer.loadBuilding(id);}
+    renderer.setEquipment({building:'brick-building-residential',roof:'brick-roof-residential',crane:'brick-crane'});
+    const g=new CityBloxx.QuickTowerGame(42);renderer.render(g.getSnapshot());const ctx=canvas.getContext('2d'),draw=ctx.drawImage.bind(ctx);let imageDraws=0,canvasDraws=0;
+    ctx.drawImage=(image,...args)=>{if(image instanceof HTMLImageElement)imageDraws++;else if(image instanceof HTMLCanvasElement)canvasDraws++;draw(image,...args)};
+    const start=performance.now();for(let i=0;i<300;i++){g.advanceTicks(1);renderer.render(g.getSnapshot())}const meanRenderMs=(performance.now()-start)/300;
+    const sprites=renderer.sprites.size,canvasBytes=[...renderer.sprites.values()].reduce((n,c)=>n+c.width*c.height*4,0),decodedSpriteImages=renderer.buildingImages.size;
+    renderer.resize(450,740,1);return{sprites,canvasBytes,decodedSpriteImages,afterResizeSprites:renderer.sprites.size,imageDraws,canvasDraws,meanRenderMs};
+  })()`);
+  assert(cache.sprites<=28);assert.equal(cache.decodedSpriteImages,8);assert(cache.afterResizeSprites<=28);assert(cache.canvasBytes<16*1048576);assert.equal(cache.imageDraws,0);assert(cache.canvasDraws>0);
+  return {catalogItems:19,brickOwnership:10,grantsOnce:true,boot:"zero Brick requests before preview/start",preview:"locked watermark, no stats/XP/equipment mutation",styles:"Default/Brick/mixed Quick and finite City reproduce exact golden records/results",pinning:"pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",failure:"blocked Brick texture cannot equip; EN/VI failure, retry then equip",keyboard:"Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",cache,cacheCaveat:"Headless CPU/canvas cache profile; not actual phone FPS/host certification",ui:"four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"};
 }
 async function siteI18nSmoke() {
   for(const locale of ["en","vi"]) {
@@ -594,6 +681,7 @@ async function main() {
     const m=JSON.parse(event.data);
     if(m.id){const p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.error?p.reject(new Error(JSON.stringify(m.error))):p.resolve(m.result);}}
     if(m.method==="Runtime.exceptionThrown")errors.push(m.params.exceptionDetails.text);
+    if(m.method==="Network.requestWillBeSent")requests.push(m.params.request.url);
   });
   await send("Page.enable");await send("Runtime.enable");
   await send("Network.enable");
@@ -657,6 +745,7 @@ async function main() {
     const cityRecord=await citySmoke(kind,url,key);
     tracking.daily=await dailySmoke(kind,url,key);
     tracking.progression=await progressionSmoke(kind,url,key);
+    tracking.cosmetics=await cosmeticsSmoke(kind,url,key,cityRecord);
     // Progression uses a pinned UTC clock/save; renderer fixtures start fresh at seed 42.
     await navigate(kind,url);
     await captureClassSeams(kind);

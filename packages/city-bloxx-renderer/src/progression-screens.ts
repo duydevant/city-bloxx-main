@@ -1,4 +1,5 @@
 import { ACHIEVEMENT_CATALOG, PROGRESSION_RULES } from "../../city-bloxx-content/progression";
+import { COSMETIC_CATALOG } from "../../city-bloxx-content/cosmetics";
 import { achievementProgress, BUILDING_IDS, levelProgress, utcDate, type BuildingId, type GameSave, type RunSummary } from "../../city-bloxx-core/src/index";
 
 export type RewardSaveStatus = "idle" | "pending" | "saved" | "error";
@@ -109,8 +110,8 @@ export function createProgressionScreens(o: Options) {
     }
     if (page === 1) missions(box, missionDate, date => result(summary, back, page, date));
     if (page === 2) {
-      const ids = reward.unlockedAchievements ?? [], pages = Math.max(1, Math.ceil(ids.length / 3));
-      for (const id of ids.slice(unlockPage * 3, unlockPage * 3 + 3)) { const row = document.createElement("article"); const d = ACHIEVEMENT_CATALOG.find(d => d.id === id); row.textContent = `★ ${d?.title[o.locale()] ?? id} · +${d?.xp ?? 0} XP`; box.append(row); }
+      const ids = [...reward.unlockedAchievements ?? [], ...reward.unlockedCosmetics ?? []], pages = Math.max(1, Math.ceil(ids.length / 3));
+      for (const id of ids.slice(unlockPage * 3, unlockPage * 3 + 3)) { const row = document.createElement("article"); const d = ACHIEVEMENT_CATALOG.find(d => d.id === id), item = COSMETIC_CATALOG.find(d => d.id === id); row.textContent = `★ ${d?.title[o.locale()] ?? item?.title[o.locale()] ?? id}${d ? ` · +${d.xp} XP` : ` · ${t("Cosmetic unlocked", "Đã mở trang bị")}`}`; box.append(row); }
       if (!ids.length) box.textContent = t("No new achievements this run", "Lượt này chưa mở thêm thành tựu");
       if (unlockPage > 0) box.append(o.button(t("Earlier unlocks", "Mở khóa trước"), () => result(summary, back, page, missionDate, unlockPage - 1)));
       if (unlockPage < pages - 1) box.append(o.button(t("More unlocks", "Thêm mở khóa"), () => result(summary, back, page, missionDate, unlockPage + 1)));

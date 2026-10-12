@@ -1,8 +1,9 @@
 import { BUILDINGS, floorSway, QUICK_TOWER_RULES as R, type BuildingId, type QuickTowerSnapshot } from "../../city-bloxx-core/src/index";
 import { loadPose, project, rigGeometry, SPRITE_ANCHORS as A, type Point } from "./geometry";
-import { buildingSourceRect } from "./sprites";
+import { BRICK_ANCHORS, buildingSourceRect } from "./sprites";
 import { placementLabel } from "./feedback";
 import { parachutePose, POPULATION_DURATION, POPULATION_SPRITES } from "./population";
+import { DEFAULT_EQUIPMENT, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
 
 interface GameImages { sky: HTMLImageElement; floor: HTMLImageElement; crane: HTMLImageElement; hook: HTMLImageElement }
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -28,7 +29,9 @@ export class QuickTowerRenderer {
   private feedbackSeen = 0;
   private completionSeen = false;
   private populationFx: {building:BuildingId;count:number;elapsed:number;x:number;y:number;population:number} | null = null;
-  private buildingImages = new Map<BuildingId, { base: HTMLImageElement; mid: HTMLImageElement; roof: HTMLImageElement }>();
+  private buildingImages = new Map<string, { base: HTMLImageElement; mid: HTMLImageElement; roof: HTMLImageElement }>();
+  private equipment: RunEquipment = { ...DEFAULT_EQUIPMENT };
+  private brickCrane: { rig: HTMLImageElement; hook: HTMLImageElement } | null = null;
   private cssWidth = 1;
   private cssHeight = 1;
   private dpr = 1;
@@ -49,12 +52,44 @@ export class QuickTowerRenderer {
     this.background = null;
     this.sprites.clear();this.warmSprites();
   }
-  async loadBuilding(id: BuildingId): Promise<void> {
+  async loadBuilding(id: BuildingId, set: "default" | "brick" = "default"): Promise<void> {
     await this.loadPopulation(id);
-    if (this.buildingImages.has(id)) return;
-    const [base, mid, roof] = await Promise.all(["base", "mid", "roof"].map(part => loadImage(`${this.assetBase}/stack/default/bldg_${id}_default_${part}.png`)));
-    this.buildingImages.set(id, { base, mid, roof });
+    const key = `${id}:${set}`;
+    if (this.buildingImages.has(key)) return;
+    const [base, mid, roof] = await Promise.all(["base", "mid", "roof"].map(part => loadImage(`${this.assetBase}/stack/${set}/bldg_${id}_${set}_${part}.png`)));
+    this.buildingImages.set(key, { base, mid, roof });
     this.warmSprites();
+  }
+  setEquipment(value: RunEquipment = { ...DEFAULT_EQUIPMENT }): void { this.equipment = { ...value }; }
+  drawPreview(canvas: HTMLCanvasElement, building: BuildingId, equipment: RunEquipment, locked = false): void {
+    canvas.width=240;canvas.height=190;const ctx=canvas.getContext("2d")!;ctx.clearRect(0,0,240,190);
+    ctx.fillStyle="#243e50";ctx.fillRect(0,0,240,190);
+    const scale=.34,w=R.floorWidth*scale,h=R.floorHeight*scale,left=58-w/2,bottom=185;
+    for(const [part,index] of [["base",0],["mid",1],["mid",2],["roof",3]] as const) {
+      const set=renderCosmetic(part==="roof"?equipment.roof:equipment.building,part==="roof"?"roof":"building",building).set;
+      const image=this.buildingImages.get(`${building}:${set}`)?.[part],a=buildingSourceRect(building,part,set);
+      if(image)ctx.drawImage(image,a.x,a.y,a.width,a.height,left,bottom-(index+1)*h,w,h);
+    }
+    const brick=renderCosmetic(equipment.crane,"crane",building).set === "brick" && this.brickCrane;
+    const rig=brick?brick.rig:this.images?.crane,hook=brick?brick.hook:this.images?.hook;
+    const a=brick?BRICK_ANCHORS.crane:A.crane;
+    if(rig)ctx.drawImage(rig,a.x,a.y,a.width,a.height,100,16,130,a.height/a.width*130);
+    if(hook)ctx.drawImage(hook,0,0,128,128,180,73,27,27);
+    if(locked) {ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,112,240,24);ctx.fillStyle="#ffdf78";ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.fillText(this.vi?"XEM TRƯỚC · CHƯA MỞ":"LOCKED PREVIEW",120,128);}
+  }
+  async loadEquipment(id: BuildingId, value: RunEquipment): Promise<void> {
+    const sets = new Set([renderCosmetic(value.building, "building", id).set, renderCosmetic(value.roof, "roof", id).set]);
+    await Promise.all([...sets].map(set => this.loadBuilding(id, set)));
+    if (renderCosmetic(value.crane, "crane", id).set === "brick" && !this.brickCrane) {
+      const [rig, hook] = await Promise.all(["rig", "hook"].map(part => loadImage(`${this.assetBase}/rig/brick/crane_${part}_brick_sprite.png`)));
+      this.brickCrane = { rig, hook }; this.warmSprites();
+    }
+  }
+  private buildingSprite(building: BuildingId, part: "base" | "mid" | "roof") {
+    const chosen = renderCosmetic(part === "roof" ? this.equipment.roof : this.equipment.building, part === "roof" ? "roof" : "building", building).set;
+    const themed = this.buildingImages.get(`${building}:${chosen}`)?.[part];
+    if (themed) return { image: themed, set: chosen };
+    return { image: this.buildingImages.get(`${building}:default`)?.[part] ?? (building === "residential" && part === "mid" ? this.images?.floor : null), set: "default" as const };
   }
   setLocale(locale: string): void { this.vi = locale.startsWith("vi"); }
   resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
@@ -103,13 +138,19 @@ export class QuickTowerRenderer {
   private warmSprites(): void {
     if(!this.images)return;
     const scale=Math.min(this.cssHeight/R.worldHeight,this.cssWidth/R.worldWidth);
-    for(const id of ["residential",...this.buildingImages.keys()] as BuildingId[])for(const part of ["base","mid","roof"] as const) {
-      const image=this.buildingImages.get(id)?.[part]??(id==="residential"&&part==="mid"?this.images.floor:null);
-      if(image) { const a=buildingSourceRect(id,part);this.cachedSprite(`${id}:${part}`,image,a.x,a.y,a.width,a.height,R.floorWidth*scale,R.floorHeight*scale); }
+    for(const key of new Set(["residential:default",...this.buildingImages.keys()]))for(const part of ["base","mid","roof"] as const) {
+      const [id,set] = key.split(":") as [BuildingId,"default"|"brick"];
+      const image=this.buildingImages.get(key)?.[part]??(key==="residential:default"&&part==="mid"?this.images.floor:null);
+      if(image) { const a=buildingSourceRect(id,part,set);this.cachedSprite(`${key}:${part}`,image,a.x,a.y,a.width,a.height,R.floorWidth*scale,R.floorHeight*scale); }
     }
     const a=A.crane,ratio=a.scale*scale;
     this.cachedSprite("crane",this.images.crane,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio);
     this.cachedSprite("hook",this.images.hook,0,0,128,128,128*A.hook.scale*scale,128*A.hook.scale*scale);
+    if(this.brickCrane) {
+      const a=BRICK_ANCHORS.crane;this.cachedSprite("brick-crane",this.brickCrane.rig,a.x,a.y,a.width,a.height,a.width*a.scale*scale,a.height*a.scale*scale);
+      const ratio=BRICK_ANCHORS.hook.scale*scale;
+      this.cachedSprite("brick-hook",this.brickCrane.hook,0,0,128,128,128*ratio,128*ratio);
+    }
   }
   render(snapshot: QuickTowerSnapshot, previous?: QuickTowerSnapshot, alpha = 1, reducedMotion = false): void {
     const complete = !!snapshot.targetFloors && snapshot.phase === "ended" && snapshot.floors.length === snapshot.targetFloors;
@@ -235,11 +276,11 @@ export class QuickTowerRenderer {
   private drawFloor(x: number, y: number, scale: number, rotation: number, building: BuildingId, part: "base" | "mid" | "roof"): void {
     const ctx=this.context, width=R.floorWidth*scale, height=R.floorHeight*scale;
     ctx.save(); ctx.translate(x,y+height/2); ctx.rotate(rotation);
-    const image = this.buildingImages.get(building)?.[part] ?? (building === "residential" && part === "mid" ? this.images?.floor : null);
+    const { image, set } = this.buildingSprite(building,part);
     if(image) {
       // Body edges, not transparent image padding, must touch the adjacent world floor.
-      const a=buildingSourceRect(building,part);
-      const sprite=this.cachedSprite(`${building}:${part}`,image,a.x,a.y,a.width,a.height,width,height);
+      const a=buildingSourceRect(building,part,set);
+      const sprite=this.cachedSprite(`${building}:${set}:${part}`,image,a.x,a.y,a.width,a.height,width,height);
       ctx.drawImage(sprite,-width/2,-height/2,width,height);
     } else {
       ctx.fillStyle=BUILDINGS[building].color;ctx.strokeStyle="#263540";ctx.lineWidth=3*scale;
@@ -248,12 +289,21 @@ export class QuickTowerRenderer {
     ctx.restore();
   }
   private drawCrane(pivot: Point, scale: number): void {
+    if(this.brickCrane && renderCosmetic(this.equipment.crane,"crane","residential").set === "brick") {
+      const a=BRICK_ANCHORS.crane,ratio=a.scale*scale;
+      this.context.drawImage(this.cachedSprite("brick-crane",this.brickCrane.rig,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio),pivot.x-(a.pulley.x-a.x)*ratio,pivot.y-(a.pulley.y-a.y)*ratio,a.width*ratio,a.height*ratio);return;
+    }
     const ctx=this.context, a=A.crane, ratio=a.scale*scale;
     const x=pivot.x-(a.pulley.x-a.x)*ratio, y=pivot.y-(a.pulley.y-a.y)*ratio;
     if(this.images) ctx.drawImage(this.cachedSprite("crane",this.images.crane,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio),x,y,a.width*ratio,a.height*ratio);
     else { ctx.fillStyle="#deb93d";ctx.fillRect(x,pivot.y-12*scale,pivot.x-x,24*scale); }
   }
   private drawHook(tip: Point, scale: number): void {
+    if(this.brickCrane && renderCosmetic(this.equipment.crane,"crane","residential").set === "brick") {
+      const a=BRICK_ANCHORS.hook,ratio=a.scale*scale, ctx=this.context;
+      ctx.save();ctx.translate(tip.x,tip.y);ctx.rotate(a.rotation);
+      ctx.drawImage(this.cachedSprite("brick-hook",this.brickCrane.hook,0,0,128,128,128*ratio,128*ratio),-a.tip.x*ratio,-a.tip.y*ratio,128*ratio,128*ratio);ctx.restore();return;
+    }
     const ctx=this.context, a=A.hook, ratio=a.scale*scale;
     if(this.images) ctx.drawImage(this.cachedSprite("hook",this.images.hook,0,0,128,128,128*ratio,128*ratio),tip.x-a.tip.x*ratio,tip.y-a.tip.y*ratio,128*ratio,128*ratio);
     else {ctx.beginPath();ctx.arc(tip.x,tip.y-6*scale,6*scale,0,Math.PI*1.7);ctx.stroke();}

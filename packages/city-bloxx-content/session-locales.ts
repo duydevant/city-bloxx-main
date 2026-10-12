@@ -195,6 +195,7 @@ export const SESSION_TEXT = {
   "Not played": "Chưa chơi",
   "Up to 50 recent summaries; retained Quick and Daily replays can be played.": "Tối đa 50 kết quả gần đây; có thể xem replay Quick và Daily còn được lưu.",
   "Progression": "Tiến trình",
+  "Architecture Book": "Sổ kiến trúc",
   "XP & missions": "XP và nhiệm vụ"
 } as const;
 export type SessionTextKey = keyof typeof SESSION_TEXT;

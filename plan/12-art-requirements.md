@@ -1,6 +1,8 @@
 # Art requirements — danh sách, kích thước vật thể, prompt và nơi lưu
 
-Trạng thái: Planned. Không gen/import ảnh trong nhiệm vụ viết plan. Tất cả đường dẫn tương đối với `D:\ANT_1\city-bloxx-main\`.
+Trạng thái: C4.3 Brick đã approved/imported ngày 12/10/2026; Compact/Harbor/Winter và release QA còn Planned. Tất cả đường dẫn tương đối với `D:\ANT_1\city-bloxx-main\`.
+
+Brick gồm 18 PNG thật sinh riêng bằng built-in `image_gen` và một SVG badge; source v001 giữ nguyên, importer Brick độc lập đồng bộ approved/manifest/hai target. Pack 1.095.236 bytes; 29 Default assets không thay đổi. [Prompt provenance](../art/source/brick-prompts.md), [import QA](../art/qa/brick-import.json), [C4.3 evidence](evidence/C4.3-validation.json). Rig socket approved đo tại (931,256), map về world anchor cũ; socket trong prompt là mục tiêu ban đầu. Alpha/canonical bbox/seam, gallery 3/20 tầng, mini 24px và cache headless đã kiểm; first-load/FPS trên điện thoại thật thuộc release gate.
 
 ## 1. Cần gen thêm gì và khi nào?
 

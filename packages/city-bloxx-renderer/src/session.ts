@@ -8,6 +8,8 @@ import { beginDaily, checkpointDaily, resolveDaily, utcDate } from "../../city-b
 import { createDailyScreens } from "./daily-screens";
 import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rerollSaveMission } from "../../city-bloxx-core/src/index";
 import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
+import { DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, grantCosmetics, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
+import { createBookScreens } from "./book-screens";
 
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
@@ -107,12 +109,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     dataScreens.clear();
     dailyScreens.clear();
     progressionScreens.clear();
+    bookScreens.clear();
     panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
     const buttons = document.createElement("div"); buttons.className = "cb-actions"; buttons.append(...actions);
-    panel.append(heading, text, buttons); actions[0]?.focus();
+    panel.append(heading, text, buttons); panel.setAttribute("aria-label",title);panel.tabIndex=-1;
+    const firstEnabled=actions.find(b=>!b.disabled);if(firstEnabled)firstEnabled.focus();else panel.focus();
   }
   function showStats(stats: [string,string][]): void {
     panel.classList.add("cb-result-panel");
@@ -157,9 +161,12 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     claim: (date, id) => { if (rewardSaveStatus === "pending") return; save = claimMission(save, date, id, now()); persist(); },
     reroll: (date, id) => { if (rewardSaveStatus === "pending") return; save = rerollSaveMission(save, date, id, now()); persist(); },
     retry: persist, status: () => rewardSaveStatus, paused: () => hostPaused || userPaused, reducedMotion: () => reducedMotion });
+  const bookLabel = () => vi ? "Sổ kiến trúc" : "Architecture Book";
+  const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
+    equip: (id,equipment) => { if(rewardSaveStatus === "pending")return;let next=save;for(const item of [equipment.building,equipment.roof,equipment.crane])next=equipCosmetic(next,item,id);save=next;persist(); } });
   const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) {
     if (ready) { const next = ensureMissions(save, now()); if (next !== save) { save = next; persist(); } }
-    dailyScreens.tick(); progressionScreens.tick();
+    dailyScreens.tick(); progressionScreens.tick(); bookScreens.tick();
   } }, 1000);
   cleanups.push(() => window.clearInterval(dailyTimer));
   function openData(history = false): void {
@@ -172,6 +179,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
     save = ensureMissions(save, now()); persist(); progressionScreens.menu();
   }
+  function openBook(): void {
+    checkpointCity();abandonQuick();cityActive=false;mapView=false;cancelFrame();run=null;replay=null;userPaused=false;celebrating=false;renderer.resetEffects();paint();bookScreens.book();
+  }
+  async function loadRunArtwork(id:BuildingId,equipment:RunEquipment):Promise<void> {
+    try { await renderer.loadEquipment(id,equipment); }
+    catch { message(t("Using fallback building art."));try{await renderer.loadBuilding(id);}catch{/* Colored fallback remains usable. */} }
+    renderer.setEquipment(equipment);
+  }
   function rewardButton(back: () => void): HTMLButtonElement | null {
     const summary = save.history.find(h => h.identity.id === runContext?.identity.id);
     return summary ? button(progressionResultLabel(), () => progressionScreens.result(summary, back)) : null;
@@ -180,7 +195,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const pending = save.city.pending;
     if (!pending || save.tracking.pendingCity?.cityRunId === pending.runId) return;
     const allocated = allocateRun(save, startedAt); save = allocated.save;
-    save = { ...save, tracking: { ...save.tracking, pendingCity: { ...allocated.context, cityRunId: pending.runId } } };
+    save = { ...save, tracking: { ...save.tracking, pendingCity: { ...allocated.context, equipment: pending.equipment ?? { ...DEFAULT_EQUIPMENT }, cityRunId: pending.runId } } };
   }
   function settleCurrent(): void {
     if (!run || !runContext || isSettled(save, runContext.identity) || run.getPhase() !== "ended") return;
@@ -242,9 +257,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     renderer.resetEffects(); celebrating = false;
     showPanel(t("Preparing tower"),t("Loading artwork…"),[]);
     // Lazy assets still load only after Play, but decoding never competes with a moving crane.
-    await renderer.loadPopulation("residential");if(disposed)return;
+    const equipment=equipmentFor(save,"residential");await loadRunArtwork("residential",equipment);if(disposed)return;
     run = new QuickTowerGame({ seed: options.seed(), mode: "quick", assist });
-    const allocated = allocateRun(save, now()); save = allocated.save; runContext = allocated.context;
+    const allocated = allocateRun(save, now()); save = allocated.save; runContext = { ...allocated.context,equipment };
     save = { ...save, tracking: { ...save.tracking, activeQuick: { ...runContext, progress: makeSummary(run, runContext, now(), "abandoned") } } }; persist();
     lastFeedback = 0; userPaused = false;
     panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint();
@@ -258,7 +273,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     renderer.resetEffects(); celebrating = false;
     pauseButton.disabled=true;
     showPanel(t("Preparing replay"),t("Loading artwork…"),[]);
-    await renderer.loadBuilding(record.config.building ?? "residential");if(disposed)return;
+    const entry=save.replays.find(r=>r.record===record||JSON.stringify(r.record)===JSON.stringify(record));
+    const equipment=save.history.find(h=>h.identity.id===entry?.id)?.equipment??{...DEFAULT_EQUIPMENT};
+    await loadRunArtwork(record.config.building ?? "residential",equipment);if(disposed)return;
     panel.hidden = true; pauseButton.textContent = t("Pause"); paint(); syncPause(); schedule();
   }
   function home(): void {
@@ -271,6 +288,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     actions.push(button(t("Build City guide"), () => showGuide(0,home)));
     actions.push(button(t("Statistics"), () => openData()), button(t("History"), () => openData(true)));
     actions.push(button(progressionLabel(), openProgression));
+    actions.push(button(bookLabel(),openBook));
     if (!storageWritable) actions.push(button(t("Recover saved progress"), confirmRecovery));
     showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."), actions);
   }
@@ -293,6 +311,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (save.tracking.activeQuick?.progress) save = settleRun(save, save.tracking.activeQuick.progress);
     ensurePendingContext();
     save = ensureMissions(save, now());
+    save = grantCosmetics(save,now());
   }
   async function recoverSave(): Promise<void> {
     if (recovering || disposed) return;
@@ -399,10 +418,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const definition = resolveDaily(dateUTC);
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
     renderer.resetEffects(); celebrating = false; showPanel(t("Preparing tower"), t("Loading artwork…"), []);
-    try { await renderer.loadBuilding(definition.classId); } catch { message(t("Using fallback building art.")); }
+    const equipment=equipmentFor(save,definition.classId);await loadRunArtwork(definition.classId,equipment);
     loadingDaily = false; if (disposed || save.daily.pending) return;
     run = new QuickTowerGame({ mode: "daily", assist: false, seed: definition.seed, building: definition.classId, daily: definition });
-    const allocated = allocateRun(save, now()); save = allocated.save; runContext = allocated.context;
+    const allocated = allocateRun(save, now()); save = allocated.save; runContext = { ...allocated.context,equipment };
     save = { ...save, daily: beginDaily(save.daily, run, runContext) }; finishedRecord = null; persist();
     lastFeedback = 0; userPaused = false; panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint(); syncPause(); schedule();
   }
@@ -410,7 +429,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const pending = save.daily.pending; if (!pending || loadingDaily) return;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
     showPanel(t("Preparing tower"), t("Loading artwork…"), []);
-    try { await renderer.loadBuilding(pending.checkpoint.config.building!); } catch { message(t("Using fallback building art.")); }
+    await loadRunArtwork(pending.checkpoint.config.building!,pending.equipment??{...DEFAULT_EQUIPMENT});
     loadingDaily = false; if (disposed || save.daily.pending?.identity.id !== pending.identity.id) return;
     run = restoreTower(pending.checkpoint); runContext = pending; renderer.resetEffects(run.getSnapshot().feedbackId); celebrating = false;
     userPaused = false; lastFeedback = run.getSnapshot().feedbackId; panel.hidden = true; pauseButton.textContent = t("Pause"); paint();
@@ -480,8 +499,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       b.title = `(${Math.floor(index / 5) + 1},${index % 5 + 1}) · ${lotStatus.locked ? t("Locked: complete and accept the previous tier.") : lotStatus.missing.length ? `${t("Needs edge-adjacent")}: ${lotStatus.missing.map(className).join(" + ")}` : t("Click to select this valid lot")}`;
       b.setAttribute("aria-label", `${t("Lot")} ${index + 1}: ${lot ? `${className(lot.classId)}, ${lot.floors} ${t("floors")}, ${lot.population} ${t("people")}` : t("empty")}`);
       if (lot) {
-        const image = document.createElement("img"); image.src = `${options.assets}/city/default/city_${lot.classId}_default_mini.png`; image.alt = ""; image.draggable = false;
-        image.addEventListener("error", () => { image.remove(); b.style.backgroundColor = BUILDINGS[lot.classId].color; }, { once: true }); b.append(image);
+        const image = document.createElement("img"),set=renderCosmetic(lot.skin,"building",lot.classId).set; image.src = `${options.assets}/city/${set}/city_${lot.classId}_${set}_mini.png`; image.alt = ""; image.draggable = false;
+        let defaultTried=set === "default";image.addEventListener("error", () => { if(!defaultTried){defaultTried=true;image.src=`${options.assets}/city/default/city_${lot.classId}_default_mini.png`;}else {image.remove();b.style.backgroundColor=BUILDINGS[lot.classId].color;} }); b.append(image);
       }
       const label = document.createElement("span"); label.textContent = lot ? `${lot.floors}${lot.roof ? " ▲" : ""}` : String(index + 1); b.append(label); grid.append(b);
     }
@@ -504,15 +523,15 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     loadingCity = true;
     const lot = selectedLot, id = selectedClass;
     showPanel(t("Preparing construction"), t("Loading building artwork…"), []);
-    try { await renderer.loadBuilding(id); } catch { message(t("Building art unavailable; using colored fallback.")); }
+    const equipment=equipmentFor(save,id);await loadRunArtwork(id,equipment);
     loadingCity = false; if (disposed) return;
-    save.city = beginCityTower(save.city, lot, id, options.seed()); ensurePendingContext(now()); persist();
+    save.city = beginCityTower(save.city, lot, id, options.seed(),equipment); ensurePendingContext(now()); persist();
     await resumeCity();
   }
   async function resumeCity(): Promise<void> {
     const pending = save.city.pending; if (!pending || loadingCity) return;
     loadingCity = true;
-    try { await renderer.loadBuilding(pending.classId); } catch { message(t("Using fallback building art.")); }
+    await loadRunArtwork(pending.classId,pending.equipment??{...DEFAULT_EQUIPMENT});
     loadingCity = false; if (disposed || save.city.pending?.runId !== pending.runId) return;
     ensurePendingContext(); runContext = save.tracking.pendingCity;
     cancelFrame(); run = restoreTower(pending.checkpoint); replay = null; cityActive = true;
@@ -563,7 +582,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
     el("[data-motion]").textContent=t("Reduced motion");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
     }else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
@@ -599,6 +618,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   return { ready: readyPromise, setLocale, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
+    bookScreens.clear();
     disposed = true; saveController.dispose(); cancelFrame(); abort.abort(); cleanups.forEach(fn => fn());
     options.audio.dispose(); root.replaceChildren();
   } };

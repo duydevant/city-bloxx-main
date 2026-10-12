@@ -142,7 +142,7 @@ describe("C3 Build City",()=>{
     expect(migrated.schema).toBe(4);expect(migrated.standardQuickBest).toBe(88)
     expect(migrated.city.lots).toHaveLength(25)
     const city=fixtureCity();(city.lots[7]! as {skin:string}).skin="unknown"
-    expect(validateCity(city).lots[7]?.skin).toBe("default")
+    expect(validateCity(city).lots[7]?.skin).toBe("unknown") // Renderer falls back without deleting the snapshot ID.
     expect(()=>migrateSave({...emptySave(),city:{...city,lots:[]}})).toThrow("preserved")
     const pending=beginCityTower(emptyCity(),12,"residential",42)
     pending.pending!.checkpoint.version="old"

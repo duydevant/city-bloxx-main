@@ -14,3 +14,4 @@ export * from "./daily-state";
 export * from "./progression";
 export * from "./missions";
 export * from "./progression-types";
+export * from "./cosmetics";

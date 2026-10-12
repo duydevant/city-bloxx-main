@@ -323,6 +323,215 @@
         "web",
         "playable"
       ]
+    },
+    {
+      "path": "stack/brick/bldg_residential_brick_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 56316,
+      "sha256": "cba8d8604de16b4fdc185e9e77ac643cebc59d2e97871455a3536fe06a9cee36",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_residential_brick_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 59015,
+      "sha256": "ededd1dbe9b3a81316fb5f3cbfecf2a25ee40175ad05df4f66c38845aac12b8e",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_residential_brick_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 28072,
+      "sha256": "7bfd5fe26192adb5fffd12ecfb7fb71d8997923e197b297e9da905dc559367cf",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 56301,
+      "sha256": "b69ee191a59409b28b0be1b1e8c0846e71ca0848da369d91836c1a7ae5774b86",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 58518,
+      "sha256": "ac2cde768b6652ced42281d8a296ef426253e31ca6d31faf32d16e1af6d2b1f0",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 24301,
+      "sha256": "8633e9dd0961dbc4a72e75680b8179e1784e1f83e9029bc518bf66b10db162fe",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 58209,
+      "sha256": "4750cdacae40155d175f44fb2755c0ba83af8147c1b4a6d38f601273287c78a4",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 57887,
+      "sha256": "d6ff7fe92eb397380a7a9f7fd149bfe143383c6df4648662e41763041161ae52",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 25395,
+      "sha256": "fd9be651809ca6814eef8a2d6c84fd1062ad1128baede8463f6c0b948d45509d",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_base.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 60517,
+      "sha256": "60d44f335c3cda08ea07a2957770afc839b685c7b020b2c5da1bd37b93fa5c31",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_mid.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 58213,
+      "sha256": "df20ab0064ad4e23721e1ea82c13ee3a3434bbfda6689d3924c9d174b5c6d6c3",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 24505,
+      "sha256": "c86b1495d47a0c737f0690b6dedf47ec11d8923f4c790208368996987310bfb8",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/brick/city_residential_brick_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 76595,
+      "sha256": "84d9663b5c62543e91ec6a076ddef77ed40eb0123ebbf4a70ef943ddde8e0cb8",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/brick/city_industrial_brick_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 92855,
+      "sha256": "276e60a6ceb58440061f706f01e1ac1e0967dbf7db2a084c3dd9e61c4e481800",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/brick/city_office_brick_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 89357,
+      "sha256": "0d1e931ee31055484c792faa6a12a4ae0a8c0521b18c3c65ddc1c97a6e4b9d40",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/brick/city_highrise_brick_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 65486,
+      "sha256": "dfa5776379161eaee51b1b7f3b154c1a468e7ff3cab67cfe7ef6d51a08a7d226",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "rig/brick/crane_rig_brick_sprite.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 195696,
+      "sha256": "2d90d554a7871a895e4d651437fcf2e7c69fdac77c06031b8b7e35ef165967fc",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "rig/brick/crane_hook_brick_sprite.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 7469,
+      "sha256": "0a799d293da7ba2d9d24bf0fa428db5c39f7eddec3428fa0dc60435039bd58ce",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "ui/brick/collection-badge.svg",
+      "width": 256,
+      "height": 256,
+      "bytes": 529,
+      "sha256": "26355361a54344a45e8d8c7a479bb5f78e52235d8e31ddfedbfcf0e6fa8ca1a5",
+      "targets": [
+        "web",
+        "playable"
+      ]
     }
   ]
 }

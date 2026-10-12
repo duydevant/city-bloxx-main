@@ -4,6 +4,12 @@ Cập nhật 12/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## C4.3 — hoàn thành triển khai 12/10/2026
+
+Tiếp tục từ C4.2 `0b72f10`: versioned catalog 19 items, full Classic Brick 18 PNG + SVG badge, lifetime unlock theo class/Daily/collection, một inventory GameSave và migration legacy City, equip building/roof theo class + crane chung đã xong. Unknown ownership được giữ và render fallback Default. Lượt mới pin trang bị; đổi equipment không thay pending run/skyline, rebuild mới thay snapshot. Architecture Book bốn class/collection và customizer ba bước có EN/VI, locked preview, loading/failure/retry, save retry, keyboard/focus/ARIA và mobile paging.
+
+228/228 tests (13 cosmetics), lint/assets/boundaries, hai production builds, save/Daily/cosmetics evidence và Chrome production smoke đầy đủ hai shell qua. Default/Brick/mixed cùng seed/input giữ golden replay/results; pause/equip/reload/resume giữ Brick của City pending. Pack 1.095.236 bytes; 28 cached sprites dùng 1.785.012 bytes raster canvas, warm render không draw HTMLImageElement. Capacity 50 summaries/10 grants/legacy pending v12 có SDK envelope UTF-16 114.022 bytes dưới 256 KiB. Art gốc/prompt tại [provenance](art/source/brick-prompts.md), approved/import report tại [QA](art/qa/brick-import.json). Chi tiết: [C4.3](plan/04-C4.3-cosmetics-architecture-book.md), [evidence](plan/evidence/C4.3-validation.json). Commit: `feat(c4.3): complete Classic Brick cosmetics and Architecture Book`. Phase tiếp theo **W0 — Web pages/responsive**; actual phone/host/server/release giữ gate riêng.
+
 ## C4.2 — hoàn thành triển khai 12/10/2026
 
 Tiếp tục từ C4.1 `ab4d02d`: builder level 1–50, class mastery 1–20 theo XP curve, Daily first-complete bonus, 15 mission definitions với ba slot/ngày UTC, một reroll trước tiến độ, claim bảy ngày, và 20 achievements đã xong. Receipts tách finish/accept/claim; checkpoint, reload và crash không nhân XP. Migration giữ XP/ownership và không trả lại history. Menu/result EN/VI phân trang, mastery selector, grouped levels/unlocks, count-up skip/Reduced Motion/pause và pending/error/retry save có trên Web lẫn Playable.

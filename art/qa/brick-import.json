@@ -1,0 +1,251 @@
+{
+  "version": "brick-art-1",
+  "generator": "built-in image_gen",
+  "promptSpec": "plan/12-art-requirements.md",
+  "normalization": "solid alpha cutout; opaque rectangular body; canonical approved crop/anchor; Default source untouched",
+  "packBytes": 1095236,
+  "assets": [
+    {
+      "path": "stack/brick/bldg_residential_brick_base.png",
+      "source": "art/source/stack/brick/bldg_residential_brick_base_v001.png",
+      "sourceCrop": {
+        "left": 516,
+        "top": 166,
+        "width": 742,
+        "height": 560
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 56316
+    },
+    {
+      "path": "stack/brick/bldg_residential_brick_mid.png",
+      "source": "art/source/stack/brick/bldg_residential_brick_mid_v001.png",
+      "sourceCrop": {
+        "left": 562,
+        "top": 186,
+        "width": 650,
+        "height": 515
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 59015
+    },
+    {
+      "path": "stack/brick/bldg_residential_brick_roof.png",
+      "source": "art/source/stack/brick/bldg_residential_brick_roof_v001.png",
+      "sourceCrop": {
+        "left": 448,
+        "top": 207,
+        "width": 878,
+        "height": 519
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 28072
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_base.png",
+      "source": "art/source/stack/brick/bldg_industrial_brick_base_v001.png",
+      "sourceCrop": {
+        "left": 281,
+        "top": 169,
+        "width": 974,
+        "height": 678
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 56301
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_mid.png",
+      "source": "art/source/stack/brick/bldg_industrial_brick_mid_v001.png",
+      "sourceCrop": {
+        "left": 561,
+        "top": 179,
+        "width": 653,
+        "height": 529
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 58518
+    },
+    {
+      "path": "stack/brick/bldg_industrial_brick_roof.png",
+      "source": "art/source/stack/brick/bldg_industrial_brick_roof_v001.png",
+      "sourceCrop": {
+        "left": 121,
+        "top": 401,
+        "width": 1133,
+        "height": 476
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 24301
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_base.png",
+      "source": "art/source/stack/brick/bldg_office_brick_base_v001.png",
+      "sourceCrop": {
+        "left": 531,
+        "top": 160,
+        "width": 712,
+        "height": 567
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 58209
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_mid.png",
+      "source": "art/source/stack/brick/bldg_office_brick_mid_v001.png",
+      "sourceCrop": {
+        "left": 533,
+        "top": 162,
+        "width": 708,
+        "height": 565
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 57887
+    },
+    {
+      "path": "stack/brick/bldg_office_brick_roof.png",
+      "source": "art/source/stack/brick/bldg_office_brick_roof_v001.png",
+      "sourceCrop": {
+        "left": 412,
+        "top": 241,
+        "width": 950,
+        "height": 455
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 25395
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_base.png",
+      "source": "art/source/stack/brick/bldg_highrise_brick_base_v001.png",
+      "sourceCrop": {
+        "left": 399,
+        "top": 135,
+        "width": 977,
+        "height": 617
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 60517
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_mid.png",
+      "source": "art/source/stack/brick/bldg_highrise_brick_mid_v001.png",
+      "sourceCrop": {
+        "left": 506,
+        "top": 156,
+        "width": 763,
+        "height": 581
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 58213
+    },
+    {
+      "path": "stack/brick/bldg_highrise_brick_roof.png",
+      "source": "art/source/stack/brick/bldg_highrise_brick_roof_v001.png",
+      "sourceCrop": {
+        "left": 315,
+        "top": 219,
+        "width": 1145,
+        "height": 570
+      },
+      "width": 512,
+      "height": 256,
+      "bytes": 24505
+    },
+    {
+      "path": "city/brick/city_residential_brick_mini.png",
+      "source": "art/source/city/brick/city_residential_brick_mini_v001.png",
+      "sourceCrop": {
+        "left": 191,
+        "top": 138,
+        "width": 670,
+        "height": 1302
+      },
+      "width": 256,
+      "height": 384,
+      "bytes": 76595
+    },
+    {
+      "path": "city/brick/city_industrial_brick_mini.png",
+      "source": "art/source/city/brick/city_industrial_brick_mini_v001.png",
+      "sourceCrop": {
+        "left": 160,
+        "top": 200,
+        "width": 715,
+        "height": 1175
+      },
+      "width": 256,
+      "height": 384,
+      "bytes": 92855
+    },
+    {
+      "path": "city/brick/city_office_brick_mini.png",
+      "source": "art/source/city/brick/city_office_brick_mini_v001.png",
+      "sourceCrop": {
+        "left": 144,
+        "top": 137,
+        "width": 750,
+        "height": 1266
+      },
+      "width": 256,
+      "height": 384,
+      "bytes": 89357
+    },
+    {
+      "path": "city/brick/city_highrise_brick_mini.png",
+      "source": "art/source/city/brick/city_highrise_brick_mini_v001.png",
+      "sourceCrop": {
+        "left": 240,
+        "top": 79,
+        "width": 546,
+        "height": 1411
+      },
+      "width": 256,
+      "height": 384,
+      "bytes": 65486
+    },
+    {
+      "path": "rig/brick/crane_rig_brick_sprite.png",
+      "source": "art/source/rig/brick/crane_rig_brick_sprite_v001.png",
+      "sourceCrop": {
+        "left": 149,
+        "top": 174,
+        "width": 1480,
+        "height": 539
+      },
+      "width": 1024,
+      "height": 512,
+      "bytes": 195696
+    },
+    {
+      "path": "rig/brick/crane_hook_brick_sprite.png",
+      "source": "art/source/rig/brick/crane_hook_brick_sprite_v001.png",
+      "sourceCrop": {
+        "left": 438,
+        "top": 68,
+        "width": 378,
+        "height": 1118
+      },
+      "width": 128,
+      "height": 128,
+      "bytes": 7469
+    },
+    {
+      "path": "ui/brick/collection-badge.svg",
+      "source": "code-native badge",
+      "sourceCrop": null,
+      "width": 256,
+      "height": 256,
+      "bytes": 529
+    }
+  ]
+}
