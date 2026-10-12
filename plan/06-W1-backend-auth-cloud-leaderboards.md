@@ -2,6 +2,8 @@
 
 Trạng thái: Planned. Dependency: C4.0/C4.1 contracts; nghiệm thu cùng W0/C4. GDD: 50–51, 78–88, 93, 95.
 
+Kế hoạch triển khai chi tiết sau W0 `8dff07f`: [06a — W1 implementation plan](06a-W1-implementation-plan.md), chia W1.0–W1.9, database/API contracts, file scope, acceptance và commit từng mốc. W1 vẫn Planned; cập nhật này chỉ viết plan, không triển khai backend.
+
 ## 1. Kiến trúc và boundary
 
 Next Route Handlers trong app hiện tại + PostgreSQL + Prisma. Shared core làm server replay verification; không service gameplay thứ hai. Database chỉ mạng nội bộ Docker, không publish port DB mặc định. Không thêm Redis chỉ để làm launch.

@@ -20,7 +20,7 @@ Ngày cập nhật: 12/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Implemented — hoàn thành triển khai |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Implemented — hoàn thành triển khai |
 | [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4 shared UI | Implemented — hoàn thành triển khai |
-| [06 — W1 Backend, auth, cloud, leaderboards](06-W1-backend-auth-cloud-leaderboards.md) | C4.0/C4.1; nghiệm thu sau W0 | Planned |
+| [06 — W1 Backend, auth, cloud, leaderboards](06-W1-backend-auth-cloud-leaderboards.md), [plan triển khai W1.0–W1.9](06a-W1-implementation-plan.md) | C4.0/C4.1; nghiệm thu sau W0 | Planned — đã có plan chi tiết |
 | [07 — Y0–Y2 Playable release](07-Y0-Y2-playable-integration-release.md) | Y0 audit làm sớm; release cần C4 | Planned |
 | [08 — Soft-launch checklist](08-soft-launch-checklist.md) | C4 + W0/W1 cho Web; C4 + Y0–Y2 cho Playable | Planned |
 | [09 — C5 Districts, landmarks](09-C5-districts-landmarks.md) | Soft launch | Planned |
