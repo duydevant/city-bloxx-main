@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 
 import { JsonLd } from "@/components/seo/json-ld"
 import { Toaster } from "@/components/ui/sonner"
@@ -6,7 +6,9 @@ import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/schema"
 import { siteConfig } from "@/lib/site"
 import { AppProviders } from "@/providers/app-providers"
 import "./globals.css"
+import "./web.css"
 
+export const viewport:Viewport={width:"device-width",initialScale:1,viewportFit:"cover"}
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {

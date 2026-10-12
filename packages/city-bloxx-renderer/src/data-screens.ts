@@ -10,6 +10,7 @@ interface DataScreenOptions {
 export function createDataScreens(o: DataScreenOptions) {
   const { t, button } = o;
   let refresh: (() => void) | null = null;
+  let statsPage=0, statsGroup: "all" | StatsGroup="all", statsClass:BuildingId="residential", historyPage=0, historyFilter:"all"|StatsGroup="all";
   const locale = () => o.panel.closest(".cb-game")?.getAttribute("lang") ?? "en";
   const number = (n: number) => n.toLocaleString(locale());
   const percent = (totals: StatTotals) => perfectRate(totals) === null ? t("No scored drops") : `${perfectRate(totals)}%`;
@@ -24,7 +25,8 @@ export function createDataScreens(o: DataScreenOptions) {
     select.value = selected; select.addEventListener("change", () => change(select.value as T));
     o.panel.querySelector("p")!.append(document.createElement("br"), select);
   }
-  function statistics(page = 0, group: "all" | StatsGroup = "all", building: BuildingId = "residential"): void {
+  function statistics(page = statsPage, group: "all" | StatsGroup = statsGroup, building: BuildingId = statsClass): void {
+    statsPage=page;statsGroup=group;statsClass=building;
     const save = o.save(), totals = page === 2 ? save.stats.byClass[building] : group === "all" ? save.stats.totals : save.stats.byMode[group];
     const actions: HTMLButtonElement[] = [];
     if (page > 0) actions.push(button(t("Previous"), () => statistics(page - 1, group, building)));
@@ -43,9 +45,10 @@ export function createDataScreens(o: DataScreenOptions) {
       [t("Current city population"), number(cityPopulation(save.city))]]);
     o.panel.classList.add("cb-data-panel"); refresh = () => statistics(page, group, building);
   }
-  function history(page = 0, filter: "all" | StatsGroup = "all"): void {
+  function history(page = historyPage, filter: "all" | StatsGroup = historyFilter): void {
     const rows = o.save().history.filter(s => filter === "all" || (filter === "city" || filter === "daily" ? s.mode === filter : s.mode === "quick" && s.assist === (filter === "quick-assist")));
     const pages = Math.max(1, Math.ceil(rows.length / 3)); page = Math.max(0, Math.min(page, pages - 1));
+    historyPage=page;historyFilter=filter;
     const actions: HTMLButtonElement[] = [];
     if (page > 0) actions.push(button(t("Previous"), () => history(page - 1, filter)));
     if (page < pages - 1) actions.push(button(t("Next"), () => history(page + 1, filter)));
@@ -82,5 +85,5 @@ export function createDataScreens(o: DataScreenOptions) {
       [t("Best streak"), number(r.bestStreak)], [t("Misses"), number(r.misses)], [t("Duration"), `${(r.durationTicks / 60).toFixed(1)}s`]]);
     o.panel.classList.add("cb-data-panel"); refresh = () => details(id, back, qualityPage);
   }
-  return { statistics, history, clear() { refresh = null; }, refresh() { refresh?.(); }, isOpen() { return refresh !== null; } };
+  return { statistics, history, details:(id:string)=>details(id,()=>history()), clear() { refresh = null; }, refresh() { refresh?.(); }, isOpen() { return refresh !== null; } };
 }

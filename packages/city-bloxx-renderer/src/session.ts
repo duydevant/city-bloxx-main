@@ -10,14 +10,22 @@ import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rer
 import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
 import { DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, grantCosmetics, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
 import { createBookScreens } from "./book-screens";
+import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
+
+export type SessionScreen = "quick" | "city" | "daily" | "statistics" | "history" | "book" | "progression";
+export function sessionScreen(value: string | null): SessionScreen {
+  return ["quick","city","daily","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
+}
 
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
   audio: AudioPort; seed: () => number; locale?: string; onLocaleChange?: (locale:string) => void;
   showLanguageSwitch?: boolean;
   capabilities?: Capabilities; tracking?: TrackingPort;
+  initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
+  onNavigate?: (screen: SessionScreen, replayId?: string) => void;
 }
-export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; dispose(): void }
+export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
   let vi = !!options.locale?.startsWith("vi");
   const translations = new Map(Object.entries(SESSION_TEXT));
@@ -58,6 +66,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let muted = false;
 
   root.classList.add("cb-game");
+  root.classList.toggle("cb-content-session",options.presentation === "content");
   root.lang=vi?"vi":"en";
   root.innerHTML = `
     <div class="cb-toolbar"><div class="cb-toolbar-title"><strong>${quickName()}</strong><span data-mode></span></div>
@@ -78,12 +87,20 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       <div class="cb-panel" role="dialog" aria-label="${t("Game menu")}"></div>
       <div class="cb-combo" aria-label="${t("Combo")}" hidden><span></span></div>
     </div>
+    <div class="cb-tutorial" hidden><span></span><button data-tutorial-dismiss></button></div>
     <p class="cb-hint"></p><p class="cb-notice" role="status" aria-live="polite"></p>`;
   const el = <T extends HTMLElement = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const arena = el(".cb-arena");
   const panel = el(".cb-panel");
   const hint = el(".cb-hint");
   const notice = el(".cb-notice");
+  const tutorial=el(".cb-tutorial");let tutorialMode:keyof TutorialState="quick";
+  const wt=(en:string,translation:string)=>vi?translation:en;
+  function tutorialHint(mode:keyof TutorialState, text:string):void {
+    tutorialMode=mode;tutorial.hidden=save.tutorials[mode];
+    tutorial.querySelector("span")!.textContent=text;
+    el("[data-tutorial-dismiss]").textContent=wt("Dismiss tips","Ẩn mẹo");
+  }
   const hud = new Map<string, HTMLElement>();
   function setText(selector: string, value: string): void {
     const node = hud.get(selector) ?? el(selector); hud.set(selector, node);
@@ -100,12 +117,15 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const renderer = new QuickTowerRenderer(el<HTMLCanvasElement>("canvas"), options.assets);
   renderer.setLocale(vi?"vi":"en");
   const listen = (target: EventTarget, event: string, callback: EventListener) => target.addEventListener(event, callback, { signal: abort.signal });
+  listen(el("[data-tutorial-dismiss]"),"click",()=>{save=completeTutorial(save,tutorialMode);tutorial.hidden=true;persist();});
   function message(value: string): void { if (!disposed) notice.textContent = value; }
   function button(label: string, action: () => void): HTMLButtonElement {
     const b = document.createElement("button"); b.type = "button"; b.textContent = label;
     b.addEventListener("click", action); return b;
   }
   function showPanel(title: string, body: string, actions: HTMLButtonElement[]): void {
+    tutorial.hidden=true;
+    panel.removeAttribute("aria-modal");
     dataScreens.clear();
     dailyScreens.clear();
     progressionScreens.clear();
@@ -116,7 +136,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const text = document.createElement("p"); text.textContent = body;
     const buttons = document.createElement("div"); buttons.className = "cb-actions"; buttons.append(...actions);
     panel.append(heading, text, buttons); panel.setAttribute("aria-label",title);panel.tabIndex=-1;
-    const firstEnabled=actions.find(b=>!b.disabled);if(firstEnabled)firstEnabled.focus();else panel.focus();
+    const firstEnabled=actions.find(b=>!b.disabled);if(firstEnabled)firstEnabled.focus({preventScroll:true});else panel.focus({preventScroll:true});
   }
   function showStats(stats: [string,string][]): void {
     panel.classList.add("cb-result-panel");
@@ -170,6 +190,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   } }, 1000);
   cleanups.push(() => window.clearInterval(dailyTimer));
   function openData(history = false): void {
+    if(options.presentation === "content" && options.onNavigate){options.onNavigate(history?"history":"statistics");return;}
     checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
     cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
     if (history) dataScreens.history(); else dataScreens.statistics();
@@ -201,7 +222,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (!run || !runContext || isSettled(save, runContext.identity) || run.getPhase() !== "ended") return;
     const summary = makeSummary(run, runContext, now());
     if (run.config.mode !== "city") finishedRecord = run.getRecord();
-    save = settleRun(save, summary, run.config.mode !== "city" ? finishedRecord! : undefined); persist();
+    save = completeTutorial(settleRun(save, summary, run.config.mode !== "city" ? finishedRecord! : undefined),run.config.mode); persist();
   }
   function abandonQuick(): void {
     if (!run || run.config.mode !== "quick" || replay || !runContext) return;
@@ -246,6 +267,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       s.drops.length === 2 ? t("3/3 · Perfect refreshes combo and steadies the tower.") : t("Drop on the tower · Perfect keeps the combo alive") : t("Recorded inputs · Replay never submits a score");
     if (s.targetFloors && s.isRoof && s.phase !== "ended") hintText = t("Final drop: place the roof. You only get one attempt.");
     setText(".cb-hint", hintText);
+    if(run?.config.mode === "quick" && !replay && panel.hidden && !save.tutorials.quick){
+      if(s.drops.length>=3){save=completeTutorial(save,"quick");tutorial.hidden=true;persist();}
+      else tutorialHint("quick",hintText);
+    }else if(panel.hidden || replay) tutorial.hidden=true;
   }
   function cancelFrame(): void { cancelAnimationFrame(raf); raf = 0; lastTime = 0; }
   function schedule(): void { if (!disposed && !raf && !userPaused && !hostPaused && (run || replay) && ((replay?.getPhase() ?? run?.getPhase()) !== "ended" || celebrating)) raf = requestAnimationFrame(frame); }
@@ -266,6 +291,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     syncPause(); schedule();
   }
   async function startReplay(record: RunRecord): Promise<void> {
+    if(options.presentation === "content" && options.onNavigate){options.onNavigate("history",save.replays.find(r=>r.record===record)?.id);return;}
     mapView=false;
     checkpointCity(); abandonQuick(); cityActive = false;
     try { replay = new QuickTowerReplay(record); } catch { message(t("Replay is incompatible.")); return; }
@@ -279,6 +305,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     panel.hidden = true; pauseButton.textContent = t("Pause"); paint(); syncPause(); schedule();
   }
   function home(): void {
+    if(options.presentation === "content" && ready && options.onNavigate){options.onNavigate("quick");return;}
     mapView=false;
     checkpointCity(); abandonQuick(); cityActive = false;
     cancelFrame(); run = null; replay = null; userPaused = false; paint();
@@ -404,6 +431,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function openDaily(): void {
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; runContext = null; cityActive = false; mapView = false;
     userPaused = false; celebrating = false; renderer.resetEffects(); paint(); dailyScreens.entry();
+    tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
   }
   function discardDaily(): void {
     const pending = save.daily.pending;
@@ -414,6 +442,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = null; replay = null; runContext = null; persist();
   }
   async function startDaily(dateUTC = utcDate(now())): Promise<void> {
+    if(options.presentation === "content" && options.onNavigate){options.onNavigate("daily");return;}
     if (loadingDaily || save.daily.pending) return;
     const definition = resolveDaily(dateUTC);
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
@@ -426,6 +455,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     lastFeedback = 0; userPaused = false; panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint(); syncPause(); schedule();
   }
   async function resumeDaily(): Promise<void> {
+    if(options.presentation === "content" && options.onNavigate){options.onNavigate("daily");return;}
     const pending = save.daily.pending; if (!pending || loadingDaily) return;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
     showPanel(t("Preparing tower"), t("Loading artwork…"), []);
@@ -483,6 +513,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     actions.push(button(t("Home"), home), button(t("Retry save"), persist));
     actions.push(button(t("Guide"), () => showGuide(0,cityMap)));
     showPanel(t("Build City · Downtown"), summary, actions);
+    tutorialHint("city",wt("Select the highlighted lot, then a class. Higher classes need completed neighbors sharing an edge.","Chọn ô được đánh dấu rồi chọn loại nhà. Loại cao hơn cần nhà hoàn thành kề cạnh."));
     panel.classList.add("cb-city-panel");
     const classes = document.createElement("div"); classes.className = "cb-city-classes";
     for (const id of BUILDING_IDS) {
@@ -566,6 +597,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   listen(pauseButton, "click", () => { userPaused = !userPaused; syncPause(); });
   function setLocale(locale:string): void {
     const next=locale.startsWith("vi");if(next===vi)return;
+    const shownTutorial=!tutorial.hidden;
     const pairs=[...translations].map(([en,vn]):[string,string]=>vi?[vn,en]:[en,vn]).filter(([a,b])=>a!==b).sort((a,b)=>b[0].length-a[0].length);
     const lookup=new Map(pairs);
     const pattern=pairs.length?new RegExp(pairs.map(([from])=>from.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"g"):null;
@@ -586,6 +618,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
     }else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
+    if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
   }
   const languageButton=root.querySelector("[data-language]");
   if(languageButton)listen(languageButton,"click",()=>{const locale=vi?"en":"vi";setLocale(locale);options.onLocaleChange?.(locale);});
@@ -602,6 +635,33 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   } else listen(document, "visibilitychange", () => { hostPaused = document.hidden; syncPause(); });
   const observer = new ResizeObserver(() => { renderer.resize(arena.clientWidth, arena.clientHeight); paint(); });
   observer.observe(arena); cleanups.push(() => observer.disconnect());
+  listen(panel,"keydown",((event:KeyboardEvent)=>{
+    if(panel.getAttribute("aria-modal")!=="true"||event.key!=="Tab")return;
+    const buttons=[...panel.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
+    const index=buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if(event.shiftKey&&index<=0){event.preventDefault();buttons[buttons.length-1]?.focus();}
+    else if(!event.shiftKey&&index===buttons.length-1){event.preventDefault();buttons[0]?.focus();}
+  }) as EventListener);
+  function navigate(screen:SessionScreen,replayId?:string):void {
+    if(!ready||disposed)return;
+    const show=()=>{
+      if(screen==="city")cityMap();else if(screen==="daily")openDaily();
+      else if(screen==="statistics"||screen==="history"){
+        if(options.presentation==="content"){if(screen==="statistics")dataScreens.statistics();else dataScreens.history();}
+        else openData(screen==="history");
+        if(screen==="history"&&replayId)dataScreens.details(replayId);
+      }else if(screen==="book")openBook();else if(screen==="progression")openProgression();else home();
+    };
+    const live=!!run&&!replay&&run.getPhase()!=="ended";
+    const pending=save.city.pending&&screen!=="city"||save.daily.pending&&screen!=="daily";
+    if(live||pending){
+      const paused=userPaused;userPaused=true;cancelFrame();checkpointCity();
+      showPanel(wt("Switch screen?","Chuyển màn hình?"),wt("City and Daily construction stays saved. Leaving a live Quick run ends that attempt.","City và Daily đang dở vẫn được lưu. Rời lượt Quick đang chơi sẽ kết thúc lượt đó."),[
+        button(wt("Continue navigation","Tiếp tục chuyển"),show),
+        button(wt("Stay here","Ở lại"),()=>{panel.removeAttribute("aria-modal");if(live){userPaused=paused;panel.hidden=true;paint();syncPause();schedule();arena.focus();}else if(save.city.pending)cityMap();else openDaily();})]);
+      panel.setAttribute("aria-modal","true");
+    }else show();
+  }
   const readyPromise = (async () => {
     const load = renderer.load().catch(() => message(t("Some artwork could not load; playing with fallback graphics.")));
     try {
@@ -613,9 +673,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     await load;
     if (disposed) return;
     applySettings();
-    ready = true; renderer.resize(arena.clientWidth, arena.clientHeight); home(); persist();
+    ready = true; renderer.resize(arena.clientWidth, arena.clientHeight);
+    if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();persist();
   })();
-  return { ready: readyPromise, setLocale, dispose() {
+  return { ready: readyPromise, setLocale, navigate, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();

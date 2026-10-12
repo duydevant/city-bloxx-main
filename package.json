@@ -9,6 +9,8 @@
     "assets:check": "node scripts/check-game-assets.cjs",
     "test": "npm --prefix base-game-nextjs test",
     "test:browser": "node scripts/browser-smoke.cjs",
+    "test:web": "node scripts/browser-smoke.cjs --web-only",
+    "evidence:web": "node scripts/web-evidence.cjs",
     "test:save": "node scripts/c4-save-evidence.cjs",
     "test:daily": "node scripts/daily-evidence.cjs",
     "test:progression": "node scripts/progression-evidence.cjs",

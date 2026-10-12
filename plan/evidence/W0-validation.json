@@ -1,0 +1,226 @@
+{
+  "phase": "W0",
+  "date": "2026-10-12",
+  "status": "Implemented",
+  "commitTitle": "feat(w0): complete Web routes navigation and guest experience",
+  "sourceFiles": [
+    "base-game-nextjs/app/(main)/page.tsx",
+    "base-game-nextjs/app/(main)/play/page.tsx",
+    "base-game-nextjs/app/(main)/daily/page.tsx",
+    "base-game-nextjs/app/(main)/statistics/page.tsx",
+    "base-game-nextjs/app/(main)/my-towers/page.tsx",
+    "base-game-nextjs/app/(main)/buildings/page.tsx",
+    "base-game-nextjs/app/(main)/profile/page.tsx",
+    "base-game-nextjs/app/(main)/guide/build-city/page.tsx",
+    "base-game-nextjs/app/(main)/guide/daily/page.tsx",
+    "base-game-nextjs/app/(main)/layout.tsx",
+    "base-game-nextjs/app/(auth)/layout.tsx",
+    "base-game-nextjs/app/(auth)/sign-in/page.tsx",
+    "base-game-nextjs/app/(auth)/sign-up/page.tsx",
+    "base-game-nextjs/app/layout.tsx",
+    "base-game-nextjs/app/web.css",
+    "base-game-nextjs/app/robots.ts",
+    "base-game-nextjs/app/sitemap.ts",
+    "base-game-nextjs/lib/i18n.tsx",
+    "base-game-nextjs/components/layout/game-header.tsx",
+    "base-game-nextjs/components/layout/user-nav-menu.tsx",
+    "base-game-nextjs/modules/city-bloxx/quick-tower.tsx",
+    "base-game-nextjs/modules/city-bloxx/quick-tower.module.css",
+    "base-game-nextjs/modules/city-bloxx/personal-preview.tsx",
+    "base-game-nextjs/modules/city-bloxx/web-content.tsx",
+    "base-game-nextjs/modules/city-bloxx/tutorial.test.ts",
+    "packages/city-bloxx-core/src/save-state.ts",
+    "packages/city-bloxx-core/src/ports.ts",
+    "packages/city-bloxx-renderer/src/session.ts",
+    "packages/city-bloxx-renderer/src/session.css",
+    "packages/city-bloxx-renderer/src/data-screens.ts",
+    "packages/city-bloxx-renderer/src/book-screens.ts",
+    "packages/city-bloxx-renderer/src/progression-screens.ts",
+    "scripts/browser-smoke.cjs",
+    "scripts/web-evidence.cjs",
+    "package.json"
+  ],
+  "sourceSHA256": "4f9e4b0e7e5d2b236ee8bcda6c43bad26da6111043064b53a4457dffa468aa78",
+  "commands": [
+    "npm.cmd run check",
+    "npm.cmd run test:web",
+    "npm.cmd run test:browser",
+    "npm.cmd run test:save",
+    "npm.cmd run test:daily",
+    "npm.cmd run evidence:web"
+  ],
+  "unitTests": {
+    "total": 231,
+    "files": 18,
+    "tutorialMigration": 3
+  },
+  "web": {
+    "routes": [
+      "/",
+      "/daily",
+      "/statistics",
+      "/my-towers",
+      "/buildings",
+      "/guide/build-city",
+      "/guide/daily",
+      "/profile"
+    ],
+    "locales": [
+      "en",
+      "vi"
+    ],
+    "sizes": [
+      [
+        320,
+        568
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        900,
+        430
+      ]
+    ],
+    "content": "SSR catalog/introduction, normal vertical scrolling, local save only client; no fabricated online rank",
+    "navigation": "direct URL/refresh/native Back/Forward; no auto run; City pending preserved through switch/confirm/reload/resume; live Quick cancel keeps run",
+    "tutorials": "new Quick/City/Daily dismiss survives save/reload; old save skips onboarding",
+    "memory": "Statistics tab and Book class retained after Home",
+    "accessibility": "native actions, modal focus cycle, no horizontal overflow, footer on content; /play lock covered shared smoke",
+    "seo": "canonical public routes, private/auth noindex and robots disallow, public-only sitemap",
+    "auth": "Guest even with scaffold; no input/form without endpoints",
+    "boundary": "W1 backend untouched; actual safe-area phone/host acceptance remains release gate"
+  },
+  "browser": [
+    {
+      "platform": "web",
+      "golden": {
+        "population": 88,
+        "height": 8,
+        "accuracy": 83.443,
+        "perfectCount": 1,
+        "bestStreak": 1,
+        "durationTicks": 1388,
+        "misses": 3,
+        "ranked": true,
+        "rating": "B",
+        "ratingVersion": "quick-rating-1"
+      },
+      "language": "EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",
+      "lifecycle": "host pause/resume/dispose stops RAF",
+      "cosmetics": {
+        "catalogItems": 19,
+        "brickOwnership": 10,
+        "grantsOnce": true,
+        "boot": "zero Brick requests before preview/start",
+        "preview": "locked watermark, no stats/XP/equipment mutation",
+        "styles": "Default/Brick/mixed Quick and finite City reproduce exact golden records/results",
+        "pinning": "pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",
+        "failure": "blocked Brick texture cannot equip; EN/VI failure, retry then equip",
+        "keyboard": "Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",
+        "cache": {
+          "sprites": 28,
+          "canvasBytes": 1785012,
+          "decodedSpriteImages": 8,
+          "afterResizeSprites": 28,
+          "imageDraws": 0,
+          "canvasDraws": 1200,
+          "meanRenderMs": 0.04700000007947286
+        },
+        "cacheCaveat": "Headless CPU/canvas cache profile; not actual phone FPS/host certification",
+        "ui": "four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"
+      },
+      "progression": {
+        "builderXP": 653,
+        "industrialMasteryXP": 183,
+        "achievementUnlocks": 6,
+        "claimedMissions": 3,
+        "reroll": "one unstarted slot; receipt survives redraw",
+        "reward": "skip, Reduced Motion instant, visibility pause, grouped unlocks",
+        "save": "duplicate click, failed write retained in session, same snapshot retry, reload idempotent",
+        "layout": "5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"
+      }
+    },
+    {
+      "platform": "playable",
+      "golden": {
+        "population": 88,
+        "height": 8,
+        "accuracy": 83.443,
+        "perfectCount": 1,
+        "bestStreak": 1,
+        "durationTicks": 1388,
+        "misses": 3,
+        "ranked": true,
+        "rating": "B",
+        "ratingVersion": "quick-rating-1"
+      },
+      "language": "EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",
+      "lifecycle": "host pause/resume/dispose stops RAF",
+      "cosmetics": {
+        "catalogItems": 19,
+        "brickOwnership": 10,
+        "grantsOnce": true,
+        "boot": "zero Brick requests before preview/start",
+        "preview": "locked watermark, no stats/XP/equipment mutation",
+        "styles": "Default/Brick/mixed Quick and finite City reproduce exact golden records/results",
+        "pinning": "pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",
+        "failure": "blocked Brick texture cannot equip; EN/VI failure, retry then equip",
+        "keyboard": "Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",
+        "cache": {
+          "sprites": 28,
+          "canvasBytes": 1785012,
+          "decodedSpriteImages": 8,
+          "afterResizeSprites": 28,
+          "imageDraws": 0,
+          "canvasDraws": 1200,
+          "meanRenderMs": 0.0476666667064031
+        },
+        "cacheCaveat": "Headless CPU/canvas cache profile; not actual phone FPS/host certification",
+        "ui": "four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"
+      },
+      "progression": {
+        "builderXP": 653,
+        "industrialMasteryXP": 183,
+        "achievementUnlocks": 6,
+        "claimedMissions": 3,
+        "reroll": "one unstarted slot; receipt survives redraw",
+        "reward": "skip, Reduced Motion instant, visibility pause, grouped unlocks",
+        "save": "duplicate click, failed write retained in session, same snapshot retry, reload idempotent",
+        "layout": "5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"
+      }
+    }
+  ],
+  "save": {
+    "schema": 4,
+    "physics": "physics-0.13.0",
+    "rewardVersion": "run-xp-1",
+    "sourceSHA256": "8ff9c988025946255b266b0ed1421990f36b2f65f474750aeb4391dd91049c8b",
+    "payload": {
+      "utf8": 56093,
+      "utf16": 112122
+    },
+    "envelope": {
+      "utf8": 56105,
+      "utf16": 112146
+    },
+    "budgetBytes": 262144,
+    "history": 50,
+    "replays": 1,
+    "attempts": 70,
+    "xp": 2690,
+    "receipts": [
+      [
+        1,
+        1
+      ],
+      [
+        3,
+        72
+      ]
+    ],
+    "preserved": "legacy v12 pending/PB/counters; receipts and XP survive 70 settlements and pruning; repeated settlement is a no-op; mandatory budget refusal leaves original unchanged"
+  },
+  "limits": "Automated production/headless acceptance; real safe-area phone, actual SDK host and Released gates remain open. W1 database/auth/cloud/verified leaderboards are not implemented. C4.0–C4.3 evidence stays historical. User requested stopping before backend."
+}

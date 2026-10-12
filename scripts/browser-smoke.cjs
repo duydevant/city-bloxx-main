@@ -465,11 +465,67 @@ async function cosmeticsSmoke(kind,url,key,cityRecord) {
   assert(cache.sprites<=28);assert.equal(cache.decodedSpriteImages,8);assert(cache.afterResizeSprites<=28);assert(cache.canvasBytes<16*1048576);assert.equal(cache.imageDraws,0);assert(cache.canvasDraws>0);
   return {catalogItems:19,brickOwnership:10,grantsOnce:true,boot:"zero Brick requests before preview/start",preview:"locked watermark, no stats/XP/equipment mutation",styles:"Default/Brick/mixed Quick and finite City reproduce exact golden records/results",pinning:"pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",failure:"blocked Brick texture cannot equip; EN/VI failure, retry then equip",keyboard:"Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",cache,cacheCaveat:"Headless CPU/canvas cache profile; not actual phone FPS/host certification",ui:"four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"};
 }
+async function webRoutesSmoke() {
+  const url="http://127.0.0.1:3010",key="city-bloxx.quick-save.v2",read=()=>evaluate(`JSON.parse(localStorage.getItem('${key}'))`);
+  async function route(path,raw){
+    const init=await send("Page.addScriptToEvaluateOnNewDocument",{source:initScript("web",raw===undefined?"preserve":"normal",raw)});
+    await send("Page.navigate",{url:url+path});await waitFor(`location.pathname===${JSON.stringify(path.split("?")[0])}&&document.querySelector('header')!==null`);
+    if(["/daily","/statistics","/my-towers","/buildings","/play"].includes(path.split("?")[0]))await waitFor('document.querySelector(".cb-panel h2")!==null');
+    await send("Page.removeScriptToEvaluateOnNewDocument",{identifier:init.identifier});await evaluate('for(let i=0;i<3;i++)window.__step()');await delay(70);
+  }
+  await route("/play");const empty=await evaluate('CityBloxx.emptySave()');
+  const pages=[["/","City Bloxx Online","City Bloxx Online"],["/daily","Daily Tower","Tháp hằng ngày"],["/statistics","Statistics","Thống kê"],["/my-towers","My towers","Tháp của tôi"],["/buildings","Architecture Book","Sổ kiến trúc"],["/guide/build-city","Build City guide","Hướng dẫn xây thành phố"],["/guide/daily","Daily guide","Hướng dẫn Daily"],["/profile","Profile","Hồ sơ"]];
+  for(const [path,en,vi]of pages){
+    await route(path,JSON.stringify(empty));
+    for(const locale of ["en","vi"]){await switchLanguage("web",locale);await evaluate('for(let i=0;i<4;i++)window.__step()');await delay(70);assert((await evaluate('document.querySelector("h1").innerText')).includes(locale==="vi"?vi:en));
+      for(const [width,height]of [[320,568],[390,844],[900,430]]){await send("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:true});await delay(40);
+        const layout=await evaluate(`(()=>{const root=document.documentElement,h=document.querySelector('header').getBoundingClientRect();return{width:root.scrollWidth,viewport:innerWidth,scroll:root.scrollHeight,height:innerHeight,headerRight:h.right,footer:getComputedStyle(document.querySelector('footer')).display}})()`);
+        assert(layout.width<=layout.viewport,`${path} ${locale} ${width}: horizontal overflow ${JSON.stringify(layout)}`);assert(layout.headerRight<=width);assert.notEqual(layout.footer,"none");
+        if(path==="/guide/daily"||path==="/buildings"){assert(layout.scroll>layout.height);await evaluate('window.scrollTo(0,document.documentElement.scrollHeight)');assert(await evaluate('scrollY>0'));await evaluate('window.scrollTo(0,0)');}
+        await screenshot(`web-w0-${path.replaceAll('/','-')||'home'}-${locale}-${width}`);
+      }
+    }
+    const html=await(await fetch(url+path)).text();assert(html.includes(en));assert(!html.includes('cosmetics-browser'),'personal save leaked into SSR');
+    const canonical=await evaluate('document.querySelector("link[rel=canonical]")?.getAttribute("href")');assert(canonical,`${path}: missing canonical`);assert.equal(new URL(canonical).pathname,path);
+    if(["/profile","/statistics","/my-towers"].includes(path))assert((await evaluate('document.querySelector("meta[name=robots]")?.content')).includes("noindex"));
+  }
+  await switchLanguage("web","en");await route("/profile");assert((await evaluate('document.body.innerText')).includes("Guest"));assert.equal(await evaluate('document.querySelectorAll("header a[href=\\"/sign-in\\"]").length'),0);
+  for(const path of ["/sign-in","/sign-up"]){await route(path);assert.equal(await evaluate('document.querySelectorAll("input[type=email],input[type=password],form").length'),0);assert((await evaluate('document.querySelector("meta[name=robots]").content')).includes("noindex"));}
+  const map=await(await fetch(url+"/sitemap.xml")).text(),robots=await(await fetch(url+"/robots.txt")).text();
+  for(const path of ["/daily","/buildings","/guide/daily"])assert(map.includes(path));for(const path of ["/profile","/statistics","/my-towers","/sign-in","/sign-up"]){assert(!map.includes(path));assert(robots.includes(`Disallow: ${path}`));}
+  const capacity=JSON.parse(fs.readFileSync(path.join(root,"tmp/c4-qa/save-after-70-runs.json"),"utf8"));capacity.city.pending=null;capacity.tracking.pendingCity=null;delete capacity.tutorials;
+  await route("/my-towers",JSON.stringify(capacity));assert.equal((await read()).history.length,50);assert(await evaluate('document.querySelectorAll("[data-history-id]").length>0'));
+  const emptyUnsupported=await evaluate(`(()=>{const s=CityBloxx.migrateSave(${JSON.stringify(capacity)});s.history[0].replayStatus='unsupported';s.replays=s.replays.filter(r=>r.id!==s.history[0].identity.id);return CityBloxx.prepareSave(s)})()`);
+  await route("/my-towers",JSON.stringify(emptyUnsupported));await evaluate('document.querySelector("[data-history-id]").click()');assert((await evaluate('document.querySelector(".cb-panel").innerText')).includes("Replay version unsupported"));
+  const dailyPending=await evaluate(`(()=>{const d=CityBloxx.resolveDaily('1970-01-01'),g=new CityBloxx.QuickTowerGame({mode:'daily',seed:d.seed,assist:false,building:d.classId,daily:d});let s=CityBloxx.initializeTracking(CityBloxx.emptySave(),'w0-daily',42);const a=CityBloxx.allocateRun(s,42);s=a.save;s.daily=CityBloxx.beginDaily(s.daily,g,a.context);return CityBloxx.prepareSave(s)})()`);
+  await route("/play?screen=statistics",JSON.stringify(dailyPending));assert.equal(await evaluate('document.querySelector(".cb-panel h2").textContent'),"Switch screen?");await click("Continue navigation");assert.deepEqual((await read()).daily.pending,dailyPending.daily.pending);
+  await route("/play?screen=city",JSON.stringify(empty));assert.equal((await read()).city.pending,null);assert.equal((await read()).stats.totals.attempts,0);
+  assert(await evaluate('!document.querySelector(".cb-tutorial").hidden'));await click("Dismiss tips");await delay(60);assert.equal((await read()).tutorials.city,true);
+  await click("Build selected lot");await waitFor('document.querySelector(".cb-panel").hidden');await evaluate(botBundle);
+  const city=await evaluate(`(()=>{const g=new CityBloxx.QuickTowerGame({seed:42,mode:'city',assist:false,building:'residential'});for(let i=0;i<=10;i++)TestBot.placeAccurately(g,.02);return g.getRecord()})()`);
+  await driveCity(city,0,city.inputs[1].tick+1);await delay(60);
+  await evaluate("history.pushState(null,'','/play?screen=daily')");await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Switch screen?"');const pending=(await read()).city.pending;assert(pending);
+  assert.equal(await evaluate('document.querySelector(".cb-panel").getAttribute("aria-modal")'),"true");
+  await send("Input.dispatchKeyEvent",{type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,modifiers:8});await send("Input.dispatchKeyEvent",{type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,modifiers:8});assert.equal(await evaluate('document.activeElement.textContent'),"Stay here");
+  await evaluate('window.__step();window.__step()');assert.deepEqual((await read()).city.pending,pending);await click("Continue navigation");assert.equal(await evaluate('document.querySelector(".cb-panel h2").textContent'),"Daily Tower");assert.deepEqual((await read()).city.pending,pending);
+  await evaluate('history.back()');await waitFor('location.search==="?screen=city"&&document.querySelector(".cb-panel h2")?.textContent==="Build City · Downtown"');assert.deepEqual((await read()).city.pending,pending);
+  await evaluate('history.forward()');await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Switch screen?"');await click("Continue navigation");assert.deepEqual((await read()).city.pending,pending);
+  await route("/play?screen=city");assert.deepEqual((await read()).city.pending,pending);await click("Resume tower");await waitFor('document.querySelector(".cb-panel").hidden');await click("Pause");await click("City map");await delay(60);assert.deepEqual((await read()).city.pending.checkpoint,pending.checkpoint);
+  await route("/play?screen=daily");await click("Continue navigation");assert.deepEqual((await read()).city.pending,pending);await click("Dismiss tips");await delay(60);assert.equal((await read()).tutorials.daily,true);
+  await route("/play",JSON.stringify(empty));await click("Play Standard");await waitFor('document.querySelector(".cb-panel").hidden');assert(await evaluate('!document.querySelector(".cb-tutorial").hidden'));await click("Dismiss tips");await delay(60);assert.equal((await read()).tutorials.quick,true);
+  await evaluate("history.pushState(null,'','/play?screen=statistics')");await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Switch screen?"');await click("Stay here");assert(await evaluate('document.querySelector(".cb-panel").hidden'));assert.equal((await read()).stats.totals.abandoned,0);
+  await route("/play");await click("Play Standard");await waitFor('document.querySelector(".cb-panel").hidden');assert(await evaluate('document.querySelector(".cb-tutorial").hidden'));await click("Pause");await click("Home");
+  await click("Statistics");await click("Next");await click("Home");await click("Statistics");assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).includes("Skill"));
+  await click("Home");await click("History");await evaluate('const filter=document.querySelector(".cb-data-select");filter.value="city";filter.dispatchEvent(new Event("change",{bubbles:true}))');await click("Home");await click("History");assert.equal(await evaluate('document.querySelector(".cb-data-select").value'),"city");
+  await click("Home");await click("Architecture Book");await waitFor('document.querySelector("[data-book-asset]")?.dataset.state==="ready"');await click("Next");await click("Home");await click("Architecture Book");assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).includes("Industrial"));
+  const report={routes:pages.map(p=>p[0]),locales:["en","vi"],sizes:[[320,568],[390,844],[900,430]],content:"SSR catalog/introduction, normal vertical scrolling, local save only client; no fabricated online rank",navigation:"direct URL/refresh/native Back/Forward; no auto run; City pending preserved through switch/confirm/reload/resume; live Quick cancel keeps run",tutorials:"new Quick/City/Daily dismiss survives save/reload; old save skips onboarding",memory:"Statistics tab and Book class retained after Home",accessibility:"native actions, modal focus cycle, no horizontal overflow, footer on content; /play lock covered shared smoke",seo:"canonical public routes, private/auth noindex and robots disallow, public-only sitemap",auth:"Guest even with scaffold; no input/form without endpoints",boundary:"W1 backend untouched; actual safe-area phone/host acceptance remains release gate"};
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(reportDir,"w0-browser-report.json"),JSON.stringify(report,null,2));console.log(JSON.stringify(report));return report;
+}
 async function siteI18nSmoke() {
   for(const locale of ["en","vi"]) {
     const source=await send("Page.addScriptToEvaluateOnNewDocument",{source:`localStorage.setItem('base-game.locale',${JSON.stringify(locale)})`});
     for(const [route,en,vi] of [["/","Play Quick Tower","Chơi xây tháp nhanh"],["/guide/build-city","Build City guide","Hướng dẫn xây thành phố"],
-      ["/sign-in","Password","Mật khẩu"],["/sign-up","Sign up","Đăng ký"],["/profile","Account information","Thông tin tài khoản"],
+      ["/sign-in","Sign in","Đăng nhập"],["/sign-up","Sign up","Đăng ký"],["/profile","Local progress","Tiến trình trên thiết bị"],
       ["/missing-city-page","This page could not be found.","Không tìm thấy trang này."]]) {
       await send("Page.navigate",{url:`http://127.0.0.1:3010${route}`});
       await waitFor(`location.pathname===${JSON.stringify(route)}&&document.documentElement.lang.startsWith(${JSON.stringify(locale)})&&document.body.innerText.includes(${JSON.stringify(locale==="vi"?vi:en)})`);
@@ -687,6 +743,7 @@ async function main() {
   await send("Network.enable");
   // Offline preview uses the template mock SDK; certification runs against the real SDK separately.
   await send("Network.setBlockedURLs",{urls:["https://www.youtube.com/game_api/*"]});
+  if(process.argv.includes("--web-only")){await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});await webRoutesSmoke();return;}
   const report=[];
   for(const [kind,url] of [["web","http://127.0.0.1:3010/play"],["playable",process.env.CITY_BLOXX_PLAYABLE_SMOKE_URL||"http://127.0.0.1:4173/"]]){
     console.log(`Testing ${kind}`);
@@ -840,7 +897,7 @@ async function main() {
     assert.equal(await evaluate('window.__frames.size'),1);
     await evaluate('window.__testSession.dispose()');
     assert.equal(await evaluate('window.__frames.size'),0);
-    if(kind==="web")await siteI18nSmoke();
+    if(kind==="web"){await siteI18nSmoke();tracking.webRoutes=await webRoutesSmoke();}
     report.push({platform:kind,tracking,recovery,feedback,population,language:"EN/VI live switch preserves floors/population; City guide and no-scroll verified; Web pages checked in both languages",combo:"hidden for foundation, visible after scored Perfect",renderTimingCaveat:"Headless CPU submission only, not GPU/frame presentation or real-phone FPS",goldenBrowserResult:fixture.result,portrait:390,landscape:900,retries:30,heapGrowthBytes:heapAfter-heapBefore,storageFaults:"read/write/recovery/corrupted raw verified",input:"double pointer and held key verified",replay:"pause/restart/result and XP/stat idempotency verified",city:"25 lots, locked tiers, two-floor reload/resume, roof, accept, rebuild/keep-old/cancel and demolition; XP/stat idempotency verified",scoreGuard:"standard only; Assist/replay/City excluded",lifecycle:"host pause/resume/dispose stops RAF"});
   }
   report[0].realTimeRender=await realFrameSmoke();

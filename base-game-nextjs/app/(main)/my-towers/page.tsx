@@ -1,0 +1,3 @@
+import { WebContent, webMetadata } from "@/modules/city-bloxx/web-content"
+export const metadata=webMetadata("My towers","Browse up to 50 recent personal tower summaries, filter modes and replay retained inputs.","/my-towers",true)
+export default function Page(){return <WebContent title={["My towers","Tháp của tôi"]} description={["Up to 50 recent summaries. Filter by mode, open details, pin a retained replay or play it in the game. Replays never award XP again.","Tối đa 50 kết quả gần đây. Lọc chế độ, xem chi tiết, ghim bản phát lại còn giữ hoặc mở trong game. Phát lại không thưởng XP lần nữa."]} screen="history"/>}

@@ -8,6 +8,7 @@ interface Options {
 }
 export function createBookScreens(o: Options) {
   let refresh: (()=>void)|null=null, generation=0, shownSave="";
+  let lastPage=0,lastCollection=0;
   const t=(en:string,vi:string)=>o.vi()?vi:en;
   function clear(){refresh=null;generation++;o.panel.classList.remove("cb-book-panel");}
   function shell(title:string,body:string,actions:HTMLButtonElement[]){o.showPanel(title,body,actions);o.panel.classList.add("cb-book-panel");const box=document.createElement("section");box.className="cb-book-content";o.panel.querySelector(".cb-actions")!.before(box);return box;}
@@ -27,7 +28,8 @@ export function createBookScreens(o: Options) {
     }
     queueMicrotask(()=>{void load();});
   }
-  function book(page=0,collectionPage=0){
+  function book(page=lastPage,collectionPage=lastCollection){
+    lastPage=page;lastCollection=collectionPage;
     const save=o.save(),id=BUILDING_IDS[page];const actions:HTMLButtonElement[]=[];
     if(page>0)actions.push(o.button(t("Previous","Trước"),()=>book(page-1)));
     if(page<4)actions.push(o.button(t("Next","Tiếp"),()=>book(page+1)));

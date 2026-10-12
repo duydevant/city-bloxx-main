@@ -4,6 +4,14 @@ Cập nhật 12/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## W0 — hoàn thành triển khai 12/10/2026; dừng trước Backend
+
+Tiếp tục từ C4.3 `5b63174`: Home Quick/City/Daily CTA/local preview, `/daily`, `/statistics`, `/my-towers`, `/buildings`, `/guide/daily` và các guide/profile hiện có đã hoàn thiện. Shared controller đọc dữ liệu local, content scroll bình thường và `/play` giữ viewport lock. Session có initialScreen/navigation callback/account capability; deep links mở menu/detail, không auto scored run; confirm chuyển màn hình giữ pending City/Daily, Back/Forward không remount. Guest hiển thị thật, auth unavailable không có form gửi tới endpoint chưa tồn tại.
+
+Tutorial flags độc lập cho Quick/City/Daily, legacy save không bắt học lại; dismiss/completion persist. EN/VI, tab/filter memory, 44px content/mobile toolbar, safe-area/dynamic viewport CSS, skip link/modal focus và reward aria-live tĩnh đã có. Public intro/catalog prerender, personal save client-only; canonical/sitemap public và noindex/robots auth/private qua.
+
+231/231 tests (18 files), lint/assets/boundaries, Web/Playable production builds, save/Daily evidence và full Chrome smoke hai shell qua. QA W0 tám content routes EN/VI ở 320×568, 390×844, 900×430; direct URL/refresh/Back/Forward, old save 50 summaries, unsupported replay, pending City/Daily và live Quick cancel qua. Save envelope UTF-16 112.146 bytes dưới 256 KiB. [Plan W0](plan/05-W0-web-pages-responsive.md), [evidence](plan/evidence/W0-validation.json). Commit: `feat(w0): complete Web routes navigation and guest experience`. **W1 Backend chưa bắt đầu, dừng theo yêu cầu người dùng**. Actual phone/host/release gates giữ riêng.
+
 ## C4.3 — hoàn thành triển khai 12/10/2026
 
 Tiếp tục từ C4.2 `0b72f10`: versioned catalog 19 items, full Classic Brick 18 PNG + SVG badge, lifetime unlock theo class/Daily/collection, một inventory GameSave và migration legacy City, equip building/roof theo class + crane chung đã xong. Unknown ownership được giữ và render fallback Default. Lượt mới pin trang bị; đổi equipment không thay pending run/skyline, rebuild mới thay snapshot. Architecture Book bốn class/collection và customizer ba bước có EN/VI, locked preview, loading/failure/retry, save retry, keyboard/focus/ARIA và mobile paging.

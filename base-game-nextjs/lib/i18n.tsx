@@ -116,8 +116,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = localeTags[locale]
-    const titles:Record<string,TranslationKey>={"/play":"play.title","/guide/build-city":"guide.title","/profile":"profile.title","/sign-in":"nav.signIn","/sign-up":"auth.signUp"}
-    document.title=pathname==="/"?"City Bloxx Online":`${dictionaries[locale][titles[pathname]??"error.notFound"]} | City Bloxx Online`
+    const titles:Record<string,[string,string]>={"/daily":["Daily Tower","Tháp hằng ngày"],"/statistics":["Statistics","Thống kê"],"/my-towers":["My towers","Tháp của tôi"],"/buildings":["Architecture Book","Sổ kiến trúc"],"/guide/daily":["Daily guide","Hướng dẫn Daily"]}
+    const keys:Record<string,TranslationKey>={"/play":"play.title","/guide/build-city":"guide.title","/profile":"profile.title","/sign-in":"nav.signIn","/sign-up":"auth.signUp"}
+    document.title=pathname==="/"?"City Bloxx Online":`${titles[pathname]?.[locale==="vi"?1:0]??dictionaries[locale][keys[pathname]??"error.notFound"]} | City Bloxx Online`
   }, [locale, pathname])
 
   const setLocale = useCallback((nextLocale: Locale) => {

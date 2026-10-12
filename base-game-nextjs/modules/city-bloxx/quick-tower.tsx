@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { emptySave, migrateSave, type GameSave, type SavePort } from "../../../packages/city-bloxx-core/src/index"
 import { createTowerAudio } from "../../../packages/city-bloxx-renderer/src/audio"
-import { mountQuickTower } from "../../../packages/city-bloxx-renderer/src/session"
+import { mountQuickTower, sessionScreen, type SessionScreen } from "../../../packages/city-bloxx-renderer/src/session"
 import "../../../packages/city-bloxx-renderer/src/session.css"
 import styles from "./quick-tower.module.css"
 import { useI18n } from "@/lib/i18n"
@@ -26,8 +27,11 @@ function createLocalSave(): SavePort {
     },
   }
 }
-export function QuickTower() {
+export function QuickTower({ initialScreen, content=false }: {initialScreen?:SessionScreen;content?:boolean}) {
   const { locale, setLocale } = useI18n()
+  const router=useRouter(),params=useSearchParams(),query=params.toString()
+  const initial=useRef({screen:initialScreen??(params.has("screen")?sessionScreen(params.get("screen")):undefined),replay:params.get("replay")??undefined})
+  const lastQuery=useRef(query)
   const root = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<TowerSession | null>(null)
   const localeRef = useRef(locale)
@@ -37,13 +41,20 @@ export function QuickTower() {
       assets: "/game", save: createLocalSave(), audio: createTowerAudio(),
       seed: () => Date.now() & 0x7fffffff, locale: localeRef.current,
       showLanguageSwitch: false,
-      capabilities: { platform: "web", externalServices: true, standardScore: false },
+      initialScreen:initial.current.screen,initialReplayId:initial.current.replay,presentation:content?"content":"game",
+      onNavigate:(screen,replayId)=>{
+        const routes:Partial<Record<SessionScreen,string>>={statistics:"/statistics",history:"/my-towers",book:"/buildings"}
+        const target=replayId?`/play?screen=history&replay=${encodeURIComponent(replayId)}`:screen==="quick"?"/play":screen==="city"?"/play?screen=city":routes[screen]??`/play?screen=${screen}`
+        router.push(target)
+      },
+      capabilities: { platform: "web", externalServices: true, standardScore: false, account:"scaffold" },
       tracking: { installationId: () => [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2,"0")).join(""), now: () => Date.now() },
       onLocaleChange: next => setLocale(next === "vi" ? "vi" : "en"),
     })
     sessionRef.current = session
     return () => { session.dispose(); sessionRef.current=null }
-  }, [setLocale])
+  }, [setLocale,router,content])
   useEffect(() => { localeRef.current=locale;sessionRef.current?.setLocale(locale) }, [locale])
-  return <section className={styles.shell} aria-label="Quick Tower"><div ref={root} className={styles.session} /></section>
+  useEffect(()=>{if(lastQuery.current===query)return;lastQuery.current=query;const session=sessionRef.current;void session?.ready.then(()=>session.navigate(sessionScreen(params.get("screen")),params.get("replay")??undefined))},[query,params])
+  return <section className={content?styles.content:styles.shell} aria-label={locale==="vi"?"City Bloxx · tiến trình trên thiết bị":"City Bloxx · progress on this device"}><div ref={root} className={content?undefined:styles.session} /></section>
 }

@@ -16,11 +16,15 @@ export type { InventoryState } from "./cosmetics";
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
+export interface TutorialState { quick: boolean; city: boolean; daily: boolean }
+export function completeTutorial(save: GameSave, mode: keyof TutorialState): GameSave {
+  return save.tutorials[mode] ? save : { ...save, tutorials: { ...save.tutorials, [mode]: true } };
+}
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
   schema: 4; standardQuickBest: number; assistQuickBest: number; runs: number;
-  lastReplay: RunRecord | null; city: CitySave; settings: SettingsState; stats: LifetimeStats;
+  lastReplay: RunRecord | null; city: CitySave; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
   progression: ProgressionState; inventory: InventoryState; daily: DailyState;
   history: RunSummary[]; replays: { id: string; record: RunRecord }[];
   replayRefs: { latest: string | null; best: string | null; pinned: string | null };
@@ -28,7 +32,7 @@ export interface GameSave {
 }
 export function emptySave(): GameSave {
   return { schema: 4, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(),
-    settings: { muted: false, reducedMotion: null, locale: null }, stats: emptyStats(),
+    settings: { muted: false, reducedMotion: null, locale: null }, tutorials: { quick:false, city:false, daily:false }, stats: emptyStats(),
     progression: emptyProgression(),
     inventory: emptyInventory(),
     daily: emptyDaily(), history: [], replays: [],
@@ -86,6 +90,8 @@ function validateV4(s: GameSave): GameSave {
     previous = range[1] + 1;
   }
   if (!s.settings || typeof s.settings.muted !== "boolean" || ![null, true, false].includes(s.settings.reducedMotion) || ![null, "en", "vi"].includes(s.settings.locale)) reject();
+  if (s.tutorials === undefined) s = { ...s, tutorials: { quick:true, city:true, daily:true } };
+  if (!s.tutorials || ![s.tutorials.quick,s.tutorials.city,s.tutorials.daily].every(v=>typeof v === "boolean")) reject();
   if (!s.stats || !integer(s.stats.trackedSince) || !validTotals(s.stats.totals) || !s.stats.byMode || !s.stats.byClass ||
     !["quick-standard", "quick-assist", "city", "daily"].every(k => validTotals(s.stats.byMode[k as StatsGroup])) || !BUILDING_IDS.every(k => validTotals(s.stats.byClass[k]))) reject();
   if (!s.progression || s.progression.version !== 1 || !integer(s.progression.xp) || !s.progression.masteryXP || !BUILDING_IDS.every(k => integer(s.progression.masteryXP[k])) ||
@@ -128,6 +134,7 @@ export function migrateSave(value: unknown): GameSave {
     return validateV4({ ...s, inventory: normalizeInventory(s.inventory, legacyOwned), city: validateCity(s.city), stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
   }
   const next = emptySave();
+  next.tutorials = { quick:true, city:true, daily:true }; // Existing players never repeat onboarding.
   next.standardQuickBest = integer(s.standardQuickBest) ? s.standardQuickBest : 0;
   next.assistQuickBest = integer(s.assistQuickBest) ? s.assistQuickBest : 0;
   next.runs = integer(s.runs) ? s.runs : 0;

@@ -1,0 +1,3 @@
+import { WebContent, webMetadata } from "@/modules/city-bloxx/web-content"
+export const metadata=webMetadata("Daily Tower","A shared UTC tower recipe, 20 Industrial bodies and one roof. View your personal result and streak.","/daily")
+export default function Page(){return <WebContent title={["Daily Tower","Tháp hằng ngày"]} description={["Same UTC date, same tower. Build 20 Industrial body floors, then try the roof once. Local results are personal; online verification comes later.","Cùng ngày UTC, cùng tòa tháp. Xây 20 tầng thân Công nghiệp rồi thử mái một lần. Kết quả trên thiết bị là cá nhân; xác minh online sẽ có sau."]} screen="daily"/>}

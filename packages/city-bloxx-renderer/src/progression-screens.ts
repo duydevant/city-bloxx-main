@@ -11,6 +11,7 @@ interface Options {
 }
 export function createProgressionScreens(o: Options) {
   let refresh: (() => void) | null = null, timer = 0, earned = 0, animatedId = "", shownStatus: RewardSaveStatus = "idle", shownDate = "";
+  let lastPage=0,lastAchievement=0,lastClass:BuildingId="residential",lastMissionDate:string|null=null;
   const t = (en: string, vi: string) => o.locale() === "vi" ? vi : en;
   const number = (n: number) => n.toLocaleString(o.locale());
   function clear() { window.clearInterval(timer); timer = 0; refresh = null; o.panel.classList.remove("cb-progression-panel"); }
@@ -58,7 +59,8 @@ export function createProgressionScreens(o: Options) {
       box.append(card);
     }
   }
-  function menu(page = 0, missionDate = utcDate(o.now()), achievementPage = 0, masteryClass: BuildingId = "residential") {
+  function menu(page = lastPage, missionDate = lastMissionDate??utcDate(o.now()), achievementPage = lastAchievement, masteryClass: BuildingId = lastClass) {
+    lastPage=page;lastAchievement=achievementPage;lastClass=masteryClass;lastMissionDate=missionDate;
     const titles = [t("Builder", "Người xây"), t("Class mastery", "Thông thạo loại nhà"), t("Daily missions", "Nhiệm vụ hằng ngày"), t("Achievements", "Thành tựu"), t("XP guide", "Hướng dẫn XP")];
     const p = o.save().progression;
     show(`${t("Progression", "Tiến trình")} · ${titles[page]} · ${page + 1}/5`, page === 2 ? t("One free unstarted reroll/day. Claim within 7 UTC days including start day.", "Một lần đổi/ngày khi chưa làm. Nhận trong 7 ngày UTC kể cả ngày bắt đầu.") : "", navigation(page, 5, n => menu(n), o.home));
@@ -103,6 +105,7 @@ export function createProgressionScreens(o: Options) {
       bar(box, o.className(reward.building), o.save().progression.masteryXP[reward.building], PROGRESSION_RULES.masteryCap);
       const levels = levelProgress((reward.builderXPBefore ?? 0) + xp).level - levelProgress(reward.builderXPBefore ?? 0).level;
       const detail = document.createElement("small"); detail.textContent = `${reward.baseXPEarned ?? xp} ${t("base XP", "XP xây dựng")} + ${reward.bonusXPEarned ?? 0} ${t("bonus XP", "XP thưởng")} · +${levels} ${t("builder levels", "cấp người xây")} · ${reward.unlockedAchievements?.length ?? 0} ${t("achievements unlocked", "thành tựu mở")}`; box.append(detail);
+      detail.setAttribute("role","status");detail.setAttribute("aria-live","polite");detail.setAttribute("aria-atomic","true"); // Static summary; animated count is not a live region.
       if (earned < xp) {
         const skip = o.button(t("Skip XP animation", "Bỏ qua hoạt ảnh XP"), () => { earned = xp; update(); skip.remove(); window.clearInterval(timer); timer = 0; }); box.append(skip);
         timer = window.setInterval(() => { if (o.paused()) return; earned = o.reducedMotion() ? xp : Math.min(xp, earned + Math.max(1, Math.ceil(xp / 24))); update(); if (earned === xp) { window.clearInterval(timer); timer = 0; skip.remove(); } }, 40);

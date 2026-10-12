@@ -19,7 +19,7 @@ Ngày cập nhật: 12/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [02 — C4.1 Daily Tower](02-C4.1-daily-tower.md) | C4.0 | Implemented — hoàn thành triển khai |
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Implemented — hoàn thành triển khai |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Implemented — hoàn thành triển khai |
-| [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4; shell có thể làm sớm | Planned |
+| [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4 shared UI | Implemented — hoàn thành triển khai |
 | [06 — W1 Backend, auth, cloud, leaderboards](06-W1-backend-auth-cloud-leaderboards.md) | C4.0/C4.1; nghiệm thu sau W0 | Planned |
 | [07 — Y0–Y2 Playable release](07-Y0-Y2-playable-integration-release.md) | Y0 audit làm sớm; release cần C4 | Planned |
 | [08 — Soft-launch checklist](08-soft-launch-checklist.md) | C4 + W0/W1 cho Web; C4 + Y0–Y2 cho Playable | Planned |
@@ -30,7 +30,9 @@ Ngày cập nhật: 12/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
 | [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra ngày 12/10/2026 | Audit snapshot |
 
-C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10` và **C4.3 đã hoàn thành triển khai**. C4.3 có full Classic Brick (18 PNG + SVG badge), ownership/unlock/equip một inventory, active-run/City snapshots và Architecture Book/customizer EN/VI. 228/228 tests, lint, hai production builds, save/Daily/cosmetics evidence và toàn bộ Chrome smoke Web/Playable qua; [evidence C4.3](evidence/C4.3-validation.json). [C4.0](evidence/C4.0-validation.json), [C4.1](evidence/C4.1-validation.json), [C4.2](evidence/C4.2-validation.json) giữ kết quả lịch sử. Phase tiếp theo là **W0 — Web pages/responsive**; W0/W1 và Y0–Y2 còn Planned. Actual SDK/điện thoại thật/server verification/release vẫn thuộc các gate tương ứng.
+C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10` và **C4.3 `5b63174` đã hoàn thành triển khai**. C4.3 có full Classic Brick (18 PNG + SVG badge), ownership/unlock/equip một inventory, active-run/City snapshots và Architecture Book/customizer EN/VI. 228/228 tests, lint, hai production builds, save/Daily/cosmetics evidence và toàn bộ Chrome smoke Web/Playable qua tại C4.3; [evidence C4.3](evidence/C4.3-validation.json). [C4.0](evidence/C4.0-validation.json), [C4.1](evidence/C4.1-validation.json), [C4.2](evidence/C4.2-validation.json) giữ kết quả lịch sử. W1 và Y0–Y2 còn Planned; actual SDK/điện thoại thật/server verification/release vẫn thuộc các gate tương ứng.
+
+**W0 cũng đã hoàn thành triển khai**: Web routes/local data, deep-link/confirm/pending preservation, Guest UI, tutorials, EN/VI, responsive/accessibility và SEO. 231/231 tests, lint, hai builds và full browser smoke Web/Playable qua; [evidence W0](evidence/W0-validation.json). **Dừng trước W1 Backend theo yêu cầu người dùng**; W1 giữ Planned, chưa viết auth/database/cloud/verified boards. Actual phone/host/release vẫn có gate riêng.
 
 ## Các quyết định đã chốt
 
