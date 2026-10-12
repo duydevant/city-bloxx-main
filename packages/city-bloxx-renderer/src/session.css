@@ -28,6 +28,26 @@
 .cb-panel p { margin:0 0 16px; max-width:400px; white-space:pre-line; font-size:14px; line-height:1.6; }
 .cb-actions { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
 .cb-actions button:first-child { background:#f1c84b; }
+.cb-progression-panel { gap:5px; }
+.cb-progression-panel h2 { font-size:18px; margin:0; }
+.cb-progression-panel>p { font-size:11px; line-height:1.3; margin:0; }
+.cb-progression-content { width:min(100%,440px); display:flex; flex-direction:column; gap:7px; font-size:13px; line-height:1.4; }
+.cb-progression-content>div:not(.cb-actions),.cb-progression-content>article { background:#ffffff12; border-radius:7px; padding:5px 8px; }
+.cb-progression-content article { display:grid; grid-template-columns:1fr auto; gap:3px 6px; text-align:left; }
+.cb-progression-content article strong,.cb-progression-content article small { grid-column:1; }
+.cb-progression-content article button { grid-column:2; grid-row:1 / 3; padding:5px 9px; }
+.cb-progression-content strong { font-size:13px; }
+.cb-progression-content small,.cb-progression-panel>small { display:block; font-size:10px; line-height:1.3; }
+.cb-progression-content progress { width:100%; height:9px; display:block; margin:3px 0; accent-color:#f1c84b; }
+@media(max-height:500px) and (min-width:640px) {
+  .cb-progression-content { width:min(100%,740px); display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .cb-progression-content>select { grid-column:1 / -1; }
+  .cb-progression-content>article { padding:4px; }
+  .cb-progression-content:has(>article) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .cb-progression-content:has(>article)>.cb-actions { grid-column:1 / -1; }
+  .cb-progression-content article { display:flex; flex-direction:column; text-align:center; }
+  .cb-progression-content article button { align-self:center; }
+}
 .cb-combo { position:absolute; bottom:8px; left:12px; right:12px; height:6px; pointer-events:none; background:#8eabb6; border-radius:8px; overflow:hidden; }
 .cb-combo span { height:100%; display:block; background:linear-gradient(90deg,#eea037,#ffe878); }
 .cb-combo[hidden] { display:none; }
@@ -122,3 +142,13 @@
   .cb-city-panel button { padding:4px 6px; font-size:10px; }
 }
 @media(prefers-reduced-motion:reduce) { .cb-game * { animation:none!important; transition:none!important; } }
+@media(max-height:500px) and (min-width:600px) {
+  .cb-progression-panel { gap:3px; padding:6px; }
+  .cb-progression-panel h2 { font-size:14px; margin:0; }
+  .cb-progression-panel>p { font-size:10px; line-height:1.2; margin:0; }
+  .cb-progression-content { font-size:11px; line-height:1.25; gap:3px; }
+  .cb-progression-content strong { font-size:11px; }
+  .cb-progression-content small,.cb-progression-panel>small { font-size:9px; line-height:1.2; }
+  .cb-progression-content .cb-data-select { font-size:11px; padding:3px; margin:0; }
+  .cb-progression-panel button { font-size:10px; padding:3px 7px; }
+}

@@ -14,6 +14,8 @@ export interface RunSummary extends RunContext {
   outcome: "ended" | "abandoned"; complete: boolean;
   verification: "local"; replayStatus: "available" | "pruned" | "unsupported" | "not-recorded";
   xpEarned?: number; rewardVersion?: string;
+  baseXPEarned?: number; bonusXPEarned?: number; builderXPBefore?: number;
+  unlockedAchievements?: string[]; progressionRewardVersion?: string;
   daily?: DailyDefinition;
 }
 export interface StatTotals {

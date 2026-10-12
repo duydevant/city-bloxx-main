@@ -1,0 +1,96 @@
+{
+  "phase": "C4.2",
+  "status": "Implemented",
+  "date": "2026-10-12",
+  "commitTitle": "feat(c4.2): complete progression missions and achievements",
+  "sourceFiles": [
+    "packages/city-bloxx-content/progression.ts",
+    "packages/city-bloxx-content/session-locales.ts",
+    "packages/city-bloxx-core/src/progression.ts",
+    "packages/city-bloxx-core/src/progression-types.ts",
+    "packages/city-bloxx-core/src/missions.ts",
+    "packages/city-bloxx-core/src/save-state.ts",
+    "packages/city-bloxx-core/src/tracking.ts",
+    "packages/city-bloxx-core/src/index.ts",
+    "packages/city-bloxx-renderer/src/progression-screens.ts",
+    "packages/city-bloxx-renderer/src/session.ts",
+    "packages/city-bloxx-renderer/src/session.css",
+    "base-game-nextjs/modules/city-bloxx/progression.test.ts",
+    "base-game-nextjs/modules/city-bloxx/save-tracking.test.ts",
+    "base-game-nextjs/modules/city-bloxx/daily.test.ts",
+    "scripts/browser-smoke.cjs",
+    "scripts/c4-save-evidence.cjs",
+    "scripts/progression-evidence.cjs"
+  ],
+  "sourceSHA256": "c664aa287219f8b76c7f852cec21ec54ab0e7aede3467f6fc72ffd5fa5f09d57",
+  "catalogs": {
+    "progression": "progression-1",
+    "missions": "missions-1",
+    "achievements": "achievements-1",
+    "missionCount": 15,
+    "achievementCount": 20
+  },
+  "commands": [
+    "npm.cmd run check",
+    "npm.cmd run test:save",
+    "npm.cmd run test:daily",
+    "npm.cmd run test:browser",
+    "npm.cmd run test:progression"
+  ],
+  "unitTests": {
+    "total": 215,
+    "files": 16,
+    "progression": 44,
+    "achievementBoundaryFixtures": 20
+  },
+  "capacityFixture": {
+    "payload": {
+      "utf8": 64001,
+      "utf16": 127608
+    },
+    "envelope": {
+      "utf8": 64013,
+      "utf16": 127632
+    },
+    "budgetBytes": 262144,
+    "history": 50,
+    "retainedMissionDays": 7,
+    "claimedMissionReceipts": 21,
+    "achievementOwnership": 20,
+    "legacyPendingCityPreserved": true,
+    "note": "Capacity fixture adds ownership synthetically; all 20 event predicates are checked in unit fixtures."
+  },
+  "browser": [
+    {
+      "platform": "web",
+      "builderXP": 653,
+      "industrialMasteryXP": 183,
+      "achievementUnlocks": 6,
+      "claimedMissions": 3,
+      "reroll": "one unstarted slot; receipt survives redraw",
+      "reward": "skip, Reduced Motion instant, visibility pause, grouped unlocks",
+      "save": "duplicate click, failed write retained in session, same snapshot retry, reload idempotent",
+      "layout": "5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"
+    },
+    {
+      "platform": "playable",
+      "builderXP": 653,
+      "industrialMasteryXP": 183,
+      "achievementUnlocks": 6,
+      "claimedMissions": 3,
+      "reroll": "one unstarted slot; receipt survives redraw",
+      "reward": "skip, Reduced Motion instant, visibility pause, grouped unlocks",
+      "save": "duplicate click, failed write retained in session, same snapshot retry, reload idempotent",
+      "layout": "5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"
+    }
+  ],
+  "dailyGolden": {
+    "builderXP": 533,
+    "industrialMasteryXP": 183,
+    "baseXP": 183,
+    "dailyBonus": 50,
+    "achievementXP": 300,
+    "population": 1305
+  },
+  "boundaries": "Physics/scoring unchanged; historical C4.0/C4.1 evidence retained. Local guest/SDK rewards; actual host/device/release and server verification remain in their planned gates."
+}

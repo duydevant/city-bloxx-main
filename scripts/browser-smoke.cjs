@@ -192,7 +192,7 @@ async function dailySmoke(kind,url,key) {
   assert.equal(await evaluate('document.querySelector("[data-mode]").textContent'),"2026-10-09 UTC");
   await switchLanguage(kind,"vi");await switchLanguage(kind,"en");
   await driveCity(record,fallingTick,record.inputs[1].tick);await click("Pause");await delay(50);
-  const foundation=await read();assert.equal(foundation.daily.lifetimeCreditedDays,0);assert.equal(await evaluate('window.__frames.size'),0);await click("Resume");
+  const foundation=await read();assert.equal(foundation.daily.lifetimeCreditedDays,0);assert.equal(await evaluate('window.__frames.size'),0,await evaluate('JSON.stringify({panel:document.querySelector(".cb-panel").innerText,frames:[...window.__frames.values()].map(fn=>String(fn).slice(0,300))})'));await click("Resume");
   await driveCity(record,record.inputs[1].tick,record.inputs[2].tick);await click("Pause");await click("Home");await delay(50);
   const scored=await read();assert.deepEqual(scored.daily.creditedDates,["2026-10-09"]);assert.equal(scored.daily.lifetimeCreditedDays,1);
   await click("Daily Tower");await click("Resume Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(record,record.inputs[2].tick);
@@ -201,13 +201,13 @@ async function dailySmoke(kind,url,key) {
   const completed=await read();assert.deepEqual(completed.daily.days[0].bestComplete.result,record.result);
   assert.equal(completed.daily.days[0].attempts,1);assert.equal(completed.daily.longestStreak,1);assert.equal(completed.daily.lifetimeCreditedDays,1);
   assert.deepEqual(completed.city,baseline.city);assert.equal(completed.standardQuickBest,baseline.standardQuickBest);assert.equal(completed.runs,baseline.runs);
-  assert.equal(completed.progression.xp,183);assert.equal(completed.stats.byMode.daily.completed,1);
+  assert.equal(completed.progression.xp,533);assert.equal(completed.progression.masteryXP.industrial,183);assert.equal(completed.stats.byMode.daily.completed,1);
   await click("Replay / restart");await waitFor('document.querySelector(".cb-panel").hidden');await evaluate(`window.__step();for(let i=0;i<${record.endTick+250};i++)window.__step()`);await delay(50);
   assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).startsWith("Replay complete"));
   assert.deepEqual((await read()).daily,completed.daily);assert.deepEqual((await read()).progression,completed.progression);
   await navigate(kind,url,"preserve");await evaluate(`window.__clock=${midnight}`);await click("Daily Tower");await click("Resume Daily");
   await waitFor('document.querySelector(".cb-panel h2")?.textContent.startsWith("Daily complete")');await delay(50);
-  assert.deepEqual((await read()).stats,completed.stats);assert.equal((await read()).progression.xp,183);
+  assert.deepEqual((await read()).stats,completed.stats);assert.equal((await read()).progression.xp,533);
   await click("Retry this Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(dailyFixture.roofMiss);
   assert((await evaluate('document.querySelector(".cb-panel h2").textContent')).startsWith("Daily complete"));
   const roofMiss=await read();assert.equal(roofMiss.daily.days[0].attempts,2);assert.equal(roofMiss.history[0].metrics.roof,"miss");assert.deepEqual(roofMiss.daily.days[0].bestComplete,completed.daily.days[0].bestComplete);
@@ -301,20 +301,82 @@ async function panelLayoutSmoke(kind,name) {
     await delay(80);await evaluate("window.__step()");
     const layout=await evaluate(`(()=>{
       const panel=document.querySelector('.cb-panel'),bounds=panel.getBoundingClientRect(),toolbar=document.querySelector('.cb-toolbar').getBoundingClientRect();
-      const outside=[...panel.querySelectorAll('h2,h3,li,dt,dd,button')].filter(el=>{const r=el.getBoundingClientRect();return r.left<bounds.left-1||r.right>bounds.right+1||r.top<bounds.top-1||r.bottom>bounds.bottom+1}).map(el=>el.textContent);
+      const outside=[...panel.querySelectorAll('h2,h3,li,dt,dd,button,.cb-progression-content strong,.cb-progression-content small,.cb-progression-content progress,.cb-progression-content select,[data-reward-save]')].filter(el=>{const r=el.getBoundingClientRect();return r.left<bounds.left-1||r.right>bounds.right+1||r.top<bounds.top-1||r.bottom>bounds.bottom+1}).map(el=>el.textContent);
       const controls=[...document.querySelectorAll('.cb-toolbar-controls button')].map(el=>({y:el.getBoundingClientRect().top,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,clip:el.scrollWidth>el.clientWidth+1}));
       const title=document.querySelector('.cb-toolbar-title strong').getBoundingClientRect(),mode=document.querySelector('[data-mode]').getBoundingClientRect();
       return {outside,controls,toolbar:{left:toolbar.left,right:toolbar.right},titleY:title.top+title.height/2,modeY:mode.top+mode.height/2,scroll:[document.scrollingElement.scrollWidth,document.scrollingElement.scrollHeight]};
     })()`);
+    await screenshot(`${kind}-${name}-${width}x${height}`);
     assert.deepEqual(layout.outside,[],`${kind} ${name} clipped panel ${width}x${height}: ${JSON.stringify(layout)}`);
     assert(layout.scroll[0]<=width+1&&layout.scroll[1]<=height+1,`${kind} ${name} page overflow`);
     if(width<600) {
       assert(Math.abs(layout.titleY-layout.modeY)<2,`${kind} title/mode not on one row`);
       assert(layout.controls.every(control=>Math.abs(control.y-layout.controls[0].y)<1&&!control.clip&&control.left>=layout.toolbar.left-1&&control.right<=layout.toolbar.right+1),`${kind} toolbar clipped/wrapped ${JSON.stringify(layout.controls)}`);
     }
-    await screenshot(`${kind}-${name}-${width}x${height}`);
   }
   await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
+}
+async function progressionSmoke(kind,url,key) {
+  const time=Date.parse("2026-10-09T12:00:00Z"), read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
+  const baseline=await evaluate(`(()=>{
+    const s=CityBloxx.ensureMissions(CityBloxx.initializeTracking(CityBloxx.emptySave(),'progress-browser',${time}),${time});
+    const ids=['land-10','perfect-10','roof-hit'],defs={};
+    for(let i=0;i<500;i++)for(const slot of CityBloxx.resolveMissions('2026-10-09','pool-'+i,['residential']).slots)defs[slot.definition.id]=slot.definition;
+    s.progression.missionDays[0].slots=ids.map(id=>({definition:defs[id],progress:0,status:'active',completedAt:null,claimedAt:null}));
+    return s;
+  })()`);
+  const raw=JSON.stringify(kind==="web"?baseline:{v:1,d:baseline});
+  await navigate(kind,url,"preserve",raw);await evaluate(`window.__clock=${time}`);
+  await click("Progression");await delay(80);
+  for(let page=0;page<5;page++) {
+    await panelLayoutSmoke(kind,`progression-${page}-en`);
+    await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,`progression-${page}-vi`);await switchLanguage(kind,"en");
+    if(page===2) {
+      assert.equal(await evaluate('document.querySelectorAll("[data-mission-id]").length'),3);
+      await waitFor('document.querySelector("[data-mission-reroll]:not([disabled])")!==null');await evaluate('document.querySelector("[data-mission-reroll]:not([disabled])").click()');await delay(80);
+      const day=(await read()).progression.missionDays.find(d=>d.dateUTC==="2026-10-09");assert.equal(day.rerolled,true);
+      await waitFor('document.querySelectorAll("[data-mission-reroll]").length===0');
+    }
+    if(page===3)for(let i=0;i<6;i++){await click("More achievements");await panelLayoutSmoke(kind,`achievements-${i+2}`);}
+    if(page<4)await click("Next");
+  }
+  await click("Back");
+  await navigate(kind,url,"preserve",raw);await evaluate(`window.__clock=${time}`);
+  await click("Daily Tower");await click("Play Daily");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(dailyFixture.complete);await delay(80);
+  assert.equal((await read()).progression.xp,533);
+  await click("XP & missions");
+  await evaluate('window.__hidden=true;Object.defineProperty(document,"hidden",{configurable:true,get:()=>window.__hidden});Object.defineProperty(document,"visibilityState",{configurable:true,get:()=>window.__hidden?"hidden":"visible"});document.dispatchEvent(new Event("visibilitychange"))');
+  const count=await evaluate('document.querySelector("[data-xp-count]").textContent');await delay(200);
+  assert.equal(await evaluate('document.querySelector("[data-xp-count]").textContent'),count);
+  await evaluate('window.__hidden=false;document.dispatchEvent(new Event("visibilitychange"))');
+  if(await evaluate('[...document.querySelectorAll("button")].some(b=>b.textContent==="Skip XP animation")'))await click("Skip XP animation");
+  assert.equal(await evaluate('document.querySelector("[data-xp-count]").textContent'),"+533 XP");
+  await panelLayoutSmoke(kind,"progression-reward-en");await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"progression-reward-vi");await switchLanguage(kind,"en");
+  await click("Next");await panelLayoutSmoke(kind,"progression-result-missions");
+  assert.equal(await evaluate('document.querySelectorAll("[data-mission-claim]").length'),3);
+  await delay(80);
+  await evaluate('Storage.prototype.setItem=()=>{throw new Error("progression write failure")};const b=document.querySelector("[data-mission-claim]");b.click();b.click()');
+  await waitFor('document.querySelector("[data-reward-save]")?.textContent.includes("Save failed")');
+  assert.equal((await read()).progression.xp,533);
+  assert((await evaluate('document.querySelector("[data-mission-id=land-10]").textContent')).includes("Claimed"));
+  await evaluate('Storage.prototype.setItem=window.__storageSet');await click("Retry save");await delay(100);
+  assert.equal((await read()).progression.xp,553);assert.equal((await read()).progression.masteryXP.industrial,183);
+  await waitFor('document.querySelectorAll("[data-mission-claim]:not([disabled])").length===2');
+  await evaluate('document.querySelector("[data-mission-claim]").click()');await delay(100);
+  await waitFor('document.querySelectorAll("[data-mission-claim]:not([disabled])").length===1');
+  await evaluate('document.querySelector("[data-mission-claim]").click()');await delay(100);
+  assert.equal((await read()).progression.xp,653);
+  await click("Next");await panelLayoutSmoke(kind,"progression-unlocks");await click("More unlocks");await panelLayoutSmoke(kind,"progression-more-unlocks");
+  await click("Back");await switchLanguage(kind,"vi");assert(await evaluate('[...document.querySelectorAll("button")].some(b=>b.textContent==="XP và nhiệm vụ")'));await switchLanguage(kind,"en");
+  await click("Home");await navigate(kind,url,"preserve");await evaluate(`window.__clock=${time}`);
+  assert.equal((await read()).progression.xp,653);assert.equal((await read()).progression.unlocks.length,6);
+  await click("Daily Tower");await click("Resume Daily");await waitFor('document.querySelector(".cb-panel h2")?.textContent.includes("Daily complete")');
+  await click("Reduced motion");await click("XP & missions");assert.equal(await evaluate('document.querySelector("[data-xp-count]").textContent'),"+533 XP");
+  assert.equal(await evaluate('[...document.querySelectorAll("button")].some(b=>b.textContent==="Skip XP animation")'),false);
+  assert.equal((await read()).progression.xp,653);
+  await click("Back");await click("Home");
+  fs.writeFileSync(path.join(reportDir,`${kind}-c4-progression-save.json`),JSON.stringify(await read(),null,2));
+  return {builderXP:653,industrialMasteryXP:183,achievementUnlocks:6,claimedMissions:3,reroll:"one unstarted slot; receipt survives redraw",reward:"skip, Reduced Motion instant, visibility pause, grouped unlocks",save:"duplicate click, failed write retained in session, same snapshot retry, reload idempotent",layout:"5 menu pages, 7 achievement pages, result XP/missions/unlocks EN/VI; 320x568, 390x844, 900x430"};
 }
 async function siteI18nSmoke() {
   for(const locale of ["en","vi"]) {
@@ -442,7 +504,7 @@ async function citySmoke(kind,url,key) {
   saved=await readCity();assert.equal(saved.city.pending,null);assert.equal(saved.city.lots[12].floors,10);
   assert(saved.city.unlocked.includes("industrial"));assert.equal(saved.city.stats.builds,1);
   assert.equal(saved.standardQuickBest,quickBest);
-  assert.equal(saved.progression.xp,finishedXP);assert.deepEqual(saved.stats,finishedStats);
+  assert.equal(saved.progression.xp,finishedXP+50);assert.equal(saved.progression.counts.city,1);assert.deepEqual(saved.stats,finishedStats);
   const population=saved.city.lots[12].population;
   await screenshot(`${kind}-city-populated`);
   await evaluate('document.querySelector(".cb-panel").scrollTop=document.querySelector(".cb-panel").scrollHeight');
@@ -450,7 +512,7 @@ async function citySmoke(kind,url,key) {
   await click("Rebuild selected lot");await waitFor('document.querySelector(".cb-panel").hidden');
   await click("Pause");await click("City map");await click("Cancel pending tower");await click("Confirm cancel");await delay(50);
   saved=await readCity();assert.equal(saved.city.pending,null);assert.equal(saved.city.lots[12].population,population);
-  assert.equal(saved.progression.xp,finishedXP);
+  assert.equal(saved.progression.xp,finishedXP+50);
   await click("Rebuild selected lot");await waitFor('document.querySelector(".cb-panel").hidden');await driveCity(planned.record);
   const rebuilt=await readCity();assert(rebuilt.progression.xp>finishedXP);
   await click("Keep old building");await delay(50);
@@ -594,6 +656,9 @@ async function main() {
     await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
     const cityRecord=await citySmoke(kind,url,key);
     tracking.daily=await dailySmoke(kind,url,key);
+    tracking.progression=await progressionSmoke(kind,url,key);
+    // Progression uses a pinned UTC clock/save; renderer fixtures start fresh at seed 42.
+    await navigate(kind,url);
     await captureClassSeams(kind);
     await captureHighRig(kind);
     await captureMiss(kind);

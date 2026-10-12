@@ -1,11 +1,13 @@
 import { SESSION_TEXT, type SessionTextKey } from "../../city-bloxx-content/session-locales";
-import { acceptCityTower, allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type TrackingPort } from "../../city-bloxx-core/src/index";
+import { allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type TrackingPort } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
 import { createDataScreens } from "./data-screens";
 import { createSaveController } from "./save-controller";
 import { beginDaily, checkpointDaily, resolveDaily, utcDate } from "../../city-bloxx-core/src/index";
 import { createDailyScreens } from "./daily-screens";
+import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rerollSaveMission } from "../../city-bloxx-core/src/index";
+import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
 
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
@@ -29,6 +31,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const saveController = createSaveController(options.save);
   let recovering = false;
   let saveTimer = 0;
+  let rewardSaveStatus: RewardSaveStatus = "idle", saveGeneration = 0;
   let runContext: RunContext | null = null;
   const now = () => options.tracking?.now() ?? Date.now();
   const installationId = () => options.tracking?.installationId() ?? [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2,"0")).join("");
@@ -103,6 +106,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function showPanel(title: string, body: string, actions: HTMLButtonElement[]): void {
     dataScreens.clear();
     dailyScreens.clear();
+    progressionScreens.clear();
     panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
@@ -120,17 +124,23 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     panel.querySelector(".cb-actions")!.before(grid);
   }
   function persist(): void {
-    if (!storageWritable || !ready || saveTimer) return;
+    if (!storageWritable) { rewardSaveStatus = "error"; return; }
+    if (!ready || saveTimer) return;
+    rewardSaveStatus = "pending"; saveGeneration++;
     // Serialization runs in a separate task, never inside the drop/RAF call stack.
     saveTimer = window.setTimeout(flushSave, 0);
   }
   function flushSave(): void {
     window.clearTimeout(saveTimer); saveTimer = 0;
     if (!storageWritable || !ready) return;
+    const generation = saveGeneration;
+    rewardSaveStatus = "pending";
     let value: GameSave;
     try { value = prepareSave(save); save = { ...value }; }
-    catch { message(t("Save exceeds its budget. Your previous saved progress is preserved.")); return; }
+    catch { rewardSaveStatus = "error"; message(t("Save exceeds its budget. Your previous saved progress is preserved.")); return; }
     void saveController.write(value).then(success => {
+      if (generation !== saveGeneration) return;
+      rewardSaveStatus = success ? "saved" : "error";
       if (!success) message(t("Save failed. Your result is kept for this session; retry saving."));
       else message("");
     });
@@ -141,12 +151,30 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const dailyScreens = createDailyScreens({ panel, save: () => save, now, t, button, showPanel, showStats, home,
     start: date => { void startDaily(date); }, resume: () => { void resumeDaily(); }, discard: discardDaily,
     replay: record => { void startReplay(record); } });
-  const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) dailyScreens.tick(); }, 1000);
+  const progressionLabel = () => vi ? "Tiến trình" : "Progression";
+  const progressionResultLabel = () => vi ? "XP và nhiệm vụ" : "XP & missions";
+  const progressionScreens = createProgressionScreens({ panel, save: () => save, now, locale: () => vi ? "vi" : "en", className, showPanel, button, home,
+    claim: (date, id) => { if (rewardSaveStatus === "pending") return; save = claimMission(save, date, id, now()); persist(); },
+    reroll: (date, id) => { if (rewardSaveStatus === "pending") return; save = rerollSaveMission(save, date, id, now()); persist(); },
+    retry: persist, status: () => rewardSaveStatus, paused: () => hostPaused || userPaused, reducedMotion: () => reducedMotion });
+  const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) {
+    if (ready) { const next = ensureMissions(save, now()); if (next !== save) { save = next; persist(); } }
+    dailyScreens.tick(); progressionScreens.tick();
+  } }, 1000);
   cleanups.push(() => window.clearInterval(dailyTimer));
   function openData(history = false): void {
     checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
     cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
     if (history) dataScreens.history(); else dataScreens.statistics();
+  }
+  function openProgression(): void {
+    checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
+    cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
+    save = ensureMissions(save, now()); persist(); progressionScreens.menu();
+  }
+  function rewardButton(back: () => void): HTMLButtonElement | null {
+    const summary = save.history.find(h => h.identity.id === runContext?.identity.id);
+    return summary ? button(progressionResultLabel(), () => progressionScreens.result(summary, back)) : null;
   }
   function ensurePendingContext(startedAt = 0): void {
     const pending = save.city.pending;
@@ -242,6 +270,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (save.lastReplay) actions.push(button(t("Last replay"), () => startReplay(save.lastReplay!)));
     actions.push(button(t("Build City guide"), () => showGuide(0,home)));
     actions.push(button(t("Statistics"), () => openData()), button(t("History"), () => openData(true)));
+    actions.push(button(progressionLabel(), openProgression));
     if (!storageWritable) actions.push(button(t("Recover saved progress"), confirmRecovery));
     showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."), actions);
   }
@@ -263,6 +292,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     save = initializeTracking(value, installationId(), now());
     if (save.tracking.activeQuick?.progress) save = settleRun(save, save.tracking.activeQuick.progress);
     ensurePendingContext();
+    save = ensureMissions(save, now());
   }
   async function recoverSave(): Promise<void> {
     if (recovering || disposed) return;
@@ -291,6 +321,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const actions = [button(t("Build again"), () => start(!result.ranked))];
     if (record && record.endTick <= 432000 && record.inputs.length <= 4096) actions.push(button(t("Replay / restart"), () => startReplay(record)));
     actions.push(button(t("Home"), home), button(t("Retry save"), persist));
+    const rewards = !isReplay ? rewardButton(() => results()) : null; if (rewards) actions.push(rewards);
     const body = result.ranked ? t("Standard") : t("Assist · unranked");
     showPanel(`${isReplay ? t("Replay complete") : t("Tower complete")} · ${result.rating}`, body, actions);
     showStats([[t("Population"),String(result.population)],[t("Floors"),String(result.height)],
@@ -338,6 +369,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   function checkpointCity(): void {
     if (!ready || !run || replay) return;
+    if (runContext && !isSettled(save, runContext.identity)) save = recordRunProgress(save, makeSummary(run, runContext, now(), run.getPhase() === "ended" ? "ended" : "abandoned"));
     if (run.config.mode === "daily" && save.daily.pending?.identity.id === runContext?.identity.id) {
       save = { ...save, daily: checkpointDaily(save.daily, run) };
       if (run.getPhase() === "ended") settleCurrent();
@@ -391,7 +423,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const context = runContext ?? { identity: { id: "replay:1", installationId: "replay", sequence: 1 }, startedAt: 0 };
     const summary = makeSummary(game, context, now());
     const previousBest = isReplay ? save.daily.days.find(d => d.dateUTC === record.config.daily!.dateUTC)?.bestComplete?.result.population ?? 0 : save.daily.pending?.previousBest ?? 0;
-    dailyScreens.result(summary, previousBest, record, isReplay); paint();
+    dailyScreens.result(summary, previousBest, record, isReplay);
+    const rewards = !isReplay ? rewardButton(() => dailyResults()) : null; if (rewards) panel.querySelector(".cb-actions")!.append(rewards);
+    paint();
   }
   function className(id: BuildingId): string {
     return ({ residential: t("Residential"), industrial: t("Industrial"), office: t("Office"), highrise: t("High-rise") })[id];
@@ -494,8 +528,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const complete = result.height === BUILDINGS[pending.classId].floors;
     const body = `${className(pending.classId)}\n${s.roof ? t("Roof placed") : complete ? t("Body complete, roof missed") : t("Unfinished tower · no completion unlock")}\n${old ? `${t("Old building stays until you accept")}: ${old.population}` : ""}`;
     const actions = [button(result.height ? t("Accept building") : t("Return to city"), () => {
-      save = { ...save, city: acceptCityTower(save.city, pending.runId), tracking: { ...save.tracking, pendingCity: null } }; cityActive = false; runContext = null; persist(); cityMap();
+      save = acceptTrackedCity(save, pending.runId, now()); cityActive = false; runContext = null; persist(); cityMap();
     }), button(old ? t("Keep old building") : t("Discard tower"), () => { discardPendingCity(); cityMap(); }), button(t("Retry save"), persist)];
+    const rewards = rewardButton(cityResults); if (rewards) actions.push(rewards);
     showPanel(`${t("City tower complete")} · ${result.rating}`, body, actions);
     showStats([[t("Population"),String(result.population)],[t("Floors"),`${result.height}/${BUILDINGS[pending.classId].floors}`],
       [t("Accuracy"),`${result.accuracy.toFixed(1)}%`],[t("Perfect"),String(result.perfectCount)],
@@ -528,7 +563,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
     el("[data-motion]").textContent=t("Reduced motion");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen())dailyScreens.refresh();else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+      dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
+      if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
+    }else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
   }
   const languageButton=root.querySelector("[data-language]");
   if(languageButton)listen(languageButton,"click",()=>{const locale=vi?"en":"vi";setLocale(locale);options.onLocaleChange?.(locale);});
@@ -539,7 +577,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     el("[data-sound]").setAttribute("aria-pressed", String(muted));
     save = { ...save, settings: { ...save.settings, muted } }; persist();
   });
-  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); });
+  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); if(progressionScreens.isOpen())progressionScreens.refresh(); });
   if (options.lifecycle) {
     cleanups.push(options.lifecycle.onPause(() => { hostPaused = true; syncPause(); }), options.lifecycle.onResume(() => { hostPaused = false; syncPause(); }));
   } else listen(document, "visibilitychange", () => { hostPaused = document.hidden; syncPause(); });
@@ -560,6 +598,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   })();
   return { ready: readyPromise, setLocale, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
+    progressionScreens.clear();
     disposed = true; saveController.dispose(); cancelFrame(); abort.abort(); cleanups.forEach(fn => fn());
     options.audio.dispose(); root.replaceChildren();
   } };

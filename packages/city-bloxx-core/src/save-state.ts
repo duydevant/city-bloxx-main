@@ -1,18 +1,19 @@
 import type { RunRecord } from "./run";
 import { validateRecord, verifyRecord } from "./replay";
-import { emptyCity, validateCity, type CitySave } from "./city";
+import { acceptCityTower, emptyCity, validateCity, type CitySave } from "./city";
 import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { QUALITIES, type RunMetrics } from "./metrics";
-import { applySummary, emptyStats, emptyTotals, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { applySummary, emptyStats, emptyTotals, makeSummary, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
 import { emptyDaily, settleDaily, validateDailyState, type DailyState } from "./daily-state";
 import { validateDaily } from "./daily";
 import { restoreTower } from "./checkpoint";
+import { acceptedProgression, emptyProgression, normalizeProgression, settleProgression, type ProgressionState } from "./progression";
 export type { DailyState } from "./daily-state";
+export type { ProgressionState } from "./progression-types";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
-export interface ProgressionState { version: 1; xp: number; masteryXP: Record<BuildingId, number>; achievements: string[] }
 export interface InventoryState { owned: string[]; equipment: { buildings: Record<BuildingId, string>; roofs: Record<BuildingId, string>; crane: string } }
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
@@ -28,7 +29,7 @@ const classMap = <T>(value: T): Record<BuildingId, T> => Object.fromEntries(BUIL
 export function emptySave(): GameSave {
   return { schema: 4, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(),
     settings: { muted: false, reducedMotion: null, locale: null }, stats: emptyStats(),
-    progression: { version: 1, xp: 0, masteryXP: classMap(0), achievements: [] },
+    progression: emptyProgression(),
     inventory: { owned: ["default"], equipment: { buildings: classMap("default"), roofs: classMap("default"), crane: "default" } },
     daily: emptyDaily(), history: [], replays: [],
     replayRefs: { latest: null, best: null, pinned: null },
@@ -64,7 +65,10 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
     ["ended", "abandoned"].includes(s.outcome) && s.complete === (s.mode !== "quick" && s.outcome === "ended" && s.result.height === BUILDINGS[s.building].floors) &&
     s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
-    (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion));
+    (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion)) &&
+    [s.baseXPEarned, s.bonusXPEarned, s.builderXPBefore].every(n => n === undefined || integer(n)) &&
+    (s.progressionRewardVersion === undefined || tag(s.progressionRewardVersion)) &&
+    (s.unlockedAchievements === undefined || Array.isArray(s.unlockedAchievements) && s.unlockedAchievements.length <= 128 && s.unlockedAchievements.every(tag));
 }
 function validTotals(t: StatTotals): boolean {
   return !!t && [t.attempts, t.abandoned, t.landedBody, t.scoredBody, t.population, t.bestHeight, t.bestStreak, t.completed, t.maxCombo, t.errorCount].every(integer) &&
@@ -88,6 +92,7 @@ function validateV4(s: GameSave): GameSave {
     new Set(s.inventory.owned).size !== s.inventory.owned.length || !s.inventory.equipment || !tag(s.inventory.equipment.crane) || !s.inventory.owned.includes(s.inventory.equipment.crane) ||
     ![s.inventory.equipment.buildings, s.inventory.equipment.roofs].every(map => !!map && BUILDING_IDS.every(k => tag(map[k]) && s.inventory.owned.includes(map[k])))) reject();
   s = { ...s, daily: validateDailyState(s.daily) };
+  s = { ...s, progression: normalizeProgression(s) };
   const dp = s.daily.pending;
   if (dp && (!validIdentity(dp.identity, tr.nextSequence, tr.installationId) || isSettled(s, dp.identity) && restoreTower(dp.checkpoint).getPhase() !== "ended" || dp.identity.id === tr.activeQuick?.identity.id || dp.identity.id === tr.pendingCity?.identity.id)) reject();
   if (!Array.isArray(s.history) || s.history.length > HISTORY_LIMIT || !s.history.every(summary => validSummary(summary, tr.nextSequence, tr.installationId)) ||
@@ -191,15 +196,19 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   const nextBest = ranked && summary.result.population > save.standardQuickBest;
   const xpEarned = runXP(summary);
   if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
+  const daily = summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily;
+  const progression = settleProgression(save, summary, xpEarned, daily.lifetimeCreditedDays);
+  const totalXP = progression.xp - save.progression.xp;
   const next: GameSave = { ...save,
     standardQuickBest: ranked ? Math.max(save.standardQuickBest, summary.result.population) : save.standardQuickBest,
     assistQuickBest: quickEnded && summary.assist ? Math.max(save.assistQuickBest, summary.result.population) : save.assistQuickBest,
     runs: save.runs + Number(quickEnded),
-    daily: summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily,
+    daily,
     stats: { ...save.stats, totals: applySummary(save.stats.totals, summary), byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
       byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) } },
-    history: [{ ...copy(summary), xpEarned, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
-    progression: { ...save.progression, xp: save.progression.xp + xpEarned, masteryXP: { ...save.progression.masteryXP, [summary.building]: save.progression.masteryXP[summary.building] + xpEarned } },
+    history: [{ ...copy(summary), xpEarned: totalXP, baseXPEarned: xpEarned, bonusXPEarned: totalXP - xpEarned, builderXPBefore: save.progression.xp,
+      unlockedAchievements: progression.achievements.filter(id => !save.progression.achievements.includes(id)), progressionRewardVersion: progression.catalogVersion, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
+    progression,
     tracking: { ...save.tracking, settled: receiptRanges(save.tracking.settled, summary.identity.sequence),
       activeQuick: save.tracking.activeQuick?.identity.id === summary.identity.id ? null : save.tracking.activeQuick } };
   if (record && summary.outcome === "ended" && ["quick", "daily"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
@@ -209,6 +218,14 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     if (nextBest) next.replayRefs.best = summary.identity.id;
   }
   return retained(next);
+}
+export function acceptTrackedCity(save: GameSave, runId: string, at: number): GameSave {
+  const pending = save.city.pending, context = save.tracking.pendingCity;
+  if (!pending || pending.runId !== runId || !context || context.cityRunId !== runId) return save;
+  const game = restoreTower(pending.checkpoint), summary = makeSummary(game, context, at);
+  const settled = settleRun(save, summary);
+  const progression = acceptedProgression(settled, summary, runId, at);
+  return { ...settled, progression, city: acceptCityTower(settled.city, runId), tracking: { ...settled.tracking, pendingCity: null } };
 }
 // Compatibility callers intentionally allocate a NEW run; the session uses persisted contexts.
 export function commitRun(save: GameSave, record: RunRecord): GameSave {

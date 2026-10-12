@@ -1,8 +1,14 @@
 # City Bloxx — trạng thái hiện tại
 
-Cập nhật 09/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
+Cập nhật 12/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
+
+## C4.2 — hoàn thành triển khai 12/10/2026
+
+Tiếp tục từ C4.1 `ab4d02d`: builder level 1–50, class mastery 1–20 theo XP curve, Daily first-complete bonus, 15 mission definitions với ba slot/ngày UTC, một reroll trước tiến độ, claim bảy ngày, và 20 achievements đã xong. Receipts tách finish/accept/claim; checkpoint, reload và crash không nhân XP. Migration giữ XP/ownership và không trả lại history. Menu/result EN/VI phân trang, mastery selector, grouped levels/unlocks, count-up skip/Reduced Motion/pause và pending/error/retry save có trên Web lẫn Playable.
+
+215/215 tests (44 progression), lint/assets/boundaries, hai production builds, save/Daily/progression evidence và Chrome smoke đầy đủ hai shell qua. Daily golden giữ 1.305 population/20 floors; 533 builder XP gồm 183 base + 50 Daily + 300 achievements, Industrial mastery chỉ 183; claim ba missions tăng builder lên 653 rồi reload/retry không cộng lại. Capacity fixture với 50 summaries, 21 claims, 20 ownership và City pending v12 dưới 256 KiB. Chi tiết: [C4.2](plan/03-C4.2-progression-missions-achievements.md), [evidence](plan/evidence/C4.2-validation.json). Commit: `feat(c4.2): complete progression missions and achievements`. Phase tiếp theo **C4.3 — Cosmetics/Architecture Book**; host/thiết bị/server/release theo gate riêng.
 
 ## C4.1 — hoàn thành triển khai 09/10/2026
 

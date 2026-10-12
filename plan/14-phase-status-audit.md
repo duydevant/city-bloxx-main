@@ -1,17 +1,17 @@
-# 14 — Audit trạng thái phase cập nhật 09/10/2026
+# 14 — Audit trạng thái phase cập nhật 12/10/2026
 
-Audit ban đầu đối chiếu HEAD `1e0ebdc` và 19 file code/test thay đổi với task/DoD của `plan/`. Cập nhật sau khi hoàn thiện C4.0 và tiếp tục C4.1 theo yêu cầu người dùng; evidence audit cũ được giữ riêng bên dưới.
+Audit ban đầu đối chiếu HEAD `1e0ebdc` và 19 file code/test thay đổi với task/DoD của `plan/`. Cập nhật sau khi hoàn thiện C4.0, C4.1 và C4.2 theo yêu cầu người dùng; evidence audit cũ được giữ riêng bên dưới.
 
 ## Kết luận
 
-**C4.0 và C4.1 đã hoàn thành triển khai (Implemented)**. C4.0 commit `11c3901` trên code nền `506a96f`; C4.1 commit `feat(c4.1): complete Daily Tower and UTC streaks` chứa Daily definition/seed, checkpoint riêng, streak/PB/settlement, EN/VI và acceptance. 171/171 tests, hai production builds, save/Daily evidence và Chrome smoke hai shell qua. [Evidence C4.1](evidence/C4.1-validation.json). Actual SDK/điện thoại thật/release vẫn thuộc các gate riêng; phase tiếp theo C4.2 chưa hoàn thành.
+**C4.0, C4.1 và C4.2 đã hoàn thành triển khai (Implemented)**. C4.0 commit `11c3901`, C4.1 commit `ab4d02d`; C4.2 commit `feat(c4.2): complete progression missions and achievements` bổ sung builder/mastery levels, Daily bonus, deterministic missions/claim/reroll và 20 achievements. 215/215 tests, lint, hai builds, save/Daily/progression evidence và Chrome smoke cả hai shell qua. [Evidence C4.2](evidence/C4.2-validation.json). Phase tiếp theo là C4.3; actual SDK/thiết bị/server verification/release giữ gate riêng.
 
 | Phase/tài liệu | Trạng thái thực tế | Bằng chứng / phần còn thiếu |
 |---|---|---|
 | 00 — Project audit | Snapshot đã có | Giữ nguyên baseline schema 3 trước C4; không đổi snapshot cũ thành tiến độ mới. |
 | C4.0 — Save/stats/history | Implemented — hoàn thành | 139/139 tests, lint/assets/boundaries, hai builds, browser smoke cả hai shell và save-size evidence qua. Recovery, serial snapshots, base XP/receipts, 160 EN/VI catalog strings đã có. |
 | C4.1 — Daily Tower | Implemented — hoàn thành | Recipe `daily-v1`, ruleset `daily-tower-1`, Industrial 20 body + một roof; pinned UTC date, pending/resume, complete PB/failed height, streak/longest/lifetime và seven-day strip. 32 Daily tests, golden fixtures và browser EN/VI/rollover/replay/lifecycle hai shell qua; Quick PB/City unlock giữ nguyên. |
-| C4.2 — Progression/missions/achievements | Planned | C4.0 đã cấp base body/completion XP vào builder/class counters; còn missions/reroll/claim, achievements, builder/mastery level derivation và UI. |
+| C4.2 — Progression/missions/achievements | Implemented — hoàn thành | 44 progression tests, đủ 20 achievement boundary fixtures, XP curve/caps/overflow; missions UTC/availability/fallback/claim/reroll, crash/reload idempotency và shared result/menu EN/VI. Browser hai shell qua ở ba kích thước; grouped unlocks, skip/Reduced Motion/pause/save retry qua. [Evidence](evidence/C4.2-validation.json). |
 | C4.3 — Cosmetics/Architecture Book | Planned | Chỉ có inventory/equipment scaffold default; chưa Classic Brick catalog/art, equip/unlock, Book, renderer resolve equipment. |
 | W0 — Web routes/responsive | Planned; có baseline shell | Có Home/play/guide/profile/auth, EN/VI và viewport layout từ C0–C3. Chưa `/daily`, `/statistics`, `/my-towers`, `/buildings`, `/guide/daily`, initialScreen/deep-link/tutorial flags và đầy đủ accessibility/navigation QA. Stats/history trong shared menu chưa thay cho routes W0. |
 | W1 — Backend/auth/cloud/leaderboards | Planned | Auth API vẫn throw TODO; chưa Route Handlers/database/Prisma, sessions/cloud conflicts/tickets/server verifier/boards/restore evidence. |
