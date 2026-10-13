@@ -1,0 +1,31 @@
+import { ForbiddenException, INestApplication, VersioningType } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import { getAppConfig } from './config/app.config';
+
+export function configureApplication(app: INestApplication) {
+  const { trustProxy } = getAppConfig();
+  const express = app.getHttpAdapter().getInstance() as {
+    set: (name: string, value: unknown) => void;
+  };
+  express.set('trust proxy', trustProxy);
+  app.use(helmet());
+  app.use(cookieParser());
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  const allowed = (process.env.AUTH_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      cb: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || allowed.includes(origin)) return cb(null, true);
+      return cb(new ForbiddenException('Origin is not allowed'), false);
+    },
+    credentials: true,
+    exposedHeaders: ['X-Request-Id'],
+  });
+}

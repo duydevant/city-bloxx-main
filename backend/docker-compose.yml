@@ -1,0 +1,96 @@
+name: base-nest-bo-minh-auth
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run node scripts/setup-local.cjs first}
+      POSTGRES_DB: ${DB_DATABASE:-app_db}
+    ports:
+      - "127.0.0.1:${DB_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-app_db}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-56379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:58025:8025"
+
+  migrate:
+    build: .
+    image: base-nest-bo-minh-auth:local
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment: &app-env
+      DB_HOST: db
+      DB_PORT: 5432
+      APP_PORT: 3000
+      REDIS_URL: redis://redis:6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      NODE_ENV: local
+      COOKIE_SECURE: "false"
+      TS_NODE_BASEURL: dist
+    command: ["sh", "-c", "node -r tsconfig-paths/register dist/src/cli.js migrate && node -r tsconfig-paths/register dist/src/cli.js seed"]
+    restart: "no"
+
+  api:
+    build: .
+    image: base-nest-bo-minh-auth:local
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    env_file: .env
+    environment: *app-env
+    ports:
+      - "127.0.0.1:${APP_PORT:-31005}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      retries: 10
+
+  test:
+    profiles: [test]
+    build:
+      context: .
+      target: builder
+    image: base-nest-bo-minh-auth-test:local
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    env_file: .env
+    environment: *app-env
+    command: ["node", "test/run-security.cjs"]
+
+volumes:
+  pgdata:
+  redisdata:
