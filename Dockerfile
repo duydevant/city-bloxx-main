@@ -8,7 +8,7 @@ COPY base-playable-main/package.json ./base-playable-main/package.json
 COPY packages ./packages
 RUN npm ci
 COPY base-game-nextjs ./base-game-nextjs
-COPY base-playable-main/public ./base-playable-main/public
+COPY base-playable-main ./base-playable-main
 COPY scripts ./scripts
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_SITE_NAME
