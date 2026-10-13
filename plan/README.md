@@ -1,6 +1,6 @@
 # City Bloxx — kế hoạch nâng cấp sau core
 
-Ngày cập nhật: 12/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
+Ngày cập nhật: 13/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
 
 ## Đọc từ đâu?
 
@@ -20,7 +20,7 @@ Ngày cập nhật: 12/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Implemented — hoàn thành triển khai |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Implemented — hoàn thành triển khai |
 | [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4 shared UI | Implemented — hoàn thành triển khai |
-| [06 — W1 Backend, auth, cloud, leaderboards](06-W1-backend-auth-cloud-leaderboards.md), [plan triển khai W1.0–W1.9](06a-W1-implementation-plan.md) | C4.0/C4.1; nghiệm thu sau W0 | Planned — đã có plan chi tiết |
+| [06 — W1 requirements lịch sử](06-W1-backend-auth-cloud-leaderboards.md), [06c — plan game trên Nest backend hiện có](06c-W1-city-bloxx-existing-backend-plan.md) | C4/W0 + user/auth `backend/` | Planned — tái dùng Nest11/TypeORM0.3/PostgreSQL16/Redis7 |
 | [07 — Y0–Y2 Playable release](07-Y0-Y2-playable-integration-release.md) | Y0 audit làm sớm; release cần C4 | Planned |
 | [08 — Soft-launch checklist](08-soft-launch-checklist.md) | C4 + W0/W1 cho Web; C4 + Y0–Y2 cho Playable | Planned |
 | [09 — C5 Districts, landmarks](09-C5-districts-landmarks.md) | Soft launch | Planned |
@@ -34,6 +34,8 @@ C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10` và **C4.3 `5b63174` đã hoàn t
 
 **W0 cũng đã hoàn thành triển khai**: Web routes/local data, deep-link/confirm/pending preservation, Guest UI, tutorials, EN/VI, responsive/accessibility và SEO. 231/231 tests, lint, hai builds và full browser smoke Web/Playable qua; [evidence W0](evidence/W0-validation.json). **Dừng trước W1 Backend theo yêu cầu người dùng**; W1 giữ Planned, chưa viết auth/database/cloud/verified boards. Actual phone/host/release vẫn có gate riêng.
 
+Ngày13/10 đã nghiên cứu backend user/auth/RBAC hiện có tại `backend/`, read-only health trả DB up và Swagger chưa có game routes. Plan hiện hành là [06c](06c-W1-city-bloxx-existing-backend-plan.md): thêm City Bloxx modules, cloud/tickets/verification/boards vào Nest, nối Web với JWT+refresh cookie đã có. Không xây lại user/auth trong Next. Chưa triển khai game backend; full security/integration suite của source mới chưa chạy trong lượt khảo sát. File06a/06b giữ lịch sử và không dùng các lựa chọn kiến trúc xung đột với06c.
+
 ## Các quyết định đã chốt
 
 - Ưu tiên Daily + progression cho cả hai nền tảng; backend Web triển khai sau nền shared.
@@ -42,7 +44,7 @@ C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10` và **C4.3 `5b63174` đã hoàn t
 - Không retune core để thực hiện roadmap này. Baseline: physics `0.13.0`, Quick `0.13.0`, City `build-city-7`; body 144×120 world units.
 - Perfect ≤5%, Great >5–15%, Good >15–30%, Risky >30–<40%, Miss ≥40%; foundation mới không chấm điểm.
 - Mọi mode/config/reward có version. Skin không đổi collision, scoring hoặc lợi thế gameplay.
-- Web dùng Next hiện có, backend Route Handlers + PostgreSQL + Prisma. Playable không gọi backend riêng.
+- Web dùng Next hiện có; game backend mở rộng NestJS/TypeORM/PostgreSQL và Redis đang có trong `backend/`, tái dùng user/auth/RBAC. Playable không gọi Web backend.
 - Dùng UTC cho Daily/missions/events. Đồng hồ do adapter cung cấp; core không đọc thời gian máy hoặc mạng.
 - Web giữ port deploy `56789`; các biến vận hành lấy từ `.env`.
 

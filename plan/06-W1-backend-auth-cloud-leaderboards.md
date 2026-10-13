@@ -4,6 +4,8 @@ Trạng thái: Planned. Dependency: C4.0/C4.1 contracts; nghiệm thu cùng W0/C
 
 Kế hoạch triển khai chi tiết sau W0 `8dff07f`: [06a — W1 implementation plan](06a-W1-implementation-plan.md), chia W1.0–W1.9, database/API contracts, file scope, acceptance và commit từng mốc. W1 vẫn Planned; cập nhật này chỉ viết plan, không triển khai backend.
 
+**Cập nhật13/10/2026:** đã có Nest user/auth/RBAC source tại `backend/`. Dùng [06c — City Bloxx trên backend hiện có](06c-W1-city-bloxx-existing-backend-plan.md) làm plan implementation hiện hành. Các phần dưới và06a/06b giữ đặc tả lịch sử; lựa chọn Next Route Handlers/ORM/auth/rate-limit topology xung đột được thay bằng Nest11 + TypeORM0.3 + PostgreSQL16 + Redis7 + JWT/refresh contract đã có. Game fairness/cloud/verification requirements còn phù hợp tiếp tục áp dụng; không tạo user/auth thứ hai.
+
 ## 1. Kiến trúc và boundary
 
 Next Route Handlers trong app hiện tại + PostgreSQL + Prisma. Shared core làm server replay verification; không service gameplay thứ hai. Database chỉ mạng nội bộ Docker, không publish port DB mặc định. Không thêm Redis chỉ để làm launch.
