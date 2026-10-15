@@ -6,9 +6,11 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "nest build",
+    "build:core": "node scripts/build-core.cjs",
+    "build": "yarn build:core && nest build && node scripts/copy-core.cjs",
     "lint:check": "eslint \"{src,test}/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "yarn build:core && tsc --noEmit",
+    "test:core": "node test/core-artifacts.cjs",
     "test:security": "node test/run-security.cjs",
     "db:migrate": "node scripts/cli.cjs migrate",
     "seed:auth-rbac": "node scripts/cli.cjs seed",
@@ -45,8 +47,6 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "argon2": "^0.41.1",
-    "cookie-parser": "^1.4.7",
     "@casl/ability": "^6.7.3",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
@@ -60,10 +60,12 @@
     "@nestjs/typeorm": "^11.0.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@types/passport-jwt": "^4.0.1",
+    "argon2": "^0.41.1",
     "bcryptjs": "^3.0.2",
     "chalk": "^5.4.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cookie-parser": "^1.4.7",
     "csv-parser": "^3.2.0",
     "dayjs": "^1.11.13",
     "exceljs": "^4.4.0",
@@ -97,8 +99,6 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.8",
-    "@types/nodemailer": "^6.4.17",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
@@ -107,11 +107,15 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.8",
     "@types/bull": "^4.10.4",
+    "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.16",
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "^6.4.17",
     "@types/supertest": "^6.0.2",
+    "dts-bundle-generator": "9.5.1",
+    "esbuild": "0.25.12",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
@@ -143,14 +147,19 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
-    ,"moduleNameMapper": {"^src/(.*)$": "<rootDir>/$1"}
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    }
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@nestjs/core",
       "@swc/core"
     ]
+  },
+  "resolutions": {
+    "dts-bundle-generator/typescript": "5.9.3"
   },
   "packageManager": "yarn@1.22.22"
 }

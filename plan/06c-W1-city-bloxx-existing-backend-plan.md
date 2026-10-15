@@ -1,6 +1,8 @@
 # W1 — Backend City Bloxx trên NestJS/TypeORM hiện có
 
-Ngày nghiên cứu: **13/10/2026**. Baseline source: `eafbd5f`; game Web W0: `8dff07f`. Trạng thái: **Planned — chỉ nghiên cứu và lập kế hoạch, chưa triển khai game backend**.
+Ngày nghiên cứu: **13/10/2026**; cập nhật triển khai **15/10/2026**. Baseline source: `eafbd5f`; game Web W0: `8dff07f`. Trạng thái: **In progress — W1.0 Implemented, W1.1–W1.9 chưa triển khai**.
+
+W1.0 đã có gateway overlay, route-specific JSON budgets, DB/Redis readiness, shared-core CJS/declarations/worker packaging và auth regression trên DB disposable. [Evidence W1.0](evidence/W1.0-validation.json), [hướng dẫn chạy](../backend/docs/city-bloxx-infrastructure.md). Chưa nối Web auth, chưa tạo game tables/cloud/tickets/boards; chưa deploy thay stack đang chạy. Mốc tiếp theo là **W1.1**.
 
 Đây là plan triển khai hiện hành theo yêu cầu dùng source `backend/` đã có user/auth. Thay các quyết định kiến trúc trong file06/06a/06b: nghiệp vụ game nằm trong **NestJS backend hiện có**, dùng **TypeORM0.3 + PostgreSQL16 + Redis7 hiện có**; không xây auth/DB nghiệp vụ trong Next, không nâng ORM/DB major và không tạo user/session hệ thống thứ hai. Mục tiêu nghiệm thu vẫn là Docker local/staging; production TLS/SMTP/rollout là gate riêng.
 
@@ -185,7 +187,7 @@ Local finish settles C4 XP/stats/cosmetics once. Verification only changes web v
 
 | Mốc | Thực hiện | Acceptance / commit |
 |---|---|---|
-| W1.0 | Baseline auth regression, gateway/env/origin, shared-core build/worker packaging, bounded parsers/readiness | Auth contracts unchanged; core golden in backend image; proxy cookie/Origin; JSON limits. `feat(w1.0): integrate existing Nest backend with game infrastructure` |
+| W1.0 — Implemented 15/10 | Baseline auth regression, gateway/env/origin, shared-core build/worker packaging, bounded parsers/readiness | Passed: 17 unit + 3 e2e, 9 admin-seed + 23 security scenarios, real Nginx cookie/Origin/limits/Web and runtime worker goldens. [Evidence](evidence/W1.0-validation.json). `feat(w1.0): integrate existing Nest backend with game infrastructure` |
 | W1.1 | Game tables/indexes/additive permission migration; module/policy/repositories | Fresh+upgrade preserve users/password/roles; existing+fresh roles get intended rights; seed rerun doesn't restore revoked grants. `feat(w1.1): add City Bloxx schema and permissions` |
 | W1.2 | Web auth forms/client + memory JWT/cookie refresh coordinator; verify/reset/profile URLs reuse | Single/multiple tabs, strict refresh replay, response loss, expiry/logout/suspend, no token persistence/no hard redirect loss. `feat(w1.2): connect Web to existing user authentication` |
 | W1.3 | Game alias/profile and cloud save/resolve APIs + receipts/backups | Own actor only; CAS race/idempotency; foreign user forbidden incl super self route; unknown schema/backup fail. `feat(w1.3): implement game profile and revisioned cloud API` |

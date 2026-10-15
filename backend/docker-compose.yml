@@ -35,7 +35,9 @@ services:
       - "127.0.0.1:58025:8025"
 
   migrate:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     image: base-nest-bo-minh-auth:local
     depends_on:
       db:
@@ -55,7 +57,9 @@ services:
     restart: "no"
 
   api:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     image: base-nest-bo-minh-auth:local
     restart: unless-stopped
     depends_on:
@@ -70,14 +74,15 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-31005}:3000"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 10s
       retries: 10
 
   test:
     profiles: [test]
     build:
-      context: .
+      context: ..
+      dockerfile: backend/Dockerfile
       target: builder
     image: base-nest-bo-minh-auth-test:local
     depends_on:

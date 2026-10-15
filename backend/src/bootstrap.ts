@@ -1,6 +1,7 @@
 import { ForbiddenException, INestApplication, VersioningType } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { boundedJson } from './common/middleware/bounded-json.middleware';
 import { getAppConfig } from './config/app.config';
 
 export function configureApplication(app: INestApplication) {
@@ -9,6 +10,7 @@ export function configureApplication(app: INestApplication) {
     set: (name: string, value: unknown) => void;
   };
   express.set('trust proxy', trustProxy);
+  app.use(boundedJson());
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix('api');

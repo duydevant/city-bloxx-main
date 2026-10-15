@@ -1,8 +1,8 @@
 # W1 — Backend Web, auth, cloud save và verified leaderboard
 
-Trạng thái: Planned. Dependency: C4.0/C4.1 contracts; nghiệm thu cùng W0/C4. GDD: 50–51, 78–88, 93, 95.
+Trạng thái: In progress — W1.0 Implemented ngày 15/10/2026; W1.1–W1.9 còn mở theo [06c](06c-W1-city-bloxx-existing-backend-plan.md). [Evidence](evidence/W1.0-validation.json). Dependency: C4.0/C4.1 contracts; nghiệm thu cùng W0/C4. GDD: 50–51, 78–88, 93, 95.
 
-Kế hoạch triển khai chi tiết sau W0 `8dff07f`: [06a — W1 implementation plan](06a-W1-implementation-plan.md), chia W1.0–W1.9, database/API contracts, file scope, acceptance và commit từng mốc. W1 vẫn Planned; cập nhật này chỉ viết plan, không triển khai backend.
+Kế hoạch lịch sử sau W0 `8dff07f`: [06a — W1 implementation plan](06a-W1-implementation-plan.md), chia W1.0–W1.9, database/API contracts, file scope, acceptance và commit từng mốc. Bản06a được viết khi W1 còn Planned; trạng thái triển khai mới nhất theo06c và evidence ở trên.
 
 **Cập nhật13/10/2026:** đã có Nest user/auth/RBAC source tại `backend/`. Dùng [06c — City Bloxx trên backend hiện có](06c-W1-city-bloxx-existing-backend-plan.md) làm plan implementation hiện hành. Các phần dưới và06a/06b giữ đặc tả lịch sử; lựa chọn Next Route Handlers/ORM/auth/rate-limit topology xung đột được thay bằng Nest11 + TypeORM0.3 + PostgreSQL16 + Redis7 + JWT/refresh contract đã có. Game fairness/cloud/verification requirements còn phù hợp tiếp tục áp dụng; không tạo user/auth thứ hai.
 

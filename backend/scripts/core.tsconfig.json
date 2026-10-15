@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": ["node"],
+    "typeRoots": ["../node_modules/@types"],
+    "lib": ["ES2023"]
+  },
+  "include": ["../../packages/city-bloxx-core/src/**/*.ts", "../../packages/city-bloxx-content/**/*.ts"]
+}

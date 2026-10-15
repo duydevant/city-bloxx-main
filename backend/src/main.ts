@@ -11,7 +11,7 @@ async function bootstrap() {
   const logger = WinstonModule.createLogger(getWinstonConfig(appName));
   const app = await NestFactory.create(AppModule, {
     logger,
-    rawBody: true,
+    bodyParser: false,
   });
 
   configureApplication(app);

@@ -11,6 +11,7 @@
     "test:browser": "node scripts/browser-smoke.cjs",
     "test:web": "node scripts/browser-smoke.cjs --web-only",
     "evidence:web": "node scripts/web-evidence.cjs",
+    "evidence:w1": "node scripts/w1-infrastructure-evidence.cjs",
     "test:save": "node scripts/c4-save-evidence.cjs",
     "test:daily": "node scripts/daily-evidence.cjs",
     "test:progression": "node scripts/progression-evidence.cjs",

@@ -1,11 +1,35 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { InfrastructureService } from '../security/infrastructure.service';
 import { Public } from '../security/policy';
 
 @Controller('health')
 @Public()
 export class HealthController {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly infrastructure: InfrastructureService,
+  ) {}
+
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
+
+  @Get('ready')
+  async ready() {
+    try {
+      await Promise.all([
+        this.dataSource.query('SELECT 1'),
+        this.infrastructure.redis.ping().then((reply) => {
+          if (reply !== 'PONG') throw new Error('Redis not ready');
+        }),
+      ]);
+      return { status: 'ok' };
+    } catch {
+      throw new ServiceUnavailableException('Dependencies unavailable');
+    }
+  }
 
   @Get()
   async check() {

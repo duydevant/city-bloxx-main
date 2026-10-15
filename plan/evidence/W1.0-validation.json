@@ -1,0 +1,42 @@
+{
+  "phase": "W1.0",
+  "status": "Implemented",
+  "checkedAt": "2026-10-15T06:10:42.803Z",
+  "sourceBaseCommit": "09dd1998ca9ad1034fab0937ef64177d3a24c169",
+  "implementation": "feat(w1.0): integrate existing Nest backend with game infrastructure",
+  "environment": "Windows host, Docker Desktop Linux containers; existing PostgreSQL16/Redis7/Mailpit; disposable auth_test_* databases",
+  "images": {
+    "builderTest": "sha256:fbc6fa8053e778502dcef0899d603acecc8a305b0b2936ca05de74e23b52e7d4",
+    "runtime": "sha256:2990ad09a0d5a63a5fbbfbd2b332fd99f3dd17f11519afdf989243a618749b02",
+    "nginx": "nginx:1.28-alpine"
+  },
+  "checks": {
+    "existingAuthBaseline": { "adminSeedScenarios": 9, "unitTests": 5, "e2eTests": 2, "securityScenarios": 23, "status": "passed" },
+    "backendTypecheck": "passed",
+    "backendLintCheck": "passed",
+    "backendUnit": { "tests": 17, "files": 3, "status": "passed" },
+    "nestE2e": { "tests": 3, "status": "passed", "includes": "503 on DB/Redis probe failure, public liveness, unchanged Swagger auth contracts" },
+    "adminSeedScenarios": { "count": 9, "status": "passed" },
+    "securityIntegration": { "scenarios": 23, "status": "passed" },
+    "migrations": "fresh, down/up and repeated seed passed only in disposable databases",
+    "realNginx": ["email verify/login", "bearer forwarding", "HttpOnly/SameSite cookie path preserved", "refresh rotation and logout cookie clear", "missing/invalid Origin rejected", "X-Request-Id preserved", "API no-store", "auth/finish/save byte limits", "unsupported encoding rejected", "production Web /play HTTP200"],
+    "bodyParser": "exact and one-byte-over budgets for auth/profile/analytics/finish/save/resolve, malformed JSON, non-JSON, gzip, chunked bodies passed",
+    "compiledCoreAndWorkers": "Quick golden plus Daily complete/roof-miss/failed and UTC definitions passed; fabricated population rejected; builder and runtime images passed",
+    "sharedGame": { "tests": 231, "files": 18, "status": "passed" },
+    "assetsAndBoundaries": "48 assets per shell; core pure and Playable graph excludes Web/backend; passed",
+    "gitDiffCheck": "passed",
+    "composeOverlayConfig": "passed (config --no-env-resolution --quiet; deployment env file remains external)",
+    "scriptSyntax": "passed (node --check)"
+  },
+  "reproduce": [
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker run --rm city-bloxx-w1-test:local sh -c \"yarn typecheck && yarn lint:check && yarn test:core\"",
+    "npm run evidence:w1",
+    "docker build -f backend/Dockerfile -t city-bloxx-w1-api:local .",
+    "docker run --rm city-bloxx-w1-api:local node test/core-artifacts.cjs",
+    "npm run assets:check",
+    "npm test"
+  ],
+  "isolation": { "applicationDataAndVolumesPreserved": true, "testContainersRemoved": true, "deploymentPerformed": false },
+  "remaining": ["W1.1-W1.9", "real Web account forms/integration", "game schema/cloud/tickets/verified boards", "bounded ranked worker pool and its readiness", "production TLS/SMTP/rollout", "actual device/host acceptance"]
+}

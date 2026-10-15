@@ -3,6 +3,7 @@ const { spawn, spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 
 async function main() {
+  if (spawnSync(process.execPath, ['test/core-artifacts.cjs'], { stdio: 'inherit' }).status !== 0) throw new Error('Compiled core/worker suite failed');
   const database = `auth_test_${Date.now()}_${randomBytes(4).toString('hex')}`;
   if (!/^auth_test_[a-z0-9_]+$/.test(database)) throw new Error('Unsafe test database name');
   const admin = new Client({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USERNAME,password:process.env.DB_PASSWORD,database:process.env.DB_DATABASE});
@@ -28,6 +29,9 @@ async function main() {
       if(api.exitCode!==null)break;await new Promise(r=>setTimeout(r,200));
     }
     if(!ready){console.error(log);throw new Error('Test API startup failed');}
+    if (process.env.TEST_GATEWAY_BASE_URL) {
+      if(spawnSync(process.execPath,['test/gateway.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Gateway suite failed');
+    }
     for(const args of [['node_modules/jest/bin/jest.js','--runInBand'],['node_modules/jest/bin/jest.js','--config','test/jest-e2e.json','--runInBand']]) {
       if(spawnSync(process.execPath,args,{env,stdio:'inherit'}).status!==0)throw new Error('Jest suite failed');
     }
