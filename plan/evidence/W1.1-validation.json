@@ -1,0 +1,42 @@
+{
+  "phase": "W1.1",
+  "status": "Implemented",
+  "checkedAt": "2026-10-15T06:54:16.731Z",
+  "sourceBaseCommit": "823c44a74cf8ebc67e7db0a7b50639045a28de19",
+  "implementation": "feat(w1.1): add City Bloxx schema and permissions",
+  "environment": "Windows host, Docker Desktop Linux containers; PostgreSQL16/Redis7/Mailpit; isolated city_bloxx_test_* and auth_test_* databases",
+  "images": {
+    "builderTest": "sha256:eac731cc8a5308fb873116a522acb63368203293b96f1c77fe58a5b2fd104e88",
+    "runtime": "sha256:adf2db9bc1ee7ce4222f4438406981a9cd4019012ce5387d2063c944d0107531"
+  },
+  "migrations": ["1792022400000-CityBloxxSchema", "1792022401000-CityBloxxPermissions"],
+  "checks": {
+    "backendBuild": "passed (builder and runtime)",
+    "backendTypecheck": "passed",
+    "backendLintCheck": "passed",
+    "schemaIntegration": {
+      "scenarios": 14,
+      "builder": "passed",
+      "runtime": "passed",
+      "includes": ["fresh three-migration chain", "exact fresh and upgrade grants", "seed reruns preserve revoked grants/inactive permissions", "full down/up", "game-only down/up retains auth history", "auth-only upgrade preserves real password hashes/accounts/sessions/roles/tokens/audit/outbox", "reserved permission/role collisions abort atomically", "BIGINT/NUMERIC precision", "owner foreign keys and uniqueness", "ticket mode/date/lease/encryption invariants", "submission bounds/immutable receipt time", "analytics identity/PII/source constraints", "transaction rollback and cross-owner repository isolation", "super-admin cannot bypass game owner/verified-email policy"]
+    },
+    "unit": {"tests": 21, "files": 4, "status": "passed"},
+    "nestE2e": {"tests": 3, "status": "passed"},
+    "adminSeed": {"scenarios": 9, "status": "passed"},
+    "authSecurityIntegration": {"scenarios": 23, "status": "passed"},
+    "gateway": "passed real Nginx verify/login/bearer/cookie/Origin/limits and production Web /play",
+    "compiledCoreWorkerGoldens": "passed Quick and Daily including fabricated-result rejection",
+    "assetsAndBoundaries": "passed; 48 assets per shell; Playable graph excludes Web/backend",
+    "gitDiffCheck": "passed"
+  },
+  "reproduce": [
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker run --rm city-bloxx-w1-test:local sh -c \"yarn typecheck && yarn lint:check && yarn test:core\"",
+    "npm run evidence:w1",
+    "docker build -f backend/Dockerfile -t city-bloxx-w1-api:local .",
+    "runtime on trusted Docker test network/environment: node -r tsconfig-paths/register test/run-game-schema.cjs",
+    "npm run assets:check"
+  ],
+  "isolation": {"liveDatabaseMigrated": false, "existingContainersAndVolumesPreserved": true, "disposableDatabasesRemoved": true, "deploymentPerformed": false},
+  "remaining": ["W1.2 Web auth integration", "W1.3-W1.9 game APIs/cloud/ranked/operations/acceptance", "production rollout", "actual device/host gates"]
+}

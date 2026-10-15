@@ -28,7 +28,7 @@ async function main() {
       '-e', 'FRONTEND_USER_PORTAL_URL=http://localhost:56789',
       '-e', 'TEST_GATEWAY_ORIGIN=http://localhost:56789',
       '-e', `TEST_GATEWAY_BASE_URL=http://${names.gateway}:8080/api/v1`,
-      'city-bloxx-w1-test:local', 'node', 'test/run-security.cjs']);
+      'city-bloxx-w1-test:local', 'sh', '-c', 'yarn test:game-schema && node test/run-security.cjs']);
     docker(['start', names.suite]);
     docker(['run', '-d', '--name', names.gateway, '--network', network, '-p', '127.0.0.1::8080',
       '--mount', `type=bind,source=${configFile},target=/etc/nginx/conf.d/default.conf,readonly`, 'nginx:1.28-alpine']);
@@ -50,8 +50,8 @@ async function main() {
       checkedAt: new Date().toISOString(),
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
-      checks: { compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
-      isolation: { database: 'disposable auth_test_*', existingVolumesPreserved: true, deployment: false },
+      checks: { gameSchemaAndPermissions: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
+      isolation: { database: 'disposable auth_test_* and city_bloxx_test_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');
     console.log('PASS gateway serves production Web /play; existing containers/volumes preserved');
   } finally {

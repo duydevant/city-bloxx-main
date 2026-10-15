@@ -23,6 +23,7 @@ import {
 } from 'src/config';
 import { AllExceptionFilter } from 'src/exceptions';
 import { PayloadValidationPipe } from 'src/pipes';
+import { CityBloxxModule } from './city-bloxx/city-bloxx.module';
 import { HealthModule } from './health/health.module';
 import { SecurityModule } from './security/security.module';
 
@@ -54,6 +55,7 @@ import { SecurityModule } from './security/security.module';
     }),
     HealthModule,
     SecurityModule,
+    CityBloxxModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionFilter },

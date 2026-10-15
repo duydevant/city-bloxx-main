@@ -2,6 +2,10 @@ import * as argon2 from 'argon2';
 import { isEmail } from 'class-validator';
 import { randomUUID } from 'crypto';
 import { DataSource, EntityManager } from 'typeorm';
+import {
+  GAME_PERMISSIONS,
+  GAME_SELF_PERMISSIONS,
+} from '../modules/city-bloxx/common/permissions';
 import { SecurityService } from '../modules/security/security.service';
 import { CATALOG, RoleRow, rows, UserRow } from '../modules/security/types';
 
@@ -120,12 +124,40 @@ export async function seedAuthRbac(db: DataSource) {
         [randomUUID(), code, resource, action],
       );
     }
+    const gamePermissions = await rows<{
+      code: string;
+      resource: string;
+      action: string;
+      is_system: boolean;
+    }>(
+      tx,
+      'SELECT code,resource,action,is_system FROM permissions WHERE code=ANY($1::text[])',
+      [[...GAME_PERMISSIONS]],
+    );
+    if (
+      gamePermissions.length !== GAME_PERMISSIONS.length ||
+      gamePermissions.some((permission) => {
+        const [resource, action] = permission.code.split(':');
+        return (
+          !permission.is_system ||
+          permission.resource !== resource ||
+          permission.action !== action
+        );
+      })
+    )
+      throw new SeedConfigurationError(
+        'City Bloxx permission code conflicts with a non-system permission.',
+      );
     for (const code of initialRoles) {
       if (code === 'super_admin') continue;
       await tx.query(
         `INSERT INTO role_permissions(role_id,permission_id) SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
-        WHERE r.code=$1 AND p.code=ANY($2::text[]) AND ($1='admin' OR p.code IN ('profile:read','profile:update')) ON CONFLICT DO NOTHING`,
-        [code, [...CATALOG]],
+        WHERE r.code=$1 AND r.is_system AND p.code=ANY($2::text[]) AND ($1='admin' OR p.code=ANY($3::text[])) ON CONFLICT DO NOTHING`,
+        [
+          code,
+          [...CATALOG],
+          ['profile:read', 'profile:update', ...GAME_SELF_PERMISSIONS],
+        ],
       );
     }
     return { admin: await seedAdmin(tx, config, db) };

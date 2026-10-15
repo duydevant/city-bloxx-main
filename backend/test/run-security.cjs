@@ -17,8 +17,11 @@ async function main() {
       if(result.status!==0)throw new Error(`Test setup ${command} failed`);
     }
     // Validate down/up only in the disposable DB, before application data exists.
-    const revert=spawnSync(process.execPath,['-r','tsconfig-paths/register','node_modules/typeorm/cli.js','migration:revert','-d','dist/src/config/data-source.js'],{env,encoding:'utf8'});
-    if(revert.status!==0)throw new Error('Disposable migration revert failed');
+    const migrations = require('node:fs').readdirSync('dist/src/database/migrations').filter(name => name.endsWith('.js')).length;
+    for(let i=0;i<migrations;i++) {
+      const revert=spawnSync(process.execPath,['-r','tsconfig-paths/register','node_modules/typeorm/cli.js','migration:revert','-d','dist/src/config/data-source.js'],{env,encoding:'utf8'});
+      if(revert.status!==0)throw new Error('Disposable full migration revert failed');
+    }
     for(const command of ['migrate','seed','seed'])if(spawnSync(process.execPath,[...args,command],{env,encoding:'utf8'}).status!==0)throw new Error('Migration recovery failed');
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/admin-seed.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Admin seed suite failed');
     api=spawn(process.execPath,['-r','tsconfig-paths/register','dist/src/main.js'],{env,stdio:['ignore','pipe','pipe']});

@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { EntityManager } from 'typeorm';
+import { GAME_PERMISSIONS } from '../city-bloxx/common/permissions';
 
 export interface UserRow {
   id: string;
@@ -91,4 +92,5 @@ export const CATALOG = [
   'sessions:read',
   'sessions:revoke',
   'audit_logs:read',
+  ...GAME_PERMISSIONS,
 ] as const;

@@ -3,6 +3,8 @@
 
 City Bloxx W1.0: [shared core build, gateway, readiness and isolated acceptance](docs/city-bloxx-infrastructure.md). Docker build context is now the repository root; Compose handles this automatically.
 
+City Bloxx W1.1: [game schema, migration/seed grants and transaction ownership policy](docs/city-bloxx-schema.md).
+
 NestJS 11, TypeORM 0.3, PostgreSQL 16, Redis 7, JWT HS256, Argon2id. Backend gồm authentication, refresh rotation, sessions, email/password lifecycle, RBAC N:N và admin APIs.
 
 ## Chạy local bằng Docker

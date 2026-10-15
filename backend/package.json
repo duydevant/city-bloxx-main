@@ -11,6 +11,7 @@
     "lint:check": "eslint \"{src,test}/**/*.ts\"",
     "typecheck": "yarn build:core && tsc --noEmit",
     "test:core": "node test/core-artifacts.cjs",
+    "test:game-schema": "node -r tsconfig-paths/register test/run-game-schema.cjs",
     "test:security": "node test/run-security.cjs",
     "db:migrate": "node scripts/cli.cjs migrate",
     "seed:auth-rbac": "node scripts/cli.cjs seed",
