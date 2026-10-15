@@ -28,7 +28,7 @@ Down migrations are for disposable test rehearsals: game down removes game data 
 | `leaderboard_entries` | One best/account/partition, matching submission owner, exact NUMERIC ratio and full comparator index |
 | `analytics_events` | Event UUID dedupe, distinct account/anonymous identity, bounded object properties, server-only verification-reject event |
 
-BIGINT revision/population and NUMERIC ratio values stay decimal strings through the repository boundary. `decimalRevision` validates canonical nonnegative BIGINT strings without converting them through JavaScript numbers; revision zero denotes an absent cloud save and is not stored as a save row. API DTO and worker validation will add the business rules in W1.3/W1.5/W1.6; these tables alone do not verify a score or establish a board entry's eligibility.
+BIGINT revision/population and NUMERIC ratio values stay decimal strings through the repository boundary. `decimalRevision` validates canonical nonnegative BIGINT strings without converting them through JavaScript numbers; revision zero denotes an absent cloud save and is not stored as a save row. W1.3 adds [profile/cloud DTO, worker and transaction rules](city-bloxx-cloud.md); ranked business rules remain W1.5/W1.6. These tables alone do not verify a score or establish a board entry's eligibility.
 
 `CityBloxxModule` imports existing `SecurityModule`. `GameStore.transaction` checks identity/permission using the supplied transaction manager; `GameRepository` refuses a global manager and scopes all reads to the actor's owner ID. `GamePolicyService` checks ownership without role bypass and optionally requires verified email for ranked operations. No game endpoint is exposed in W1.1.
 

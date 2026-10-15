@@ -1,18 +1,22 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { HealthController } from './health.controller';
+import { GameWorkerService } from '../city-bloxx/common/game-worker.service';
 import { InfrastructureService } from '../security/infrastructure.service';
 
 describe('dependency readiness', () => {
   const query = jest.fn();
   const ping = jest.fn();
+  const run = jest.fn();
   const controller = new HealthController(
     { query } as unknown as DataSource,
     { redis: { ping } } as unknown as InfrastructureService,
+    { run } as unknown as GameWorkerService,
   );
   beforeEach(() => {
     query.mockReset().mockResolvedValue([]);
     ping.mockReset().mockResolvedValue('PONG');
+    run.mockReset().mockResolvedValue(true);
   });
   it('liveness does not depend on backing services', () => {
     expect(controller.live()).toEqual({ status: 'ok' });
@@ -34,5 +38,9 @@ describe('dependency readiness', () => {
       status: 'error',
       db: 'down',
     });
+  });
+  it('fails readiness when isolated validation workers are unavailable', async () => {
+    run.mockRejectedValueOnce(new Error('worker deadline'));
+    await expect(controller.ready()).rejects.toThrow(ServiceUnavailableException);
   });
 });

@@ -35,6 +35,16 @@ export class AllExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request?.url ?? '',
     };
+    if (
+      /^\/api\/v1\/city-bloxx\//.test(request?.url ?? '') &&
+      [429, 503].includes(httpStatus)
+    ) {
+      httpAdapter.setHeader(
+        ctx.getResponse(),
+        'Retry-After',
+        httpStatus === 429 ? '60' : '5',
+      );
+    }
 
     if (isHttpException) {
       let exceptionResponse: unknown = exception.getResponse();
@@ -57,6 +67,9 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
 
     const isProductionEnv = this.configService.get<boolean>('app.isProductionEnv');
+    if (/^\/api\/v1\/city-bloxx\//.test(request?.url ?? '') && !errorData.errorCode) {
+      errorData.errorCode = `GAME_HTTP_${httpStatus}`;
+    }
     if (isProductionEnv) delete errorData.details;
 
     httpAdapter.reply(ctx.getResponse(), errorData, httpStatus);

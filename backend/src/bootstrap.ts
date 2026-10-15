@@ -1,5 +1,6 @@
 import { ForbiddenException, INestApplication, VersioningType } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { boundedJson } from './common/middleware/bounded-json.middleware';
 import { getAppConfig } from './config/app.config';
@@ -10,6 +11,11 @@ export function configureApplication(app: INestApplication) {
     set: (name: string, value: unknown) => void;
   };
   express.set('trust proxy', trustProxy);
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (/^\/api\/v1\/city-bloxx\/(profile|save)(\/|\?|$)/.test(req.url))
+      res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   app.use(boundedJson());
   app.use(helmet());
   app.use(cookieParser());
@@ -28,6 +34,6 @@ export function configureApplication(app: INestApplication) {
       return cb(new ForbiddenException('Origin is not allowed'), false);
     },
     credentials: true,
-    exposedHeaders: ['X-Request-Id'],
+    exposedHeaders: ['X-Request-Id', 'Retry-After'],
   });
 }

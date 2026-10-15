@@ -41,6 +41,7 @@ async function main() {
     if (process.env.TEST_GATEWAY_BASE_URL) {
       if(spawnSync(process.execPath,['test/gateway.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Gateway suite failed');
     }
+    if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/cloud.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Cloud integration suite failed');
     for(const args of [['node_modules/jest/bin/jest.js','--runInBand'],['node_modules/jest/bin/jest.js','--config','test/jest-e2e.json','--runInBand']]) {
       if(spawnSync(process.execPath,args,{env,stdio:'inherit'}).status!==0)throw new Error('Jest suite failed');
     }

@@ -1,0 +1,84 @@
+{
+  "phase": "W1.3",
+  "status": "Implemented",
+  "checkedAt": "2026-10-15T09:02:42.752Z",
+  "sourceBaseCommit": "2359b114cb1accf86b7f580e081032e9a0774668",
+  "implementation": "feat(w1.3): implement game profile and revisioned cloud API",
+  "environment": "Windows, Docker Desktop Linux; real Nest/PostgreSQL16/Redis7/Mailpit/Nginx with guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:7948bc1b5d056502c0451abed728ce06fd9f028a1ef5799993802882c7d22814",
+    "backendRuntime": "sha256:f59f8bf578088a28bfe002c0e72d8b8ffb9db2f811025a89b0a070387c327712",
+    "nginx": "nginx:1.28-alpine"
+  },
+  "checks": {
+    "backendTypecheck": "passed",
+    "backendLint": "passed without warnings",
+    "builderAndRuntimeBuilds": "passed",
+    "compiledCoreAndWorkers": "passed on builder and runtime; Quick/Daily goldens, fabricated results, schemas 1-4 migration, canonical hash, future schema and depth guard",
+    "unit": { "tests": 27, "files": 5, "workerPoolTests": 5, "status": "passed" },
+    "nestE2e": { "tests": 3, "status": "passed; source-runner readiness uses generated worker artifacts" },
+    "schema": { "scenarios": 14, "status": "passed; full down/up, upgrade/auth preservation, grants/collisions and owner/precision constraints" },
+    "adminSeed": { "scenarios": 9, "status": "passed" },
+    "securityRegression": { "scenarios": 23, "status": "passed; 51 existing auth/admin routes remain documented" },
+    "cloudApi": {
+      "scenarios": 21,
+      "status": "passed via real HTTP through Nginx, actual PostgreSQL transactions and Node workers",
+      "coverage": [
+        "private profile public UUID, independent alias/preferences, strict DTO and no PII projection",
+        "absent revision zero, auth errors/no-store and strict BIGINT string bounds",
+        "first CAS write, normalized hash, exact stored receipt retry and changed-request conflict",
+        "stale revision metadata and preservation of committed snapshot",
+        "two concurrent writers: one commit and one revision conflict",
+        "same mutation/different concurrent payloads: one commit and one mutation conflict",
+        "same mutation/identical concurrent payloads: one revision and identical receipts; retry after later writes",
+        "super-admin own-route isolation, forbidden owner DTO fields and owner-scoped mutation UUID",
+        "future/invalid schemas and PostgreSQL-incompatible Unicode never replace existing snapshot",
+        "explicit local resolve backs up both candidates atomically, requires durable local acknowledgement and retries once",
+        "cloud choice backs up future local raw JSON verbatim, including whitespace and escaped NUL",
+        "induced second backup failure rolls back first backup, save and receipt; same mutation retries successfully",
+        "future cloud schema remains readable/incompatible and cannot be overwritten, including by super-admin",
+        "exact revisions above Number.MAX_SAFE_INTEGER and BIGINT exhaustion without overflow",
+        "raw/normalized/JSONB byte limits reject before mutation",
+        "email verification, suspended status and inactive permissions enforced",
+        "Redis failure returns retryable 503 before write",
+        "suspension after worker validation rejected by commit-time identity recheck",
+        "actual advisory lock contention times out as 503 and preserves revision",
+        "expired backup/receipt cleanup retains unexpired receipts and all auth users",
+        "30 writes/minute per account, 429 Retry-After and independent account allowance"
+      ]
+    },
+    "workerPool": "passed caps 2 workers/20 queued, overload, total 5-second deadline, crash recovery, termination before slot reuse and shutdown",
+    "gateway": "passed bearer/cookies/Origin/request ID/body budgets/auth regression and production Web /play",
+    "gitDiffCheck": "passed"
+  },
+  "reproduce": [
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker run --rm city-bloxx-w1-test:local sh -c \"yarn typecheck && yarn lint:check && yarn test:core && yarn test --runInBand\"",
+    "npm run evidence:w1",
+    "docker build -f backend/Dockerfile -t city-bloxx-w1-api:local .",
+    "docker run --rm city-bloxx-w1-api:local node test/core-artifacts.cjs"
+  ],
+  "artifacts": {
+    "sanitizedRunnerReport": "tmp/w1-infrastructure-5be47ac5c65a/result.json",
+    "cloudTests": "backend/test/cloud.integration.cjs",
+    "workerTests": "backend/src/modules/city-bloxx/common/game-worker.spec.ts",
+    "apiGuide": "backend/docs/city-bloxx-cloud.md"
+  },
+  "isolation": {
+    "testDatabaseGuard": "matching TEST_DATABASE/DB_DATABASE, auth_test_*; schema tests use UUID city_bloxx_test_*",
+    "applicationDataAndVolumesPreserved": true,
+    "testDatabasesAndContainersRemoved": true,
+    "temporaryCredentialsRemoved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "Local automated acceptance; no production deployment, TLS/SMTP rollout or real-device acceptance",
+    "Web cloud/IndexedDB/offline/conflict/Guest import UI remains W1.4; local backup acknowledgement must be implemented durably there",
+    "Worker caps/deadline/crash tests use controlled workers; compiled artifact and cloud API tests additionally execute actual Node workers",
+    "Existing Web/Playable builds/browser acceptance from W1.2 was not rerun for this backend-only change",
+    "Ranked tickets, verification settlements, boards and operational backup/restore remain later milestones"
+  ],
+  "next": "W1.4 connect Web cloud saves, IndexedDB account isolation, offline/conflict and Guest import"
+}

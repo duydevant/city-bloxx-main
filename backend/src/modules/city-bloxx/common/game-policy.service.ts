@@ -28,7 +28,7 @@ export class GamePolicyService {
     if (verified && !user.email_verified_at) {
       throw new ForbiddenException({
         errorCode: 'GAME_EMAIL_VERIFICATION_REQUIRED',
-        message: 'Verify email before ranked play',
+        message: 'Verify email before this game action',
       });
     }
     return user;

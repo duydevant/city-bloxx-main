@@ -42,9 +42,9 @@ Native Nest automatic body parsing is disabled at both production and e2e boot. 
 | Game runs/finish | 256 KiB |
 | Game save/save-resolve envelope | 272 KiB |
 
-Compressed bodies and non-JSON mutation bodies are rejected with 415. Invalid JSON returns 400, oversized bodies 413. The gateway caps all bodies at 272 KiB. Cloud payload-specific validation remains W1.3 work.
+Compressed bodies and non-JSON mutation bodies are rejected with 415. Invalid JSON returns 400, oversized bodies 413. The gateway caps all bodies at 272 KiB. W1.3 adds [cloud payload validation](city-bloxx-cloud.md), including the 256 KiB normalized JSONB budget.
 
-`GET /api/v1/health/live` only reports process liveness. `/health/ready` returns 200 when PostgreSQL and Redis respond, 503 otherwise; no connection details are exposed. The legacy `/health` response is preserved. Worker pool readiness will be added when the pool exists in W1.6.
+`GET /api/v1/health/live` only reports process liveness. `/health/ready` returns 200 when PostgreSQL, Redis and (since W1.3) an isolated validation worker respond, 503 otherwise; no connection details are exposed. The legacy `/health` response is preserved. W1.6 will extend the existing bounded validation workers for ranked verification.
 
 ## Isolated gateway/auth acceptance
 

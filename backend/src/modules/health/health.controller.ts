@@ -1,5 +1,6 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { GameWorkerService } from '../city-bloxx/common/game-worker.service';
 import { InfrastructureService } from '../security/infrastructure.service';
 import { Public } from '../security/policy';
 
@@ -9,6 +10,7 @@ export class HealthController {
   constructor(
     private readonly dataSource: DataSource,
     private readonly infrastructure: InfrastructureService,
+    private readonly workers: GameWorkerService,
   ) {}
 
   @Get('live')
@@ -20,6 +22,7 @@ export class HealthController {
   async ready() {
     try {
       await Promise.all([
+        this.workers.run({ operation: 'ping' }),
         this.dataSource.query('SELECT 1'),
         this.infrastructure.redis.ping().then((reply) => {
           if (reply !== 'PONG') throw new Error('Redis not ready');
