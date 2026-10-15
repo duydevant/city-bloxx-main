@@ -32,6 +32,12 @@ async function main() {
       if(api.exitCode!==null)break;await new Promise(r=>setTimeout(r,200));
     }
     if(!ready){console.error(log);throw new Error('Test API startup failed');}
+    if (process.env.TEST_BROWSER_AUTH === 'true') {
+      const fs=require('node:fs');
+      fs.writeFileSync('/tmp/w1-browser-ready',JSON.stringify({database}));
+      for(let i=0;i<900&&!fs.existsSync('/tmp/w1-browser-done');i++)await new Promise(resolve=>setTimeout(resolve,1000));
+      if(!fs.existsSync('/tmp/w1-browser-done')||fs.readFileSync('/tmp/w1-browser-done','utf8')!=='passed')throw new Error('Web auth browser acceptance failed');
+    }
     if (process.env.TEST_GATEWAY_BASE_URL) {
       if(spawnSync(process.execPath,['test/gateway.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Gateway suite failed');
     }

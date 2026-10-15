@@ -1,2 +1,3 @@
+﻿import { AuthForm } from "@/modules/account/auth-form"
 import { WebContent } from "@/modules/city-bloxx/web-content"
-export default function Page(){return <WebContent title={["Sign up","Đăng ký"]} description={["Account sign-in is not available yet. You can play without an account.","Đăng nhập tài khoản chưa sẵn sàng. Bạn vẫn có thể chơi không cần tài khoản."]}/>}
+export default function Page(){return <WebContent title={["Create account","Tạo tài khoản"]} description={["Create an account and verify your email.","Tạo tài khoản và xác thực email của bạn."]}><AuthForm mode="signUp"/></WebContent>}

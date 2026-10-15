@@ -1,145 +1,60 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
-import { refreshTokenApi } from "@/lib/api/auth.api"
-import { ApiRoutes } from "@/lib/routes"
-
-// Endpoints whose own 401 response must never trigger the refresh/redirect
-// flow below — a failed login/register/refresh call is not an "expired
-// session", it's the auth attempt itself failing.
-const AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH: readonly string[] = [
-  ApiRoutes.AUTH_LOGIN,
-  ApiRoutes.AUTH_REGISTER,
-  ApiRoutes.AUTH_REFRESH,
-]
-
-function getStoredTokens(): { accessToken: string | null; refreshToken: string | null } {
-  if (typeof window === "undefined") return { accessToken: null, refreshToken: null }
-  try {
-    const raw = localStorage.getItem("auth-storage")
-    if (!raw) return { accessToken: null, refreshToken: null }
-    const parsed = JSON.parse(raw)
-    return {
-      accessToken: parsed?.state?.accessToken ?? null,
-      refreshToken: parsed?.state?.refreshToken ?? null,
-    }
-  } catch {
-    return { accessToken: null, refreshToken: null }
+﻿export type AuthIssue =
+  | "network"
+  | "invalid"
+  | "forbidden"
+  | "conflict"
+  | "rate"
+  | "unavailable"
+  | "expired"
+  | "uncertain"
+  | "unsupported"
+  | "account-changed"
+export class ApiError extends Error {
+  constructor(
+    readonly issue: AuthIssue,
+    readonly status = 0,
+    readonly retryAfter?: number,
+  ) {
+    super(issue)
   }
 }
-
-function saveTokensToStorage(accessToken: string, refreshToken: string) {
-  if (typeof window === "undefined") return
+// Credentials only go to the same-origin gateway, never an absolute API env.
+export async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (!/^\/(auth|users\/me)(\/|$)/.test(path)) throw new ApiError("invalid")
+  const controller = new AbortController(),
+    timer = setTimeout(() => controller.abort(), 10000)
   try {
-    const raw = localStorage.getItem("auth-storage")
-    const parsed = raw ? JSON.parse(raw) : { state: {} }
-    parsed.state.accessToken = accessToken
-    parsed.state.refreshToken = refreshToken
-    localStorage.setItem("auth-storage", JSON.stringify(parsed))
+    const response = await fetch(`/api/v1${path}`, {
+      ...options,
+      credentials: "same-origin",
+      cache: "no-store",
+      redirect: "error",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...options.headers },
+    })
+    if (!response.ok) {
+      const issue =
+        response.status === 401
+          ? "expired"
+          : response.status === 403
+            ? "forbidden"
+            : response.status === 409
+              ? "conflict"
+              : response.status === 429
+                ? "rate"
+                : response.status >= 500 || response.status === 404
+                  ? "unavailable"
+                  : "invalid"
+      const retry = Number(response.headers.get("Retry-After"))
+      throw new ApiError(issue, response.status, Number.isFinite(retry) && retry > 0 ? retry : undefined)
+    }
+    const body = await response.json()
+    if (body?.success !== true || !("data" in body)) throw new ApiError("unavailable")
+    return body.data as T
   } catch (error) {
-    console.warn("[auth] Failed to persist tokens to localStorage:", error)
+    if (error instanceof ApiError) throw error
+    throw new ApiError("network")
+  } finally {
+    clearTimeout(timer)
   }
 }
-
-function clearStorage() {
-  if (typeof window === "undefined") return
-  localStorage.removeItem("auth-storage")
-}
-
-// TODO: đổi NEXT_PUBLIC_API_BASE_URL trong .env khi có BE thật.
-export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
-
-apiClient.interceptors.request.use((config) => {
-  const { accessToken } = getStoredTokens()
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`
-  }
-  return config
-})
-
-let isRefreshing = false
-let pendingQueue: Array<{
-  resolve: (token: string) => void
-  reject: (error: unknown) => void
-}> = []
-
-function processPendingQueue(error: unknown, token: string | null) {
-  pendingQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error)
-    } else {
-      resolve(token!)
-    }
-  })
-  pendingQueue = []
-}
-
-interface RetryableRequest extends InternalAxiosRequestConfig {
-  _retry?: boolean
-}
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as RetryableRequest | undefined
-
-    const isExcludedAuthEndpoint = Boolean(
-      originalRequest?.url &&
-        AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH.some((endpoint) => originalRequest.url!.includes(endpoint))
-    )
-
-    // Only attempt refresh on 401 errors that haven't been retried yet,
-    // and never for the auth endpoints themselves (see comment above).
-    if (
-      error.response?.status === 401 &&
-      originalRequest &&
-      !originalRequest._retry &&
-      !isExcludedAuthEndpoint
-    ) {
-      if (isRefreshing) {
-        // Queue this request until the ongoing refresh completes
-        return new Promise((resolve, reject) => {
-          pendingQueue.push({ resolve, reject })
-        }).then((newToken) => {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-          return apiClient(originalRequest)
-        })
-      }
-
-      originalRequest._retry = true
-      isRefreshing = true
-
-      try {
-        const { refreshToken } = getStoredTokens()
-
-        if (!refreshToken) {
-          throw new Error("No refresh token available")
-        }
-
-        const tokens = await refreshTokenApi(refreshToken)
-
-        saveTokensToStorage(tokens.accessToken, tokens.refreshToken)
-        processPendingQueue(null, tokens.accessToken)
-
-        originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`
-        return apiClient(originalRequest)
-      } catch (refreshError) {
-        processPendingQueue(refreshError, null)
-        clearStorage()
-        if (typeof window !== "undefined") {
-          // A hard redirect is intentional here: this interceptor runs outside React.
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-          window.location.href = "/sign-in"
-        }
-        return Promise.reject(refreshError)
-      } finally {
-        isRefreshing = false
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)

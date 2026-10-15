@@ -9,6 +9,7 @@ import "../../../packages/city-bloxx-renderer/src/session.css"
 import styles from "./quick-tower.module.css"
 import { useI18n } from "@/lib/i18n"
 import type { TowerSession } from "../../../packages/city-bloxx-renderer/src/session"
+import { browserAuth } from "@/lib/auth/session"
 
 const SAVE_KEY = "city-bloxx.quick-save.v2"
 function createLocalSave(): SavePort {
@@ -47,13 +48,20 @@ export function QuickTower({ initialScreen, content=false }: {initialScreen?:Ses
         const target=replayId?`/play?screen=history&replay=${encodeURIComponent(replayId)}`:screen==="quick"?"/play":screen==="city"?"/play?screen=city":routes[screen]??`/play?screen=${screen}`
         router.push(target)
       },
-      capabilities: { platform: "web", externalServices: true, standardScore: false, account:"scaffold" },
+      capabilities: { platform: "web", externalServices: true, standardScore: false, account:"backend-ready" },
       tracking: { installationId: () => [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2,"0")).join(""), now: () => Date.now() },
       onLocaleChange: next => setLocale(next === "vi" ? "vi" : "en"),
     })
     sessionRef.current = session
     return () => { session.dispose(); sessionRef.current=null }
   }, [setLocale,router,content])
+  useEffect(() => {
+    const auth=browserAuth();let previous=auth.snapshot()
+    const pause=()=>sessionRef.current?.checkpointAndPause()
+    window.addEventListener("city-bloxx:checkpoint-account",pause)
+    const unsubscribe=auth.subscribe(()=>{const next=auth.snapshot();if(next.user?.id!==previous.user?.id||next.status==="required"&&previous.status!=="required")pause();previous=next})
+    return()=>{unsubscribe();window.removeEventListener("city-bloxx:checkpoint-account",pause)}
+  },[])
   useEffect(() => { localeRef.current=locale;sessionRef.current?.setLocale(locale) }, [locale])
   useEffect(()=>{if(lastQuery.current===query)return;lastQuery.current=query;const session=sessionRef.current;void session?.ready.then(()=>session.navigate(sessionScreen(params.get("screen")),params.get("replay")??undefined))},[query,params])
   return <section className={content?styles.content:styles.shell} aria-label={locale==="vi"?"City Bloxx · tiến trình trên thiết bị":"City Bloxx · progress on this device"}><div ref={root} className={content?undefined:styles.session} /></section>

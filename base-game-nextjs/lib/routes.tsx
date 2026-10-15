@@ -1,18 +1,9 @@
-export enum Routes {
-  HOME = "/",
-  PLAY = "/play",
-  BUILD_CITY_GUIDE = "/guide/build-city",
-  PROFILE = "/profile",
-  SIGN_IN = "/sign-in",
-  SIGN_UP = "/sign-up",
+﻿export enum Routes {
+  HOME = "/", PLAY = "/play", BUILD_CITY_GUIDE = "/guide/build-city", PROFILE = "/profile",
+  SIGN_IN = "/sign-in", SIGN_UP = "/sign-up",
 }
-
-export const PROTECTED_ROUTES: readonly Routes[] = [Routes.PROFILE] as const
-
-/** TODO: thêm endpoint thật khi nối BE. Giữ pattern enum để lib/api/api-client.ts tham chiếu. */
+// Profile also shows Guest/local progress; authentication is checked per account action.
+export const PROTECTED_ROUTES: readonly Routes[] = []
 export enum ApiRoutes {
-  AUTH_LOGIN = "/auth/login",
-  AUTH_REGISTER = "/auth/register",
-  AUTH_REFRESH = "/auth/refresh",
-  AUTH_PROFILE = "/auth/profile",
+  AUTH_LOGIN = "/auth/login", AUTH_REGISTER = "/auth/register", AUTH_REFRESH = "/auth/refresh", AUTH_PROFILE = "/auth/me",
 }

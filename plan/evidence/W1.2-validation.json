@@ -1,0 +1,55 @@
+{
+  "phase": "W1.2",
+  "status": "Implemented",
+  "checkedAt": "2026-10-15T07:58:56Z",
+  "sourceBaseCommit": "246ea071a4a894eea91f39575267e8ffd83e651a",
+  "implementation": "feat(w1.2): connect Web to existing user authentication",
+  "environment": "Windows, Docker Desktop Linux, Chrome headless; actual Nest/PostgreSQL16/Redis7/Mailpit/Nginx with disposable databases",
+  "images": {
+    "web": "sha256:7a7edad746545f9fe8898c8a46064a3698762d6e47f8d70729f9f876e69d66e1",
+    "backendTest": "sha256:1134a003bc2f896b2502c7f10329034469880e9e85774e07e888e4c63354f8a6",
+    "nginx": "nginx:1.28-alpine"
+  },
+  "checks": {
+    "webCoreUnit": {"tests":247,"files":20,"authSessionTests":14,"transportTests":2,"status":"passed"},
+    "webLint": "passed",
+    "webProductionBuild": "passed Next16.3.6 compile/TypeScript/prerender/standalone image",
+    "playablePackage": "passed typecheck/Vite/validator/zip; no Web auth/backend dependency",
+    "realBrowserAuth": {
+      "status":"passed",
+      "locales":["en","vi"],
+      "sizes":[[320,568],[390,844],[900,430]],
+      "flows":[
+        "register, real SMTP verification, explicit verify, sign-in and profile edit",
+        "HttpOnly refresh cookie; no persisted JWT; legacy auth-storage removed",
+        "two-tab restore and simultaneous expiry: one refresh rotation",
+        "response-stage loss after server consumption: reload/other tab does not retry; explicit login recovers",
+        "suspension clears account actions; live Quick stays mounted/paused/checkpointed at /play",
+        "in-place modal sign-in/register/recovery does not navigate",
+        "second account, forgot/reset via SMTP, change password, login with new password",
+        "confirmed logout-all/logout, Guest after reload",
+        "no Web Locks: explicit login works, no automatic recovery",
+        "auth noindex/no-referrer metadata; one-time query stripped"
+      ]
+    },
+    "gatewayLogRedaction":"passed server-level access log override; no query/referrer/credentials; no token query or bearer in actual gateway logs",
+    "backendRegression":{"unitTests":21,"e2eTests":3,"schemaScenarios":14,"adminSeedScenarios":9,"securityScenarios":23,"status":"passed"},
+    "compiledCoreWorker":"passed Quick/Daily goldens and fabricated result rejection",
+    "fullBrowserSmoke":"passed Web and Playable C0-C4/W0; golden fairness, City/Daily pending/resume, progression/cosmetics, save recovery, EN/VI/layout/keyboard, score guard and lifecycle",
+    "assetsAndBoundaries":"passed; 48 assets/target; pure core; Playable excludes Web/backend",
+    "gitDiffCheck":"passed"
+  },
+  "reproduce":[
+    "npm test",
+    "npm run lint",
+    "npm run build:playable",
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker build --build-arg NODE_IMAGE=node:22-alpine --build-arg NEXT_PUBLIC_SITE_URL=http://localhost:56789 --build-arg NEXT_PUBLIC_SITE_NAME=CityBloxx -t city-bloxx-web:local .",
+    "npm run evidence:auth",
+    "npm run test:browser (Web 3010, Playable 4173 previews)"
+  ],
+  "artifacts":{"auth":"tmp/w1-infrastructure-*/auth-browser.json and profile-*.png","fullSmoke":"tmp/c0-c2-qa/browser-report.json and screenshots"},
+  "isolation":{"applicationDataAndVolumesPreserved":true,"testDatabasesAndContainersRemoved":true,"testPreviewsStopped":true,"liveDatabaseMigrated":false,"deploymentPerformed":false},
+  "limits":["Headless local acceptance with controlled client expiry/visibility", "Actual device/production TLS/SMTP/rollout remain separate gates", "Automatic recovery disabled without Web Locks/durable storage", "Cloud saves/guest import/verified boards remain later milestones"],
+  "next":"W1.3 game profile and revisioned cloud APIs"
+}

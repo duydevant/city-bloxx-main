@@ -35,10 +35,10 @@ docs/          # code standards, system architecture
 
 Thêm game mới: tạo route trong `app/(main)/` và module trong `modules/<ten-game>/`. Thêm mục nav trong `components/layout/game-header.tsx` khi game đã có trang.
 
-## Nối BE thật (auth)
+## Auth Web
 
-`lib/api/api-client.ts` đã có interceptor refresh-token. `lib/api/auth.api.ts` vẫn là scaffold (throw lỗi, có `// TODO`). Khi có BE:
+W1.2 đã nối Nest auth thật qua gateway `/api/v1`: đăng ký/đăng nhập, email verify/reset, profile và logout. JWT chỉ nằm trong memory; refresh dùng HttpOnly cookie. Web Locks tuần tự hóa cookie operations giữa tabs, và refresh response không rõ kết quả sẽ yêu cầu đăng nhập lại. Không dùng token trong localStorage hoặc hard redirect giữa lượt chơi.
 
-1. Implement `loginApi` / `refreshTokenApi` đúng response shape BE trả về.
-2. Cập nhật `NEXT_PUBLIC_API_BASE_URL` trong `.env.local`.
-3. Gọi `useAuthStore().setTokens()` sau khi login thành công (xem `app/(auth)/sign-in/page.tsx`).
+Chạy stack gateway theo [hướng dẫn backend](../backend/docs/city-bloxx-infrastructure.md); dùng cùng một origin với `GAME_PUBLIC_URL`. Next standalone thiếu API vẫn chơi Guest; auth không được giả lập. Cloud save/verified leaderboard thuộc các mốc sau.
+
+Chi tiết giao thức và acceptance: [Web auth](docs/web-auth.md). Từ repo root chạy `npm run evidence:auth` để kiểm browser + backend thật trên database/container tạm; không thay deployment đang chạy.

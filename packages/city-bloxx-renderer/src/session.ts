@@ -25,7 +25,7 @@ export interface SessionOptions {
   initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
 }
-export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; dispose(): void }
+export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():void; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
   let vi = !!options.locale?.startsWith("vi");
   const translations = new Map(Object.entries(SESSION_TEXT));
@@ -676,7 +676,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     ready = true; renderer.resize(arena.clientWidth, arena.clientHeight);
     if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();persist();
   })();
-  return { ready: readyPromise, setLocale, navigate, dispose() {
+  return { ready: readyPromise, setLocale, navigate, checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); }, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();

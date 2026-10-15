@@ -1,4 +1,5 @@
-import { WebContent, Copy, webMetadata } from "@/modules/city-bloxx/web-content"
+﻿import { WebContent, webMetadata } from "@/modules/city-bloxx/web-content"
 import { PersonalPreview } from "@/modules/city-bloxx/personal-preview"
-export const metadata=webMetadata("Guest profile","Progress is saved on this device. Account and cloud services are not available yet.","/profile",true)
-export default function Page(){return <WebContent title={["Profile","Hồ sơ"]} description={["Guest · your progress stays on this device.","Khách · tiến trình được lưu trên thiết bị này."]}><section className="web-card"><h2><Copy en="Local progress" vi="Tiến trình trên thiết bị"/></h2><p><Copy en="Account sign-in is not available yet. You can play without an account. Cloud sync and online leaderboards will arrive with account services." vi="Đăng nhập tài khoản chưa sẵn sàng. Bạn vẫn có thể chơi không cần tài khoản. Đồng bộ đám mây và bảng xếp hạng online sẽ có cùng dịch vụ tài khoản."/></p></section><PersonalPreview/></WebContent>}
+import { AccountProfile } from "@/modules/account/account-profile"
+export const metadata=webMetadata("Profile","Account details and progress on this device.","/profile",true)
+export default function Page(){return <WebContent title={["Profile","Hồ sơ"]} description={["Manage your account. Progress remains on this device until cloud sync is connected.","Quản lý tài khoản. Tiến trình vẫn lưu trên thiết bị này cho đến khi kết nối đồng bộ đám mây."]}><AccountProfile/><PersonalPreview/></WebContent>}

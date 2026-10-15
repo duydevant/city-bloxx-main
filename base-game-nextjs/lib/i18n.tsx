@@ -36,7 +36,7 @@ const en = {
   "auth.password": "Password",
   "auth.unavailable": "Account sign-in is not available yet. You can play without an account.",
   "auth.emailInvalid": "Enter a valid email address.",
-  "auth.passwordInvalid": "Use at least 8 characters.",
+  "auth.passwordInvalid": "Use 12–128 characters for a new password.",
   "profile.signedIn": "Signed in.",
   "profile.signedOut": "Not signed in.",
   "error.notFound": "This page could not be found.",
@@ -72,7 +72,7 @@ const vi: TranslationDictionary = {
   "auth.password": "Mật khẩu",
   "auth.unavailable": "Đăng nhập tài khoản chưa sẵn sàng. Bạn vẫn có thể chơi không cần tài khoản.",
   "auth.emailInvalid": "Nhập địa chỉ email hợp lệ.",
-  "auth.passwordInvalid": "Mật khẩu cần ít nhất 8 ký tự.",
+  "auth.passwordInvalid": "Mật khẩu mới cần 12–128 ký tự.",
   "profile.signedIn": "Đã đăng nhập.",
   "profile.signedOut": "Chưa đăng nhập.",
   "error.notFound": "Không tìm thấy trang này.",
@@ -116,7 +116,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = localeTags[locale]
-    const titles:Record<string,[string,string]>={"/daily":["Daily Tower","Tháp hằng ngày"],"/statistics":["Statistics","Thống kê"],"/my-towers":["My towers","Tháp của tôi"],"/buildings":["Architecture Book","Sổ kiến trúc"],"/guide/daily":["Daily guide","Hướng dẫn Daily"]}
+    const titles:Record<string,[string,string]>={"/verify-email":["Verify email","Xác thực email"],"/reset-password":["Reset password","Đặt lại mật khẩu"],"/forgot-password":["Forgot password","Quên mật khẩu"],"/resend-verification":["Resend verification","Gửi lại email xác thực"],"/daily":["Daily Tower","Tháp hằng ngày"],"/statistics":["Statistics","Thống kê"],"/my-towers":["My towers","Tháp của tôi"],"/buildings":["Architecture Book","Sổ kiến trúc"],"/guide/daily":["Daily guide","Hướng dẫn Daily"]}
     const keys:Record<string,TranslationKey>={"/play":"play.title","/guide/build-city":"guide.title","/profile":"profile.title","/sign-in":"nav.signIn","/sign-up":"auth.signUp"}
     document.title=pathname==="/"?"City Bloxx Online":`${titles[pathname]?.[locale==="vi"?1:0]??dictionaries[locale][keys[pathname]??"error.notFound"]} | City Bloxx Online`
   }, [locale, pathname])
