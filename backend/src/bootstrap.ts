@@ -12,7 +12,7 @@ export function configureApplication(app: INestApplication) {
   };
   express.set('trust proxy', trustProxy);
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (/^\/api\/v1\/city-bloxx\/(profile|save)(\/|\?|$)/.test(req.url))
+    if (/^\/api\/v1\/city-bloxx\/(profile|save|runs|daily)(\/|\?|$)/.test(req.url))
       res.setHeader('Cache-Control', 'no-store');
     next();
   });

@@ -1,0 +1,83 @@
+{
+  "phase": "W1.5",
+  "status": "Implemented",
+  "checkedAt": "2026-10-16T07:06:37.747Z",
+  "sourceBaseCommit": "c811ad18d1845583e1d91e6ab43bf8180aa35b20",
+  "implementation": "feat(w1.5): issue server-authoritative game tickets",
+  "environment": "Windows, Docker Desktop Linux, Node22; actual Nest/PostgreSQL16/Redis7/Mailpit/Nginx with guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:1f266c1df198083470db746e7e5fb0f1f0ca08c8f40aafaf2c77c1f5b81a8362",
+    "backendRuntime": "sha256:e39193b0b9535d1ddfdfa02d580fda70638afafd33aac69095152dd7fc6aaab2"
+  },
+  "checks": {
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "builderAndRuntimeBuilds": "passed",
+    "compiledCoreWorkers": "passed in acceptance builder and runtime image; Quick/Daily goldens, fabricated result rejection, save schemas/canonical hash/future schema/depth guards",
+    "unit": { "tests": 33, "files": 7, "newTests": 6, "status": "passed" },
+    "nestE2e": { "tests": 3, "status": "passed" },
+    "schema": { "scenarios": 14, "status": "passed; no W1.5 migration required" },
+    "cloudApiRegression": { "scenarios": 21, "status": "passed" },
+    "adminSeedRegression": { "scenarios": 9, "status": "passed" },
+    "securityRegression": { "scenarios": 23, "status": "passed; all 51 existing auth/admin routes retained, including last-super-admin concurrency" },
+    "runTickets": {
+      "scenarios": 14,
+      "status": "passed over real HTTP through Nginx, PostgreSQL transactions and Redis",
+      "coverage": [
+        "public canonical Daily definition with authoritative UTC date/server time",
+        "strict start DTO, bearer authentication and verified-email policy including super-admin",
+        "server-only Standard Quick config, opaque 256-bit ticket, exact 24-hour TTL and encrypted DB response",
+        "concurrent identical/case-normalized start returns original response; changed mode conflicts",
+        "owner-only status and finish; no private identity, token, ciphertext or inputs in status projection",
+        "token/version/client-result/config/sequence/fraction/tick tampering rejected before persistence",
+        "concurrent finish inserts once, canonical property-order hash, exact retry and single Redis new-job reservation",
+        "new service instance recovers original encrypted response and pinned Daily rather than recalculating date",
+        "exclusive claim, lease renewal, fresh Node process reclaim after expired lease, stale renew/release rejection and retry release",
+        "expired unsettled start/finish return 410; cleanup clears ciphertext/lease and expires queued work while preserving users",
+        "stored accepted/rejected terminal retry remains available after TTL; changed request conflicts",
+        "Redis failure and missing active key fail closed without a ticket write",
+        "five distinct new finish jobs per minute; existing submission retry does not spend another job",
+        "10 starts and 30 status requests per minute/account with Retry-After and independent account buckets"
+      ]
+    },
+    "keyAndClockUnitTests": "passed owner/run GCM context, noncanonical/tampered ciphertext, key rotation with retained decryption keys, missing/invalid/reused keys, UTC midnight and public limiter failure",
+    "gateway": "passed existing bearer/cookie/Origin/request-ID/parser/proxy limits and production Web /play"
+  },
+  "reproduce": [
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker run --rm city-bloxx-w1-test:local sh -c \"yarn typecheck && yarn lint:check\"",
+    "npm run evidence:w1",
+    "docker build -f backend/Dockerfile -t city-bloxx-w1-api:local .",
+    "docker run --rm city-bloxx-w1-api:local node test/core-artifacts.cjs"
+  ],
+  "artifacts": {
+    "sanitizedRunnerReport": "tmp/w1-infrastructure-bf5d6d54f71a/result.json",
+    "apiTests": "backend/test/runs.integration.cjs",
+    "keyTests": "backend/src/modules/city-bloxx/ticket-crypto.spec.ts",
+    "clockTests": "backend/src/modules/city-bloxx/runs.spec.ts",
+    "guide": "backend/docs/city-bloxx-tickets.md",
+    "note": "Runtime runner output is an ignored local artifact; this tracked summary records its successful results."
+  },
+  "isolation": {
+    "testDatabaseGuard": "matching TEST_DATABASE/DB_DATABASE, auth_test_*; schema tests use city_bloxx_test_*",
+    "ticketUsersVerifiedThroughExistingEndpoint": true,
+    "superAdminFixtureGrantRemovedBeforeSecurityRegression": true,
+    "testContainersDatabasesAndTemporaryCredentialsRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveTicketKeysConfigured": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "W1.5 supplies durable queue and internal lease primitives; simulation dispatcher, lease renewal during actual verification, fenced settlement and boards remain W1.6",
+    "New finish returns 202 and does not publish verified scores or change local rewards",
+    "Accepted/rejected retry-after-TTL scenarios use explicit terminal DB fixtures, not a claim of W1.6 simulation",
+    "Fresh-process recovery test reclaims a persisted expired lease; it does not run a simulation worker",
+    "Redis reserves new-run allowances outside SQL transactions; a later DB failure can retain its allowance until the minute window expires",
+    "Dedicated production ticket key configuration/rotation rollout is documented but not applied to the live stack",
+    "No frontend/shared/Playable source changes; W1.4 full browser/build evidence remains historical and was not rerun here",
+    "Production rollout, actual devices and long-term operations/retention remain later gates"
+  ],
+  "next": "W1.6 BE resimulation, worker dispatch, atomic verified settlement and leaderboard APIs"
+}

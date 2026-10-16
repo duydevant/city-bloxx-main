@@ -76,7 +76,7 @@ async function main() {
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
       ...(browserReport?{[cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
-      checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
+      checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', runTicketsAndPersistentLeases: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
       isolation: { database: 'disposable auth_test_* and city_bloxx_test_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');
     console.log('PASS gateway serves production Web /play; existing containers/volumes preserved');
