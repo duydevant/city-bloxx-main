@@ -28,6 +28,9 @@ export class GameWorkerService implements OnModuleDestroy {
   private readonly queue: Job[] = [];
   private active = 0;
   private stopped = false;
+  available() {
+    return this.stopped ? 0 : Math.max(0, 22 - this.jobs.size);
+  }
   run<T>(message: Record<string, unknown>): Promise<T> {
     if (this.stopped || (this.active >= 2 && this.queue.length >= 20))
       return Promise.reject(
@@ -68,11 +71,13 @@ export class GameWorkerService implements OnModuleDestroy {
               this.finish(
                 job,
                 gameError(
-                  reply.errorCode === 'GAME_SAVE_TOO_LARGE'
-                    ? 413
-                    : reply.errorCode === 'GAME_SAVE_INCOMPATIBLE'
-                      ? 409
-                      : 422,
+                  reply.errorCode === 'GAME_RUN_VERSION_UNAVAILABLE'
+                    ? 503
+                    : reply.errorCode === 'GAME_SAVE_TOO_LARGE'
+                      ? 413
+                      : reply.errorCode === 'GAME_SAVE_INCOMPATIBLE'
+                        ? 409
+                        : 422,
                   reply.errorCode,
                   'Save rejected; original snapshot preserved',
                 ),

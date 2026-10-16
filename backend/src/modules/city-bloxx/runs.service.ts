@@ -18,6 +18,7 @@ const view = (t: RunTicketRow, s?: RunSubmissionRow) => ({
   expiresAt: t.expires_at,
   firstReceivedAt: s?.first_received_at ?? null,
   result: s?.result ?? null,
+  boardEligible: s?.board_eligible ?? null,
   rejectCode: s?.reject_code ?? null,
 });
 
@@ -142,7 +143,13 @@ export class RunsService implements OnModuleInit, OnModuleDestroy {
             ? core.resolveDaily(core.utcDate(clock.now.getTime()))
             : null;
         const config = definition
-          ? { seed: definition.seed, mode: 'daily', assist: false, daily: definition }
+          ? {
+              seed: definition.seed,
+              mode: 'daily',
+              assist: false,
+              building: definition.classId,
+              daily: definition,
+            }
           : { seed: randomBytes(4).readInt32BE(), mode: 'quick', assist: false };
         const response = {
           runId,
@@ -208,11 +215,35 @@ export class RunsService implements OnModuleInit, OnModuleDestroy {
         const [clock] = await rows<{ now: Date }>(tx, 'SELECT clock_timestamp() AS now');
         if (t.expires_at <= clock.now || t.state === 'expired')
           throw gameError(410, 'GAME_TICKET_EXPIRED', 'Ticket expired');
-        if (old) return view(t, old);
+        if (old) {
+          if (
+            old.submitter_session_id !== actor.sessionId ||
+            old.submitter_token_version !== actor.version
+          ) {
+            await tx.query(
+              `UPDATE city_bloxx_run_submissions SET submitter_session_id=$2,submitter_token_version=$3,
+              state='queued',retry_after=now(),updated_at=now() WHERE run_id=$1`,
+              [t.run_id, actor.sessionId, actor.version],
+            );
+            await tx.query(
+              `UPDATE city_bloxx_run_tickets SET lease_id=$2,lease_expires_at=now(),updated_at=now() WHERE run_id=$1`,
+              [t.run_id, randomUUID()],
+            );
+          }
+          return view(t, old);
+        }
         await tx.query(
-          `INSERT INTO city_bloxx_run_submissions(run_id,user_id,submission_hash,inputs,end_tick)
-        VALUES($1,$2,$3,$4,$5)`,
-          [t.run_id, actor.userId, hash, JSON.stringify(dto.inputs), dto.endTick],
+          `INSERT INTO city_bloxx_run_submissions(run_id,user_id,submission_hash,inputs,end_tick,submitter_session_id,submitter_token_version)
+        VALUES($1,$2,$3,$4,$5,$6,$7)`,
+          [
+            t.run_id,
+            actor.userId,
+            hash,
+            JSON.stringify(dto.inputs),
+            dto.endTick,
+            actor.sessionId,
+            actor.version,
+          ],
         );
         await tx.query(
           `UPDATE city_bloxx_run_tickets SET state='processing',submission_hash=$2,lease_id=$3,
@@ -235,14 +266,24 @@ export class RunsService implements OnModuleInit, OnModuleDestroy {
     });
   }
   // Internal worker interface for W1.6: persisted queued jobs survive process loss.
-  async claim() {
+  async claim(runId?: string) {
     return this.db.transaction(async (tx) => {
       const [t] = await rows<RunTicketRow>(
         tx,
         `SELECT t.* FROM city_bloxx_run_tickets t
-        JOIN city_bloxx_run_submissions s USING(run_id) WHERE t.state='processing' AND t.expires_at>now()
+        JOIN city_bloxx_run_submissions s USING(run_id)
+        JOIN users u ON u.id=t.user_id JOIN auth_sessions a ON a.id=s.submitter_session_id AND a.user_id=t.user_id
+        WHERE t.state='processing' AND t.expires_at>now() AND s.retry_after<=now() AND ($1::uuid IS NULL OR t.run_id=$1)
+        AND u.status='active' AND u.deleted_at IS NULL AND u.email_verified_at IS NOT NULL
+        AND u.token_version=s.submitter_token_version AND a.revoked_at IS NULL AND a.expires_at>now()
+        AND (EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+          WHERE ur.user_id=t.user_id AND r.code='super_admin' AND r.is_system AND r.is_active)
+          OR EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+            JOIN role_permissions rp ON rp.role_id=r.id JOIN permissions p ON p.id=rp.permission_id
+            WHERE ur.user_id=t.user_id AND r.is_active AND p.is_active AND p.code='city_bloxx_runs:finish'))
         AND (s.state='queued' OR (s.state='processing' AND t.lease_expires_at<=now()))
         ORDER BY s.first_received_at FOR UPDATE OF t SKIP LOCKED LIMIT 1`,
+        [runId ?? null],
       );
       if (!t) return null;
       const leaseId = randomUUID();
@@ -275,7 +316,7 @@ export class RunsService implements OnModuleInit, OnModuleDestroy {
     );
     return result.length === 1;
   }
-  async release(runId: string, leaseId: string) {
+  async release(runId: string, leaseId: string, delaySeconds = 0) {
     return this.db.transaction(async (tx) => {
       const claimed = await rows<RunTicketRow>(
         tx,
@@ -285,8 +326,8 @@ export class RunsService implements OnModuleInit, OnModuleDestroy {
       );
       if (!claimed.length) return false;
       await tx.query(
-        `UPDATE city_bloxx_run_submissions SET state='queued',updated_at=now() WHERE run_id=$1`,
-        [runId],
+        `UPDATE city_bloxx_run_submissions SET state='queued',retry_after=now()+($2::integer*interval '1 second'),updated_at=now() WHERE run_id=$1`,
+        [runId, delaySeconds],
       );
       await tx.query(
         `UPDATE city_bloxx_run_tickets SET lease_id=$2,lease_expires_at=now(),updated_at=now() WHERE run_id=$1`,

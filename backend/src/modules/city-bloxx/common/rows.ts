@@ -59,6 +59,10 @@ export interface RunTicketRow {
   updated_at: Date;
 }
 export interface RunSubmissionRow {
+  board_eligible: boolean | null;
+  submitter_session_id: string | null;
+  submitter_token_version: number | null;
+  retry_after: Date;
   run_id: string;
   user_id: string;
   submission_hash: string;

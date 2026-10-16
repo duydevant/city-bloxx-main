@@ -13,10 +13,12 @@ export class GamePolicyService {
     permissions: readonly GamePermission[],
     tx: EntityManager,
     verified = false,
+    lockPermissions = false,
   ) {
     if (!tx.queryRunner?.isTransactionActive)
       throw new Error('Game policy requires an active transaction');
     if (!actor) throw new UnauthorizedException('Invalid session');
+    if (lockPermissions) await this.security.lockAdmin(tx);
     // Lock identity before reading it so suspension/revocation cannot race a game transaction commit.
     await tx.query('SELECT id FROM users WHERE id=$1 FOR SHARE', [actor.userId]);
     await tx.query('SELECT id FROM auth_sessions WHERE id=$1 AND user_id=$2 FOR SHARE', [

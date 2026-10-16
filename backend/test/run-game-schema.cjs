@@ -88,8 +88,8 @@ async function rejected(db, sql, values, code = '23514') {
 async function main() {
   Object.assign(process.env, { ADMIN_EMAIL: '', ADMIN_PASSWORD: '', ADMIN_FULL_NAME: '' });
   await isolated(async db => {
-    await test('fresh three-migration chain and exact default grants', async () => {
-      assert.equal((await db.runMigrations({ transaction: 'all' })).length, 3);
+    await test('fresh full migration chain and exact default grants', async () => {
+      assert.equal((await db.runMigrations({ transaction: 'all' })).length, db.migrations.length);
       await seedAuthRbac(db);
       assert.deepEqual(await grants(db,'user'), ['profile:read','profile:update',...GAME_SELF_PERMISSIONS].sort());
       assert.deepEqual(await grants(db,'admin'), [...CATALOG].sort());
@@ -110,11 +110,29 @@ async function main() {
       await db.query("UPDATE permissions SET is_system=true WHERE code='city_bloxx_moderation:update'");
     });
     await test('full down/up covers every migration rather than only the final grant migration', async () => {
-      for (let n=0;n<3;n++) await db.undoLastMigration({ transaction:'all' });
+      for (let n=0;n<db.migrations.length;n++) await db.undoLastMigration({ transaction:'all' });
       assert.equal((await db.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'migrations'")).length,0);
-      assert.equal((await db.runMigrations({ transaction:'all' })).length,3);
+      assert.equal((await db.runMigrations({ transaction:'all' })).length,db.migrations.length);
       await seedAuthRbac(db); await seedAuthRbac(db);
       assert.equal((await db.runMigrations({ transaction:'all' })).length,0);
+    });
+  });
+  await isolated(async db => {
+    await test('W1.5 upgrade preserves pending submissions and auth data without inventing submitter identity',async()=>{
+      const index=db.migrations.findIndex(m=>m.name==='CityBloxxVerification1792108800000');assert.ok(index>=0);
+      const [latest]=db.migrations.splice(index,1);
+      await db.runMigrations({transaction:'all'});await seedAuthRbac(db);
+      const owner=randomUUID(),run=randomUUID();
+      await db.query("INSERT INTO users(id,email,password_hash,status,email_verified_at) VALUES($1,$2,$3,'active',now())",[owner,`legacy-${owner}@example.test`,H]);
+      await db.query("INSERT INTO city_bloxx_run_tickets(run_id,user_id,client_request_id,request_hash,token_hash,mode,config,physics_version,ruleset_version,expires_at) VALUES($1,$2,$3,$4,$4,'quick','{}','p','r',now()+interval '1 day')",[run,owner,randomUUID(),H]);
+      await db.query("INSERT INTO city_bloxx_run_submissions(run_id,user_id,submission_hash,inputs,end_tick) VALUES($1,$2,$3,'[]',1)",[run,owner,H]);
+      const before=await snapshotAuth(db),saved=(await db.query('SELECT * FROM city_bloxx_run_submissions WHERE run_id=$1',[run]))[0];
+      db.migrations.push(latest);assert.equal((await db.runMigrations({transaction:'all'})).length,1);
+      assert.equal(await snapshotAuth(db),before);
+      const upgraded=(await db.query('SELECT * FROM city_bloxx_run_submissions WHERE run_id=$1',[run]))[0];
+      for(const key of Object.keys(saved))assert.deepEqual(upgraded[key],saved[key]);
+      assert.equal(upgraded.submitter_session_id,null);assert.equal(upgraded.submitter_token_version,null);
+      await db.undoLastMigration({transaction:'all'});assert.equal(await snapshotAuth(db),before);
     });
   });
   await isolated(async (initial, database) => {
@@ -124,7 +142,7 @@ async function main() {
     const db = await reconnectFull(initial,database);
     try {
       await test('auth-only upgrade preserves password hashes, accounts, sessions, role grants, tokens, outbox and audit', async () => {
-        assert.equal((await db.runMigrations({ transaction:'all' })).length,2);
+        assert.equal((await db.runMigrations({ transaction:'all' })).length,db.migrations.length-1);
         assert.equal(await snapshotAuth(db),before);
         const [user] = await db.query('SELECT * FROM users WHERE id=$1',[fixture.userId]);
         assert.equal(user.password_hash,fixture.hash);
@@ -135,10 +153,10 @@ async function main() {
       });
       await exerciseSchema(db,fixture);
       await test('game-only down preserves complete auth history and can be reapplied', async () => {
-        await db.undoLastMigration({transaction:'all'}); await db.undoLastMigration({transaction:'all'});
+        for(let n=1;n<db.migrations.length;n++) await db.undoLastMigration({transaction:'all'});
         assert.equal(await snapshotAuth(db),before);
         assert.equal((await db.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'city_bloxx_%'")).length,0);
-        assert.equal((await db.runMigrations({transaction:'all'})).length,2);
+        assert.equal((await db.runMigrations({transaction:'all'})).length,db.migrations.length-1);
       });
     } finally { await db.destroy(); }
   },true);

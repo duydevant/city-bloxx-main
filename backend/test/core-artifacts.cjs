@@ -23,6 +23,20 @@ async function main() {
     const fixture = require(resolve(resources, 'fixtures', name));
     const records = fixture.complete ? [fixture.complete, fixture.roofMiss, fixture.failed] : [fixture];
     for (const record of records) {
+      const request={config:record.config,physicsVersion:record.physicsVersion,rulesetVersion:record.rulesetVersion,inputs:record.inputs,endTick:record.endTick};
+      const computed=core.resimulateRun(request);
+      assert.deepEqual(computed.result,record.result);
+      const replay=new core.QuickTowerReplay(record);replay.advanceTicks(record.endTick);
+      assert.deepEqual(computed.metrics,replay.getMetrics());
+      assert.equal(computed.eligible,record.config.mode==='quick'||record.result.height===20);
+      assert.deepEqual((await runMessage({operation:'verify',request})).result,computed);
+      for(const bad of [{...request,endTick:request.endTick+1},{...request,endTick:1},
+        {...request,result:record.result},{...request,config:{...request.config,assist:true}},
+        {...request,config:{...request.config,legacyOverlap:true}},
+        {...request,inputs:[{tick:0,sequence:0,fraction:1001}]},
+        {...request,inputs:[{tick:0,sequence:0,fraction:0},...request.inputs.map((i,n)=>({...i,sequence:n+1}))]}])
+        assert.equal((await runMessage({operation:'verify',request:bad})).errorCode,'GAME_RUN_INVALID');
+      assert.equal((await runMessage({operation:'verify',request:{...request,physicsVersion:'future'}})).errorCode,'GAME_RUN_VERSION_UNAVAILABLE');
       assert.deepEqual(core.verifyRecord(record), record);
       assert.deepEqual(await run(record), { id: 'golden', ok: true, result: record.result });
       const tampered = structuredClone(record);

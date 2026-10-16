@@ -1,6 +1,6 @@
 # Server Daily, tickets and durable submissions (W1.5)
 
-The existing Nest API now owns ranked run configuration and ticket issuance. It uses the W1.1 tables and existing user/session/RBAC policy; no new migration or auth system is required. This milestone persists work and supplies worker lease primitives. **Simulation, terminal settlement and leaderboards remain W1.6**. A new valid finish is queued and returns 202; this version does not declare it verified or publish a score.
+The existing Nest API owns ranked run configuration and ticket issuance. W1.5 used the W1.1 tables and existing user/session/RBAC policy without a new migration or auth system. It supplied durable work and worker lease primitives. **[W1.6 now implements simulation, terminal settlement and leaderboards](city-bloxx-verification.md)**, including an additive submitter-context migration. A new valid finish queues and returns 202; later status/terminal retry returns the computed outcome.
 
 All routes are under `/api/v1/city-bloxx`, use the existing response envelope and return `Cache-Control: no-store`, including errors.
 

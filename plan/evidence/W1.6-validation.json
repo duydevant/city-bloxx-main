@@ -1,0 +1,97 @@
+{
+  "phase": "W1.6",
+  "status": "Implemented",
+  "checkedAt": "2026-10-16T07:56:29.197Z",
+  "sourceBaseCommit": "e099b0fad349e0b7ac35fe41b95f399cf04beffb",
+  "implementation": "feat(w1.6): verify game inputs and settle leaderboards",
+  "environment": "Windows, Docker Desktop Linux/Node22; real Nest/PostgreSQL16/Redis7/Mailpit/Nginx with guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:43ae096e3121c5ca68372b9257772df9e6d96ee6f9bfc7fab17c7112587c70a7",
+    "backendRuntime": "sha256:009fe0e470941abbb7b6ac84b0815937635efc4036c801d7a56af41e14814bbe"
+  },
+  "checks": {
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "builderAndRuntimeBuilds": "passed",
+    "compiledCoreWorkers": "passed in builder acceptance and runtime image; Quick and Daily complete/roof-Miss/failed goldens match computed results/metrics/eligibility; malformed input, non-ended/extra-tick, assist/legacy, fabricated result and unsupported version guards",
+    "unit": { "tests": 40, "files": 9, "newTests": 7, "status": "passed" },
+    "nestE2e": { "tests": 3, "status": "passed" },
+    "schema": { "scenarios": 15, "status": "passed; fresh full chain, full down/up, auth-only and W1.5 pending-data upgrade, ownership/constraints/grants/collisions preserved" },
+    "cloudApiRegression": { "scenarios": 21, "status": "passed" },
+    "ticketRegression": { "scenarios": 14, "status": "passed" },
+    "adminSeedRegression": { "scenarios": 9, "status": "passed" },
+    "securityRegression": { "scenarios": 23, "status": "passed; all 51 existing auth/admin routes retained" },
+    "verificationAndBoards": {
+      "scenarios": 14,
+      "status": "passed via real HTTP/SQL/Redis and actual compiled simulation workers, with labeled controlled fault/sorting fixtures",
+      "coverage": [
+        "server-config Quick input simulation yields exact computed result/metrics; concurrent duplicate settlement commits once and writes one audit/best",
+        "server Daily completed body with roof Miss is eligible; incomplete body is computed/accepted without a board entry",
+        "different runs for one owner settle concurrently into one strictly better best; later lower score cannot replace it",
+        "non-ended input rejects terminal and clears ciphertext/lease without a board",
+        "controlled worker-unavailable failure requeues with backoff, followed by actual worker recovery",
+        "suspension after simulation prevents settlement; valid restored context resumes",
+        "session expiry after simulation parks submission; owner login/exact retry rebinds session and fences old lease",
+        "expired/reclaimed lease suppresses stale settlement and permits one current commit",
+        "induced board-write failure rolls back result, ticket ciphertext purge and audit; same job retries successfully",
+        "fresh Node process runs automatic startup dispatcher over persisted jobs and HTTP returns computed result",
+        "legacy sessionless pending job remains parked until verified owner exact retry binds context",
+        "public projection/private standing share ordering/ranks, enforce auth and reject malformed queries/cursors",
+        "rational rates, PostgreSQL microsecond timestamps and UUID tie ordering survive keyset pages; cross-partition cursor rejected",
+        "quarantine visibility, Redis fail-closed and isolated board rate limit"
+      ]
+    },
+    "gateway": "passed bearer/cookies/Origin/request ID/parser/proxy budgets and production Web /play",
+    "webCoreRegression": { "tests": 267, "files": 21, "status": "passed" },
+    "playable": "passed pure-core/Web-backend dependency boundary, typecheck/Vite/validator/ZIP; initial 1.53 MiB, total 13.75 MiB, 48 approved assets"
+  },
+  "migration": {
+    "name": "1792108800000-CityBloxxVerification",
+    "additive": true,
+    "changes": ["submission session/token-version/retry/eligibility metadata", "retry index", "board body-placement bound 4096"],
+    "gameTableCount": 8,
+    "oldPendingIdentityInvented": false,
+    "authDataPreserved": true
+  },
+  "reproduce": [
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker run --rm city-bloxx-w1-test:local sh -c \"yarn typecheck && yarn lint:check && yarn test:core\"",
+    "npm run evidence:w1",
+    "npm test",
+    "npm run build:playable",
+    "docker build -f backend/Dockerfile -t city-bloxx-w1-api:local .",
+    "docker run --rm city-bloxx-w1-api:local node test/core-artifacts.cjs"
+  ],
+  "artifacts": {
+    "sanitizedRunnerReport": "tmp/w1-infrastructure-b3015bcb0cb2/result.json",
+    "pureResimulation": "packages/city-bloxx-core/src/verification.ts",
+    "compiledGoldenTests": "backend/test/core-artifacts.cjs",
+    "apiTests": "backend/test/verification.integration.cjs",
+    "startupRecovery": "backend/test/verification-dispatch.cjs",
+    "workerFailureTests": "backend/src/modules/city-bloxx/verification.spec.ts",
+    "transactionRetryTests": "backend/src/modules/city-bloxx/common/game-store.spec.ts",
+    "guide": "backend/docs/city-bloxx-verification.md",
+    "note": "Runner reports are local ignored artifacts; this tracked summary records successful results."
+  },
+  "isolation": {
+    "testDatabaseGuard": "matching TEST_DATABASE/DB_DATABASE, auth_test_*; schema tests use city_bloxx_test_*",
+    "testUsersVerifiedThroughExistingEndpoint": true,
+    "testContainersDatabasesAndTemporaryCredentialsRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveKeysChanged": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "The API test process pauses automatic dispatch for deterministic W1.5 lease regression; W1.6 uses actual workers/transactions and a separate fresh process running the production startup dispatcher",
+    "Worker caps/deadline/crash/termination tests use controlled worker implementations; real workers additionally execute all goldens and successful API verification scenarios",
+    "Board tie/paging precision uses explicitly labeled sorting fixtures, separate from computed gameplay results",
+    "Public boards are live snapshots; standings may move across page requests and clients should refresh from page one",
+    "Historical sessionless pending work waits for owner re-authentication/exact finish retry; no session identity is invented",
+    "No ranked Web adapter, result UI or leaderboard page yet; these are W1.7",
+    "Full Web build/browser smoke was not rerun for this backend/pure-core change; W1.4 browser evidence remains historical, while Web/core units and Playable package were rerun",
+    "Moderation management, analytics, retention/backup/restore, production rollout and actual-device acceptance remain W1.8-W1.9"
+  ],
+  "next": "W1.7 Web ranked adapter/submission queue/verified result UI and leaderboard page"
+}

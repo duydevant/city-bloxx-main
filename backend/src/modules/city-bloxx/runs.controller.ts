@@ -18,13 +18,17 @@ import {
 import { Response } from 'express';
 import { FinishRunDto, StartRunDto } from './runs.dto';
 import { RunsService } from './runs.service';
+import { VerificationService } from './verification.service';
 import { Public, RequireAllPermissions } from '../security/policy';
 import { AuthRequest } from '../security/types';
 
 @ApiTags('City Bloxx runs')
 @Controller({ path: 'city-bloxx', version: '1' })
 export class RunsController {
-  constructor(private readonly runs: RunsService) {}
+  constructor(
+    private readonly runs: RunsService,
+    private readonly verification: VerificationService,
+  ) {}
   @Get('daily/today')
   @Public()
   daily(@Req() req: AuthRequest) {
@@ -58,6 +62,7 @@ export class RunsController {
   ) {
     const result = await this.runs.finish(req.actor, dto);
     const terminal = ['accepted', 'rejected'].includes(result.status);
+    if (!terminal) this.verification.request();
     res.status(terminal ? 200 : 202);
     if (!terminal) res.setHeader('Retry-After', '2');
     return result;

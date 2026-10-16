@@ -8,7 +8,7 @@ async function main() {
   if (!/^auth_test_[a-z0-9_]+$/.test(database)) throw new Error('Unsafe test database name');
   const admin = new Client({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USERNAME,password:process.env.DB_PASSWORD,database:process.env.DB_DATABASE});
   await admin.connect();await admin.query(`CREATE DATABASE "${database}"`);
-  const env = {...process.env,GAME_TICKET_ENCRYPTION_KEY:randomBytes(32).toString('base64'),GAME_TICKET_KEY_ID:'acceptance-v1',GAME_TICKET_DECRYPTION_KEYS:'{}',ADMIN_EMAIL:'',ADMIN_PASSWORD:'',ADMIN_FULL_NAME:'',DB_DATABASE:database,APP_PORT:'3001',REDIS_URL:'redis://redis:6379/1',LOGIN_RATE_LIMIT:'1000',REGISTER_RATE_LIMIT:'1000',REFRESH_RATE_LIMIT:'1000',FORGOT_PASSWORD_RATE_LIMIT:'1000',VERIFY_EMAIL_RATE_LIMIT:'1000',RESET_PASSWORD_RATE_LIMIT:'1000',RESEND_VERIFICATION_RATE_LIMIT:'1000',TEST_DATABASE:database,TEST_BASE_URL:'http://localhost:3001/api/v1',TEST_MAIL_URL:'http://mailpit:8025'};
+  const env = {...process.env,GAME_VERIFICATION_ENABLED:'false',GAME_TICKET_ENCRYPTION_KEY:randomBytes(32).toString('base64'),GAME_TICKET_KEY_ID:'acceptance-v1',GAME_TICKET_DECRYPTION_KEYS:'{}',ADMIN_EMAIL:'',ADMIN_PASSWORD:'',ADMIN_FULL_NAME:'',DB_DATABASE:database,APP_PORT:'3001',REDIS_URL:'redis://redis:6379/1',LOGIN_RATE_LIMIT:'1000',REGISTER_RATE_LIMIT:'1000',REFRESH_RATE_LIMIT:'1000',FORGOT_PASSWORD_RATE_LIMIT:'1000',VERIFY_EMAIL_RATE_LIMIT:'1000',RESET_PASSWORD_RATE_LIMIT:'1000',RESEND_VERIFICATION_RATE_LIMIT:'1000',TEST_DATABASE:database,TEST_BASE_URL:'http://localhost:3001/api/v1',TEST_MAIL_URL:'http://mailpit:8025'};
   let api;
   try {
     const args=['-r','tsconfig-paths/register','dist/src/cli.js'];
@@ -43,6 +43,7 @@ async function main() {
     }
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/cloud.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Cloud integration suite failed');
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/runs.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Run tickets integration suite failed');
+    if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/verification.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Verification/boards integration suite failed');
     for(const args of [['node_modules/jest/bin/jest.js','--runInBand'],['node_modules/jest/bin/jest.js','--config','test/jest-e2e.json','--runInBand']]) {
       if(spawnSync(process.execPath,args,{env,stdio:'inherit'}).status!==0)throw new Error('Jest suite failed');
     }

@@ -1,6 +1,6 @@
 // No Nest, database or Redis connection inside a simulation worker.
 const { parentPort } = require('node:worker_threads');
-const { verifyRecord, migrateSave } = require('./core.cjs');
+const { verifyRecord, migrateSave, resimulateRun } = require('./core.cjs');
 const { createHash } = require('node:crypto');
 function canonical(value, depth = 0, postgres = false) {
   if (depth > 64) throw new Error('Save nesting limit');
@@ -14,6 +14,7 @@ if (!parentPort) throw new Error('Simulation worker requires a parent port');
 parentPort.on('message', ({ id, record, operation, request }) => {
   try {
     if (operation === 'ping') return parentPort.postMessage({ id, ok: true, result: true });
+    if (operation === 'verify') return parentPort.postMessage({ id, ok: true, result: resimulateRun(request) });
     if (operation === 'save') {
       const raw = request.choice ? request.local.rawPayload : JSON.stringify(request.payload);
       if (Buffer.byteLength(raw) > 262144) return parentPort.postMessage({ id, ok: false, errorCode: 'GAME_SAVE_TOO_LARGE' });
@@ -31,7 +32,9 @@ parentPort.on('message', ({ id, record, operation, request }) => {
     }
     const verified = verifyRecord(record);
     parentPort.postMessage({ id, ok: true, result: verified.result });
-  } catch {
-    parentPort.postMessage({ id, ok: false, errorCode: operation === 'save' ? 'GAME_SAVE_INVALID' : 'INVALID_REPLAY' });
+  } catch (error) {
+    parentPort.postMessage({ id, ok: false, errorCode: operation === 'verify' ?
+      (error.message === 'Unsupported ranked version' ? 'GAME_RUN_VERSION_UNAVAILABLE' : 'GAME_RUN_INVALID') :
+      operation === 'save' ? 'GAME_SAVE_INVALID' : 'INVALID_REPLAY' });
   }
 });

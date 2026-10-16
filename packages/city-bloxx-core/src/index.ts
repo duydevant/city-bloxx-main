@@ -1,6 +1,7 @@
 export * from "./rules";
 export * from "./run";
 export * from "./replay";
+export * from "./verification";
 export * from "./save";
 export * from "./ports";
 export * from "./buildings";
