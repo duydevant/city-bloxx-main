@@ -14,13 +14,15 @@ export class ApiError extends Error {
     readonly issue: AuthIssue,
     readonly status = 0,
     readonly retryAfter?: number,
+    readonly errorCode?: string,
   ) {
     super(issue)
   }
 }
 // Credentials only go to the same-origin gateway, never an absolute API env.
 export async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (!/^\/(auth|users\/me)(\/|$)/.test(path)) throw new ApiError("invalid")
+  if (!/^\/(auth|users\/me)(\/|$)/.test(path) && !/^\/city-bloxx\/(save(?:\/resolve)?|profile)$/.test(path))
+    throw new ApiError("invalid")
   const controller = new AbortController(),
     timer = setTimeout(() => controller.abort(), 10000)
   try {
@@ -46,7 +48,17 @@ export async function requestJson<T>(path: string, options: RequestInit = {}): P
                   ? "unavailable"
                   : "invalid"
       const retry = Number(response.headers.get("Retry-After"))
-      throw new ApiError(issue, response.status, Number.isFinite(retry) && retry > 0 ? retry : undefined)
+      const error = await response.json().catch(() => null)
+      const code =
+        typeof error?.errorCode === "string" && /^[A-Z_0-9]{1,80}$/.test(error.errorCode)
+          ? error.errorCode
+          : undefined
+      throw new ApiError(
+        issue,
+        response.status,
+        Number.isFinite(retry) && retry > 0 ? retry : undefined,
+        code,
+      )
     }
     const body = await response.json()
     if (body?.success !== true || !("data" in body)) throw new ApiError("unavailable")

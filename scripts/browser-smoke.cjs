@@ -525,7 +525,7 @@ async function siteI18nSmoke() {
   for(const locale of ["en","vi"]) {
     const source=await send("Page.addScriptToEvaluateOnNewDocument",{source:`localStorage.setItem('base-game.locale',${JSON.stringify(locale)})`});
     for(const [route,en,vi] of [["/","Play Quick Tower","Chơi xây tháp nhanh"],["/guide/build-city","Build City guide","Hướng dẫn xây thành phố"],
-      ["/sign-in","Sign in","Đăng nhập"],["/sign-up","Create account","Tạo tài khoản"],["/profile","On this device","Trên thiết bị này"],
+      ["/sign-in","Sign in","Đăng nhập"],["/sign-up","Create account","Tạo tài khoản"],["/profile","Guest progress on this device","Tiến trình Khách trên thiết bị"],
       ["/missing-city-page","This page could not be found.","Không tìm thấy trang này."]]) {
       await send("Page.navigate",{url:`http://127.0.0.1:3010${route}`});
       await waitFor(`location.pathname===${JSON.stringify(route)}&&document.documentElement.lang.startsWith(${JSON.stringify(locale)})&&document.body.innerText.includes(${JSON.stringify(locale==="vi"?vi:en)})`);

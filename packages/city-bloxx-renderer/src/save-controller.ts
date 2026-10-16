@@ -28,6 +28,7 @@ export function createSaveController(port: SavePort, timeoutMs = 5000) {
       queue = operation.then(() => undefined);
       return operation;
     },
+    async flush(): Promise<void> { await queue; },
     dispose(): void { disposed = true; loaded = false; generation++; },
   };
 }

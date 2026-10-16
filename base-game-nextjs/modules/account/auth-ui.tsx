@@ -5,6 +5,8 @@ import { useAuthStore } from "@/lib/store/auth.store"
 import { browserAuth } from "@/lib/auth/session"
 import { AuthForm, type AuthMode } from "./auth-form"
 import { copy } from "./copy"
+import { CloudPanel } from "./cloud-panel"
+import { browserCloud } from "@/lib/cloud/browser"
 
 const AuthUI = createContext<() => void>(() => {})
 export const useSignIn = () => useContext(AuthUI)
@@ -17,7 +19,7 @@ export function AuthUIProvider({ children }: { children: React.ReactNode }) {
     i = locale === "vi" ? 1 : 0
   const [open, setOpen] = useState(false),
     dialog = useRef<HTMLDialogElement>(null)
-  const [dismissed,setDismissed]=useState<typeof state|null>(null)
+  const [dismissed, setDismissed] = useState<typeof state | null>(null)
   const [mode, setMode] = useState<AuthMode>("signIn")
   useEffect(() => {
     if (open) dialog.current?.showModal()
@@ -47,13 +49,22 @@ export function AuthUIProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthUI.Provider value={show}>
       {children}
-      {state.status === "required" && dismissed!==state && (
+      <CloudPanel />
+      {state.status === "required" && dismissed !== state && (
         <aside className="auth-notice" role="status">
           <span>{copy.required[i]}</span>
           <button type="button" onClick={show}>
             {copy.again[i]}
           </button>
-          <button type="button" onClick={()=>setDismissed(state)}>{copy.guest[i]}</button>
+          <button
+            type="button"
+            onClick={() => {
+              void browserCloud().identity("guest", false, true)
+              setDismissed(state)
+            }}
+          >
+            {copy.guest[i]}
+          </button>
         </aside>
       )}
       <dialog

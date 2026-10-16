@@ -8,6 +8,7 @@ import { UserNavMenu } from "@/components/layout/user-nav-menu"
 import { Routes } from "@/lib/routes"
 import { siteConfig } from "@/lib/site"
 import { useI18n } from "@/lib/i18n"
+import { CloudTrigger } from "@/modules/account/cloud-panel"
 
 export function GameHeader() {
   const {locale}=useI18n()
@@ -21,6 +22,7 @@ export function GameHeader() {
         </Link>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <CloudTrigger />
           <LanguageSwitcher />
           <UserNavMenu />
         </div>

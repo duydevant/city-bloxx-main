@@ -5,7 +5,8 @@ const { resolve, join } = require('node:path');
 const { randomBytes } = require('node:crypto');
 
 const root = resolve(__dirname, '..');
-const browserAcceptance = process.argv.includes('--auth-browser');
+const cloudAcceptance = process.argv.includes('--cloud-browser');
+const browserAcceptance = process.argv.includes('--auth-browser') || cloudAcceptance;
 const browserPort=Number(process.env.W1_BROWSER_PORT||56891);
 if(!Number.isInteger(browserPort)||browserPort<1024||browserPort>65535)throw new Error('Invalid browser acceptance port');
 const id = randomBytes(6).toString('hex');
@@ -23,7 +24,12 @@ async function main() {
     .replace('http://web:3000', `http://${names.web}:3000`);
   const configFile = join(directory, 'default.conf');
   try {
-    writeFileSync(envFile, `${template.Config.Env.join('\n')}\n`, { mode: 0o600 });
+    // Copy documented backend configuration only; unrelated multiline PEM env
+    // entries cannot be represented by Docker --env-file and are not test inputs.
+    const allowed = new Set([...readFileSync(join(root,'backend/.env.example'),'utf8').matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map(match=>match[1]));
+    const environment = template.Config.Env.filter(entry=>allowed.has(entry.split('=',1)[0]));
+    if(environment.some(entry=>/[\r\n]/.test(entry)))throw new Error('Documented backend test environment needs single-line values');
+    writeFileSync(envFile, `${environment.join('\n')}\n`, { mode: 0o600 });
     writeFileSync(configFile, config);
     docker(['run', '-d', '--name', names.web, '--network', network, '-e', 'PORT=3000', '-e', 'HOSTNAME=0.0.0.0', 'city-bloxx-web:local']);
     docker(['create', '--name', names.suite, '--network', network, '--env-file', envFile,
@@ -48,7 +54,7 @@ async function main() {
       }
       const [gateway]=JSON.parse(docker(['inspect',names.gateway]));
       const port=gateway.NetworkSettings.Ports['8080/tcp'][0].HostPort;
-      try{browserReport=await require('./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});}catch(error){browserFailure=error;}
+      try{browserReport=await require(cloudAcceptance?'./cloud-browser.cjs':'./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});}catch(error){browserFailure=error;}
       finally{docker(['exec',names.suite,'node','-e',`require('node:fs').writeFileSync('/tmp/w1-browser-done',${JSON.stringify(browserReport?'passed':'failed')})`]);}
     }
     const exit = Number(await new Promise((resolve, reject) => {
@@ -64,12 +70,12 @@ async function main() {
     const [gateway] = JSON.parse(docker(['inspect', names.gateway]));
     const port = gateway.NetworkSettings.Ports['8080/tcp'][0].HostPort;
     const web = await fetch(`http://127.0.0.1:${port}/play`);
-    if (web.status !== 200 || !(await web.text()).includes('City Bloxx')) throw new Error('Gateway Web routing failed');
+    if (web.status !== 200 || !/City\s*Bloxx/i.test(await web.text())) throw new Error('Gateway Web routing failed');
     writeFileSync(join(directory, 'result.json'), JSON.stringify({
       checkedAt: new Date().toISOString(),
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
-      ...(browserReport?{browserAuth:browserReport}:{}),
+      ...(browserReport?{[cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
       checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
       isolation: { database: 'disposable auth_test_* and city_bloxx_test_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');

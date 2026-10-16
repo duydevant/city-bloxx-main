@@ -16,8 +16,8 @@ export const copy = {
   close: ["Close", "Đóng"],
   guest: ["Continue as Guest", "Tiếp tục chơi Khách"],
   local: [
-    "Progress is saved on this device. Cloud sync and ranked boards are not connected yet.",
-    "Tiến trình được lưu trên thiết bị này. Đồng bộ đám mây và bảng xếp hạng chưa được kết nối.",
+    "Guest and account progress stay separate. Check the save panel for local and cloud status. Ranked boards are not connected yet.",
+    "Tiến trình Khách và tài khoản được lưu riêng. Xem bảng lưu để biết trạng thái thiết bị và đám mây. Bảng xếp hạng chưa được kết nối.",
   ],
   registered: [
     "Account created. If verification is required, open the email link before signing in.",

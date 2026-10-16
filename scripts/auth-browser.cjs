@@ -18,8 +18,10 @@ async function connect(target){
   const evaluate=async expression=>{const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error('Browser evaluation failed: '+(result.exceptionDetails.exception?.description||result.exceptionDetails.text).split('\n')[0]);return result.result.value};
   const wait=async(expression)=>{for(let i=0;i<120;i++){if(await evaluate(expression))return;await delay(100)}throw Error(`Browser condition timed out: ${expression}`)};
   await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});
+  hooks.set('Page.javascriptDialogOpening',()=>{void send('Page.handleJavaScriptDialog',{accept:true})});
   return{send,evaluate,wait,hooks,close:()=>socket.close()};
 }
+exports.connect=connect;
 exports.run=async function({base,container,directory}){
   const profile=join(directory,'chrome-profile'),port=Number(process.env.W1_CHROME_PORT||9236);
   const chrome=spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',['--headless=new','--disable-gpu','--no-sandbox','--no-first-run','--no-default-browser-check',`--remote-debugging-port=${port}`,`--user-data-dir=${profile}`,'about:blank'],{windowsHide:true,stdio:'ignore'});
@@ -77,7 +79,7 @@ exports.run=async function({base,container,directory}){
     fixture('suspend',email);await a.evaluate("window.dispatchEvent(new Event('focus'))");await a.wait('document.querySelector(".auth-notice")!==null');
     assert(await a.evaluate("window.__authArena===document.querySelector('.cb-arena')"));assert.equal(await a.evaluate('location.pathname'),'/play');
     assert((await a.evaluate('document.querySelector(".cb-panel").innerText')).includes('Paused'));
-    assert(await a.evaluate("localStorage.getItem('city-bloxx.quick-save.v2')!==null"));
+    assert(await a.evaluate("new Promise(resolve=>{const q=indexedDB.open('city-bloxx.accounts.v1',1);q.onsuccess=()=>{const db=q.result,tx=db.transaction('accounts'),r=tx.objectStore('accounts').getAll();tx.oncomplete=()=>{resolve(r.result.some(s=>!!s.raw));db.close()}}})"));
     await text(a,'header button','Sign in');await a.wait('document.querySelector("dialog[open]")!==null');
     await text(a,'dialog button','Create account');assert.equal(await a.evaluate('location.pathname'),'/play');await text(a,'dialog .auth-close','Close');
     report.flows.push('suspension clears both tabs; active Quick stays mounted/paused/saved; modal auth mode switch does not navigate');

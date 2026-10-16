@@ -25,7 +25,7 @@ export interface SessionOptions {
   initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
 }
-export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():void; dispose(): void }
+export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():Promise<boolean>; whenSaved():Promise<void>; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
   let vi = !!options.locale?.startsWith("vi");
   const translations = new Map(Object.entries(SESSION_TEXT));
@@ -167,6 +167,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       rewardSaveStatus = success ? "saved" : "error";
       if (!success) message(t("Save failed. Your result is kept for this session; retry saving."));
       else message("");
+      if (success && (userPaused || !run || run.getPhase() === "ended")) void options.save.flush?.();
     });
   }
   const dataScreens = createDataScreens({ panel, save: () => save, t, className, showPanel, showStats, button, home,
@@ -676,7 +677,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     ready = true; renderer.resize(arena.clientWidth, arena.clientHeight);
     if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();persist();
   })();
-  return { ready: readyPromise, setLocale, navigate, checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); }, dispose() {
+  return { ready: readyPromise, setLocale, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();

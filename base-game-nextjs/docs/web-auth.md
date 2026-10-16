@@ -9,7 +9,7 @@ The Web app calls the existing Nest `/api/v1/auth/*` and `/api/v1/users/me*` end
 - `/profile` shows real private account information, editable full name/username, change password, and confirmed logout/logout-all. Guest retains a local progress preview. Registration and recovery display server-compatible generic messages, with no raw server errors or credentials in UI/logs.
 - Header sign-in opens a native modal. Switching sign-in/register/recovery forms in that modal does not navigate away from a live game. The shared session's generic `checkpointAndPause()` flushes local progress and pauses Quick/City/Daily. Remote account changes or session loss also checkpoint/pause; resuming remains an explicit game action.
 
-Cloud synchronization, account-scoped saves, guest import and verified boards remain later milestones. Signing in at W1.2 leaves progress on this device. A Web API must be reachable through the gateway; standalone Next without that backend remains playable as Guest and reports account actions unavailable.
+W1.2 originally left progress on this device. W1.4 now adds [account-scoped IndexedDB/cloud saves and explicit Guest import](cloud-saves.md), with an awaited local checkpoint and confirmation before account changes. Verified boards remain later milestones. A Web API must be reachable through the gateway; standalone Next without that backend remains playable as Guest and reports account actions unavailable.
 
 ## Session and concurrency
 

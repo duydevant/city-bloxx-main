@@ -1,0 +1,87 @@
+{
+  "phase": "W1.4",
+  "status": "Implemented",
+  "checkedAt": "2026-10-16T06:30:00Z",
+  "sourceBaseCommit": "d5c8a0bc8a8aa38ba2f6a4ac1c168398b7eeb318",
+  "implementation": "feat(w1.4): connect cloud saves and guest migration",
+  "environment": "Windows, Chrome, Docker Desktop Linux; real Nest/PostgreSQL16/Redis7/Mailpit/Nginx with guarded disposable databases",
+  "images": {
+    "productionWeb": "sha256:c9f094cae63a29c3953fce6263630941a299f75fa4f91a4929732f22d873def3",
+    "backendTest": "sha256:442edd52167debc1f7230d65a986e0516c946edbca2566cc2a2600d931c6bd3f"
+  },
+  "checks": {
+    "unit": { "tests": 267, "files": 21, "cloudTests": 20, "status": "passed; rerun 2026-10-16" },
+    "lint": "passed; rerun 2026-10-16",
+    "webTypecheck": "passed; rerun 2026-10-16",
+    "productionWebBuild": "passed; standalone Next build with 20 static routes",
+    "playableBuild": "passed typecheck, Vite, package validator and ZIP; 48 assets, initial 1.53 MiB, total 13.75 MiB; no Web/backend dependency",
+    "cloudBrowser": {
+      "status": "passed 2026-10-15 against production Web and real API",
+      "profiles": 2,
+      "storage": "actual IndexedDB transactions",
+      "flows": [
+        "real signup/SMTP/login opens separate account and preserves Guest City/Daily",
+        "independent public alias and explicit Guest import with durable backups, no merging",
+        "API offline, reload and reconnect preserve local snapshot and fixed pending mutation",
+        "lost response after committed PUT retries the same receipt exactly once",
+        "independent device conflict and injected IndexedDB backup failure preserve both copies; cloud choice succeeds atomically",
+        "local choice replaces cloud with selected snapshot and backs up both candidates",
+        "same-profile stale tab cannot overwrite newer progress; attempted checkpoint is backed up before explicit reload",
+        "confirmed logout and account B preserve separate A/B/Guest progress",
+        "future schema raw/export preserved, EN/VI responsive panels and no credentials in saves"
+      ],
+      "viewports": [[320, 568], [390, 844], [900, 430]],
+      "locales": ["en", "vi"],
+      "visualInspection": "passed portrait EN and landscape VI screenshots"
+    },
+    "authBrowserRegression": "passed 6 real browser flows including two-tab rotation, consumed refresh response, suspension during Quick, password recovery/logout and no-Web-Locks fallback",
+    "fullWebPlayableSmoke": "passed shared gameplay/save/recovery/pending/lifecycle and responsive regression",
+    "backendRegression": {
+      "schemaScenarios": 14,
+      "cloudApiScenarios": 21,
+      "adminSeedScenarios": 9,
+      "unitTests": 27,
+      "nestE2eTests": 3,
+      "securityScenarios": 23,
+      "status": "passed in both cloud and auth acceptance runs, including compiled core workers, Nginx auth/limits and production Web"
+    }
+  },
+  "artifacts": {
+    "cloudRunner": "tmp/w1-infrastructure-8be699613717/result.json",
+    "cloudBrowser": "tmp/w1-infrastructure-8be699613717/cloud-browser.json",
+    "cloudScreenshots": "tmp/w1-infrastructure-8be699613717/cloud-{en,vi}-{320,390,900}.png",
+    "authRunner": "tmp/w1-infrastructure-fdc0e9c05439/result.json",
+    "authBrowser": "tmp/w1-infrastructure-fdc0e9c05439/auth-browser.json",
+    "fullSmoke": "tmp/c0-c2-qa/browser-report.json",
+    "clientGuide": "base-game-nextjs/docs/cloud-saves.md",
+    "coordinatorTests": "base-game-nextjs/lib/cloud/coordinator.test.ts",
+    "browserHarness": "scripts/cloud-browser.cjs",
+    "note": "Runtime reports/screenshots are local ignored artifacts; this tracked summary records their successful results."
+  },
+  "reproduce": [
+    "npm test",
+    "npm run lint",
+    "node base-game-nextjs/node_modules/typescript/bin/tsc --noEmit -p base-game-nextjs/tsconfig.json",
+    "npm run build:playable",
+    "docker build --target builder -f backend/Dockerfile -t city-bloxx-w1-test:local .",
+    "docker build --build-arg NODE_IMAGE=node:22-alpine --build-arg NEXT_PUBLIC_SITE_URL=http://localhost:56789 --build-arg NEXT_PUBLIC_SITE_NAME=CityBloxx -t city-bloxx-web:local .",
+    "npm run evidence:cloud",
+    "npm run evidence:auth",
+    "npm run test:browser (temporary Web 3010 and Playable 4173 previews required)"
+  ],
+  "isolation": {
+    "testDatabaseGuard": "disposable auth_test_* and city_bloxx_test_* only",
+    "existingApplicationDataAndVolumesPreserved": true,
+    "acceptanceRunnerTemporaryContainersDatabasesAndCredentialsCleaned": true,
+    "liveDatabaseMigrated": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "Local automated acceptance; actual-device, production TLS/SMTP and rollout remain separate gates",
+    "Offline API recovery assumes a loaded/cached Web shell; no service worker or uncached-shell offline support",
+    "Pagehide cloud delivery is best effort; completed local transactions and durable queues provide recovery",
+    "Client backup expiration cleanup occurs when backups are enumerated, up to 500 expired records per transaction",
+    "Server Daily/tickets, ranked verification, boards and operational backup/restore remain later milestones"
+  ],
+  "next": "W1.5 BE server Daily/start tickets/persistent submissions/lease/key handling"
+}

@@ -7,6 +7,7 @@ import { browserAuth } from "@/lib/auth/session"
 import { useI18n } from "@/lib/i18n"
 import { useAuthStore } from "@/lib/store/auth.store"
 import { copy, errorCopy } from "./copy"
+import { cancelIdentityChange, prepareIdentityChange } from "@/lib/cloud/browser"
 
 export type AuthMode = "signIn" | "signUp" | "forgot" | "reset" | "verify" | "resend"
 export function AuthForm({
@@ -57,6 +58,15 @@ export function AuthForm({
     setIssue(null)
     try {
       if (mode === "signIn") {
+        if (
+          !window.confirm(
+            index
+              ? "Mở tiến trình riêng của tài khoản này? Tiến trình hiện tại sẽ được lưu riêng; không tự nhập save Khách."
+              : "Open this account's separate progress? Current progress stays separate; Guest is not imported automatically.",
+          )
+        )
+          return
+        await prepareIdentityChange()
         await browserAuth().login(email, password)
         formRef.current?.reset()
         onSignedIn?.()
@@ -84,6 +94,7 @@ export function AuthForm({
       }
       formRef.current?.reset()
     } catch (error) {
+      if (mode === "signIn") cancelIdentityChange()
       setIssue(error instanceof ApiError ? error.issue : "network")
       if (error instanceof ApiError && error.issue === "rate")
         setRetryAt(Date.now() + (error.retryAfter ?? 60) * 1000)

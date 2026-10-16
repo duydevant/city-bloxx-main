@@ -6,6 +6,7 @@ import { useAuthStore } from "@/lib/store/auth.store"
 import { useI18n } from "@/lib/i18n"
 import { checkpointAccount, useSignIn } from "./auth-ui"
 import { copy, errorCopy } from "./copy"
+import { cancelIdentityChange, prepareIdentityChange } from "@/lib/cloud/browser"
 
 export function AccountProfile() {
   const auth = useAuthStore(),
@@ -139,8 +140,10 @@ export function AccountProfile() {
                   checkpointAccount()
                   void execute(async () => {
                     try {
+                      await prepareIdentityChange("logout")
                       await browserAuth().logout(confirm === "all")
                     } finally {
+                      cancelIdentityChange()
                       setConfirm(null)
                     }
                   })

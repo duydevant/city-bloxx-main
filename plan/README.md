@@ -1,10 +1,10 @@
 # City Bloxx — kế hoạch nâng cấp sau core
 
-Ngày cập nhật: 15/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
+Ngày cập nhật: 16/10/2026. Bộ tài liệu này đặc tả roadmap và theo dõi bằng chứng triển khai. Audit trạng thái mới nhất: [14 — Phase status audit](14-phase-status-audit.md); file 00 giữ nguyên snapshot trước C4.
 
 ## Đọc từ đâu?
 
-**Mốc hiện tại:** W1.3 đã có game profile và cloud save API với revision/CAS/receipt, backup nguyên tử khi resolve, worker validation có giới hạn và account rate limits. 21 cloud scenarios, 27 unit + 3 e2e, schema/auth/security regression, typecheck/lint/build/runtime worker qua; [evidence W1.3](evidence/W1.3-validation.json). Tiếp theo **W1.4 — nối Web cloud/IndexedDB/offline/conflict và Guest import**. Chưa migrate/deploy database ứng dụng hiện tại.
+**Mốc hiện tại:** W1.4 đã nối Web với cloud API, IndexedDB theo account, offline/retry mutation, conflict/backup và Guest import có xác nhận. 267 tests, lint/typecheck/builds, real cloud/auth browser suites và full Web/Playable smoke qua; [evidence W1.4](evidence/W1.4-validation.json). Tiếp theo **W1.5 — BE server Daily/start tickets/persistent submissions/lease/key handling**. Chưa migrate/deploy database ứng dụng hiện tại.
 
 1. Đọc [audit hiện trạng](00-project-audit.md) để biết code đang có gì và khác GDD ở đâu.
 2. Triển khai lần lượt C4.0 → C4.1 → C4.2 → C4.3.
@@ -22,7 +22,7 @@ Ngày cập nhật: 15/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [03 — C4.2 Progression, missions, achievements](03-C4.2-progression-missions-achievements.md) | C4.0–C4.1 | Implemented — hoàn thành triển khai |
 | [04 — C4.3 Cosmetics, Architecture Book](04-C4.3-cosmetics-architecture-book.md) | C4.2 + approved art | Implemented — hoàn thành triển khai |
 | [05 — W0 Web pages, responsive](05-W0-web-pages-responsive.md) | C4 shared UI | Implemented — hoàn thành triển khai |
-| [06 — W1 requirements lịch sử](06-W1-backend-auth-cloud-leaderboards.md), [06c — plan game trên Nest backend hiện có](06c-W1-city-bloxx-existing-backend-plan.md) | C4/W0 + user/auth `backend/` | In progress — W1.0–W1.3 Implemented; tiếp theo W1.4 |
+| [06 — W1 requirements lịch sử](06-W1-backend-auth-cloud-leaderboards.md), [06c — plan game trên Nest backend hiện có](06c-W1-city-bloxx-existing-backend-plan.md) | C4/W0 + user/auth `backend/` | In progress — W1.0–W1.4 Implemented; tiếp theo W1.5 |
 | [07 — Y0–Y2 Playable release](07-Y0-Y2-playable-integration-release.md) | Y0 audit làm sớm; release cần C4 | Planned |
 | [08 — Soft-launch checklist](08-soft-launch-checklist.md) | C4 + W0/W1 cho Web; C4 + Y0–Y2 cho Playable | Planned |
 | [09 — C5 Districts, landmarks](09-C5-districts-landmarks.md) | Soft launch | Planned |
@@ -30,11 +30,11 @@ Ngày cập nhật: 15/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [11 — C7 Weekly, modes, LiveOps](11-C7-weekly-modes-liveops.md) | C5/C6 + vận hành ổn định | Planned |
 | [12 — Art requirements](12-art-requirements.md) | Theo phase tương ứng | Brick approved/imported; các bộ sau Planned |
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |
-| [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra cập nhật 15/10/2026 | Audit snapshot |
+| [14 — Phase status audit](14-phase-status-audit.md) | Code + kiểm tra cập nhật 16/10/2026 | Audit snapshot |
 
 C4.0 `11c3901`, C4.1 `ab4d02d`, C4.2 `0b72f10` và **C4.3 `5b63174` đã hoàn thành triển khai**. C4.3 có full Classic Brick (18 PNG + SVG badge), ownership/unlock/equip một inventory, active-run/City snapshots và Architecture Book/customizer EN/VI. 228/228 tests, lint, hai production builds, save/Daily/cosmetics evidence và toàn bộ Chrome smoke Web/Playable qua tại C4.3; [evidence C4.3](evidence/C4.3-validation.json). [C4.0](evidence/C4.0-validation.json), [C4.1](evidence/C4.1-validation.json), [C4.2](evidence/C4.2-validation.json) giữ kết quả lịch sử. Tại mốc C4.3, W1 và Y0–Y2 còn Planned; hiện W1 theo bảng trạng thái ở trên, actual SDK/điện thoại thật/server verification/release vẫn thuộc các gate tương ứng.
 
-**W0 cũng đã hoàn thành triển khai**: Web routes/local data, deep-link/confirm/pending preservation, Guest UI, tutorials, EN/VI, responsive/accessibility và SEO. 231/231 tests, lint, hai builds và full browser smoke Web/Playable qua; [evidence W0](evidence/W0-validation.json). Sau yêu cầu tiếp tục ngày 15/10, **W1.0–W1.3 Implemented**: gateway, JSON budgets, readiness, core/worker packaging, schema/permissions/policy, Web auth thật, game profile/cloud API/CAS/resolve và regression trên DB riêng qua; [W1.3](evidence/W1.3-validation.json). W1.4–W1.9, actual phone/host/release vẫn còn mở.
+**W0 cũng đã hoàn thành triển khai**: Web routes/local data, deep-link/confirm/pending preservation, Guest UI, tutorials, EN/VI, responsive/accessibility và SEO. 231/231 tests, lint, hai builds và full browser smoke Web/Playable qua; [evidence W0](evidence/W0-validation.json). Sau yêu cầu tiếp tục, **W1.0–W1.4 Implemented**: hạ tầng/schema/permissions, Web auth thật, game profile/cloud API và Web cloud/IndexedDB/offline/conflict/Guest import; regression trên DB riêng và Web/Playable qua; [W1.4](evidence/W1.4-validation.json). W1.5–W1.9, actual phone/host/release vẫn còn mở.
 
 Ngày13/10 đã nghiên cứu backend user/auth/RBAC hiện có tại `backend/`. Plan hiện hành là [06c](06c-W1-city-bloxx-existing-backend-plan.md): thêm City Bloxx modules, cloud/tickets/verification/boards vào Nest, nối Web với JWT+refresh cookie đã có. Không xây lại user/auth trong Next. Ngày15/10 đã kiểm baseline và source W1.0 bằng security/integration suites; Web auth đã nối tại W1.2; game profile/cloud API đã có tại W1.3. File06a/06b giữ lịch sử và không dùng các lựa chọn kiến trúc xung đột với06c.
 
