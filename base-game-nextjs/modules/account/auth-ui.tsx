@@ -6,6 +6,7 @@ import { browserAuth } from "@/lib/auth/session"
 import { AuthForm, type AuthMode } from "./auth-form"
 import { copy } from "./copy"
 import { CloudPanel } from "./cloud-panel"
+import { RankedPanel } from "./ranked-panel"
 import { browserCloud } from "@/lib/cloud/browser"
 
 const AuthUI = createContext<() => void>(() => {})
@@ -50,6 +51,7 @@ export function AuthUIProvider({ children }: { children: React.ReactNode }) {
     <AuthUI.Provider value={show}>
       {children}
       <CloudPanel />
+      <RankedPanel />
       {state.status === "required" && dismissed !== state && (
         <aside className="auth-notice" role="status">
           <span>{copy.required[i]}</span>

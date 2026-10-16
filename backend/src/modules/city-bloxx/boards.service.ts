@@ -58,7 +58,17 @@ export const boardKey = (
   JSON.stringify(
     t.mode === 'quick'
       ? [t.mode, t.physics_version, t.ruleset_version]
-      : [t.mode, t.physics_version, t.ruleset_version, t.date_utc, t.definition_id],
+      : [
+          t.mode,
+          t.physics_version,
+          t.ruleset_version,
+          // pg decodes DATE as local midnight. Preserve its calendar date,
+          // rather than serializing a timestamp (or shifting it through UTC).
+          t.date_utc instanceof Date
+            ? `${t.date_utc.getFullYear()}-${String(t.date_utc.getMonth() + 1).padStart(2, '0')}-${String(t.date_utc.getDate()).padStart(2, '0')}`
+            : t.date_utc,
+          t.definition_id,
+        ],
   );
 
 // With at most 4096 body inputs, distinct rational rates differ by > 1/4096^2.

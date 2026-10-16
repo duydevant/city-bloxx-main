@@ -5,6 +5,7 @@ import { QuickTower } from "./quick-tower"
 import type { SessionScreen } from "../../../packages/city-bloxx-renderer/src/session"
 export function Copy({en,vi}:{en:string;vi:string}){return <><span data-copy="en" lang="en">{en}</span><span data-copy="vi" lang="vi">{vi}</span></>}
 export const WEB_LINKS=[
+  ["/leaderboards","Leaderboards","Bảng xếp hạng"],
   ["/play","Quick Tower","Xây tháp nhanh"],["/play?screen=city","Build City","Xây thành phố"],
   ["/daily","Daily Tower","Tháp hằng ngày"],["/statistics","Statistics","Thống kê"],
   ["/my-towers","My towers","Tháp của tôi"],["/buildings","Architecture Book","Sổ kiến trúc"],

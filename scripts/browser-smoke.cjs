@@ -6,6 +6,8 @@ const esbuild = require("node:module").createRequire(path.resolve(__dirname,"../
 const fixture = require("../packages/city-bloxx-core/fixtures/quick-mixed-v13.json");
 const dailyFixture = require("../packages/city-bloxx-core/fixtures/daily-v1.json");
 const root = path.resolve(__dirname,"..");
+const webUrl=process.env.CITY_BLOXX_WEB_SMOKE_URL||"http://127.0.0.1:3010/play";
+const webOrigin=new URL(webUrl).origin;
 const reportDir = path.join(root,"tmp","c0-c2-qa");
 fs.mkdirSync(reportDir,{recursive:true});
 const profile = fs.mkdtempSync(path.join(reportDir,"chrome-"));
@@ -466,7 +468,7 @@ async function cosmeticsSmoke(kind,url,key,cityRecord) {
   return {catalogItems:19,brickOwnership:10,grantsOnce:true,boot:"zero Brick requests before preview/start",preview:"locked watermark, no stats/XP/equipment mutation",styles:"Default/Brick/mixed Quick and finite City reproduce exact golden records/results",pinning:"pause, equip Defaults, reload/resume keeps Brick pending and skyline; minis use snapshot",failure:"blocked Brick texture cannot equip; EN/VI failure, retry then equip",keyboard:"Shift-Tab/Enter selects preview; focus and ARIA pressed state verified",cache,cacheCaveat:"Headless CPU/canvas cache profile; not actual phone FPS/host certification",ui:"four classes, collection/item paging, 3-step customizer EN/VI at 320x568,390x844,900x430"};
 }
 async function webRoutesSmoke() {
-  const url="http://127.0.0.1:3010",key="city-bloxx.quick-save.v2",read=()=>evaluate(`JSON.parse(localStorage.getItem('${key}'))`);
+  const url=webOrigin,key="city-bloxx.quick-save.v2",read=()=>evaluate(`JSON.parse(localStorage.getItem('${key}'))`);
   async function route(path,raw){
     const init=await send("Page.addScriptToEvaluateOnNewDocument",{source:initScript("web",raw===undefined?"preserve":"normal",raw)});
     await send("Page.navigate",{url:url+path});await waitFor(`location.pathname===${JSON.stringify(path.split("?")[0])}&&document.querySelector('header')!==null`);
@@ -527,8 +529,8 @@ async function siteI18nSmoke() {
     for(const [route,en,vi] of [["/","Play Quick Tower","Chơi xây tháp nhanh"],["/guide/build-city","Build City guide","Hướng dẫn xây thành phố"],
       ["/sign-in","Sign in","Đăng nhập"],["/sign-up","Create account","Tạo tài khoản"],["/profile","Guest progress on this device","Tiến trình Khách trên thiết bị"],
       ["/missing-city-page","This page could not be found.","Không tìm thấy trang này."]]) {
-      await send("Page.navigate",{url:`http://127.0.0.1:3010${route}`});
-      await waitFor(`location.pathname===${JSON.stringify(route)}&&document.documentElement.lang.startsWith(${JSON.stringify(locale)})&&document.body.innerText.includes(${JSON.stringify(locale==="vi"?vi:en)})`);
+      await send("Page.navigate",{url:`${webOrigin}${route}`});
+      await waitFor(`location.pathname===${JSON.stringify(route)}&&document.documentElement?.lang.startsWith(${JSON.stringify(locale)})&&document.body?.innerText.includes(${JSON.stringify(locale==="vi"?vi:en)})`);
       if(route==="/guide/build-city")await screenshot(`web-guide-${locale}`);
     }
     await send("Page.removeScriptToEvaluateOnNewDocument",{identifier:source.identifier});
@@ -554,7 +556,7 @@ async function realFrameSmoke() {
       if(window.__probe.active)window.__probe.longTasks.push(...list.getEntries().map(entry=>entry.duration));
     }).observe({type:'longtask',buffered:false});
   `});
-  await send("Page.navigate",{url:"http://127.0.0.1:3010/play"});
+  await send("Page.navigate",{url:webUrl});
   await waitFor('document.querySelector(".cb-panel h2")?.textContent==="Quick Tower"');
   await send("Page.removeScriptToEvaluateOnNewDocument",{identifier:script.identifier});
   await click("Play Standard");await delay(500);
@@ -745,7 +747,7 @@ async function main() {
   await send("Network.setBlockedURLs",{urls:["https://www.youtube.com/game_api/*"]});
   if(process.argv.includes("--web-only")){await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});await webRoutesSmoke();return;}
   const report=[];
-  for(const [kind,url] of [["web","http://127.0.0.1:3010/play"],["playable",process.env.CITY_BLOXX_PLAYABLE_SMOKE_URL||"http://127.0.0.1:4173/"]]){
+  for(const [kind,url] of [["web",webUrl],["playable",process.env.CITY_BLOXX_PLAYABLE_SMOKE_URL||"http://127.0.0.1:4173/"]]){
     console.log(`Testing ${kind}`);
     await send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await navigate(kind,url);

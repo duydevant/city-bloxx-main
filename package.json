@@ -14,6 +14,7 @@
     "evidence:w1": "node scripts/w1-infrastructure-evidence.cjs",
     "evidence:auth": "node scripts/w1-infrastructure-evidence.cjs --auth-browser",
     "evidence:cloud": "node scripts/w1-infrastructure-evidence.cjs --cloud-browser",
+    "evidence:ranked": "node scripts/w1-infrastructure-evidence.cjs --ranked-browser",
     "test:save": "node scripts/c4-save-evidence.cjs",
     "test:daily": "node scripts/daily-evidence.cjs",
     "test:progression": "node scripts/progression-evidence.cjs",

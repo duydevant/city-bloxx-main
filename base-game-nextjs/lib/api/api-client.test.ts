@@ -1,6 +1,18 @@
 import { describe, it, expect, vi } from "vitest"
 import { requestJson, ApiError } from "./api-client"
 describe("same-origin account transport", () => {
+  it("allows only the ranked gateway routes and encoded board queries", async () => {
+    const fetch=vi.fn().mockImplementation(()=>Promise.resolve(new Response(JSON.stringify({success:true,data:{}}))))
+    vi.stubGlobal("fetch",fetch)
+    try {
+      for(const path of ["daily/today","runs/start","runs/finish","runs/00000000-0000-4000-8000-000000000001","leaderboards/quick?limit=20&cursor=abc%2D123","leaderboards/daily/me?dateUTC=2026-10-16"])
+        await requestJson(`/city-bloxx/${path}`)
+      expect(fetch).toHaveBeenCalledTimes(6)
+      for(const path of ["/city-bloxx/runs/../admin","/city-bloxx/leaderboards/quick/other","/city-bloxx/leaderboards/quick?url=https://evil.test","//evil.test/city-bloxx/runs/start"])
+        await expect(requestJson(path)).rejects.toThrow("invalid")
+      expect(fetch).toHaveBeenCalledTimes(6)
+    } finally {vi.unstubAllGlobals()}
+  })
   it("uses the gateway, HttpOnly cookie credentials and no-store without a refresh-token body", async () => {
     const fetch = vi
       .fn()

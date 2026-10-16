@@ -16,8 +16,8 @@ export const copy = {
   close: ["Close", "Đóng"],
   guest: ["Continue as Guest", "Tiếp tục chơi Khách"],
   local: [
-    "Guest and account progress stay separate. Check the save panel for local and cloud status. Ranked boards are not connected yet.",
-    "Tiến trình Khách và tài khoản được lưu riêng. Xem bảng lưu để biết trạng thái thiết bị và đám mây. Bảng xếp hạng chưa được kết nối.",
+    "Guest and account progress stay separate. Check the save panel for local and cloud status. Choose Ranked Quick/Daily to submit an online result.",
+    "Tiến trình Khách và tài khoản được lưu riêng. Xem bảng lưu để biết trạng thái thiết bị và đám mây. Chọn Quick/Daily xếp hạng để gửi kết quả online.",
   ],
   registered: [
     "Account created. If verification is required, open the email link before signing in.",

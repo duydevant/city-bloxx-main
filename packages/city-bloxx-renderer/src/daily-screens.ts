@@ -7,6 +7,7 @@ interface DailyScreenOptions {
   showPanel(title: string, body: string, actions: HTMLButtonElement[]): void;
   showStats(rows: [string, string][]): void;
   start(dateUTC: string): void; resume(): void; discard(): void; home(): void; replay(record: RunRecord): void;
+  online?: {label():string;start():void};
 }
 export function createDailyScreens(o: DailyScreenOptions) {
   const { t, button } = o;
@@ -17,6 +18,7 @@ export function createDailyScreens(o: DailyScreenOptions) {
   function entry(): void {
     const date = utcDate(o.now()), daily = o.save().daily, day = daily.days.find(d => d.dateUTC === date), pending = daily.pending;
     const actions = [button(t("Play Daily"), () => chooseStart(date))];
+    if(o.online)actions.unshift(button(o.online.label(),o.online.start));
     if (pending) actions.push(button(t("Resume Daily"), o.resume));
     actions.push(button(t("Daily guide"), () => guide()), button(t("History"), () => history()), button(t("Home"), o.home));
     o.showPanel(t("Daily Tower"), `${date} UTC · ${t("Industrial")} · 20 ${t("floors")}\n${t("Personal result · not server verified")}`, actions);

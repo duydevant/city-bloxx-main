@@ -6,7 +6,8 @@ const { randomBytes } = require('node:crypto');
 
 const root = resolve(__dirname, '..');
 const cloudAcceptance = process.argv.includes('--cloud-browser');
-const browserAcceptance = process.argv.includes('--auth-browser') || cloudAcceptance;
+const rankedAcceptance = process.argv.includes('--ranked-browser');
+const browserAcceptance = process.argv.includes('--auth-browser') || cloudAcceptance || rankedAcceptance;
 const browserPort=Number(process.env.W1_BROWSER_PORT||56891);
 if(!Number.isInteger(browserPort)||browserPort<1024||browserPort>65535)throw new Error('Invalid browser acceptance port');
 const id = randomBytes(6).toString('hex');
@@ -38,6 +39,7 @@ async function main() {
       '-e', 'TEST_GATEWAY_ORIGIN=http://localhost:56789',
       '-e', `TEST_GATEWAY_BASE_URL=http://${names.gateway}:8080/api/v1`,
       '-e', `TEST_BROWSER_AUTH=${browserAcceptance}`,
+      '-e', `TEST_BROWSER_RANKED=${rankedAcceptance}`,
       'city-bloxx-w1-test:local', 'sh', '-c', 'yarn test:game-schema && node test/run-security.cjs']);
     docker(['start', names.suite]);
     docker(['run', '-d', '--name', names.gateway, '--network', network, '-p', browserAcceptance?`127.0.0.1:${browserPort}:8080`:'127.0.0.1::8080',
@@ -54,7 +56,7 @@ async function main() {
       }
       const [gateway]=JSON.parse(docker(['inspect',names.gateway]));
       const port=gateway.NetworkSettings.Ports['8080/tcp'][0].HostPort;
-      try{browserReport=await require(cloudAcceptance?'./cloud-browser.cjs':'./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});}catch(error){browserFailure=error;}
+      try{browserReport=await require(rankedAcceptance?'./ranked-browser.cjs':cloudAcceptance?'./cloud-browser.cjs':'./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});}catch(error){browserFailure=error;}
       finally{docker(['exec',names.suite,'node','-e',`require('node:fs').writeFileSync('/tmp/w1-browser-done',${JSON.stringify(browserReport?'passed':'failed')})`]);}
     }
     const exit = Number(await new Promise((resolve, reject) => {
@@ -75,7 +77,7 @@ async function main() {
       checkedAt: new Date().toISOString(),
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
-      ...(browserReport?{[cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
+      ...(browserReport?{[rankedAcceptance?'browserRanked':cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
       checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', runTicketsAndPersistentLeases: 'passed', verificationSettlementAndBoards: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
       isolation: { database: 'disposable auth_test_* and city_bloxx_test_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');

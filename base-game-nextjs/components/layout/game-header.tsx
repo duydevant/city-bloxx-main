@@ -9,6 +9,7 @@ import { Routes } from "@/lib/routes"
 import { siteConfig } from "@/lib/site"
 import { useI18n } from "@/lib/i18n"
 import { CloudTrigger } from "@/modules/account/cloud-panel"
+import { RankedTrigger } from "@/modules/account/ranked-panel"
 
 export function GameHeader() {
   const {locale}=useI18n()
@@ -23,6 +24,7 @@ export function GameHeader() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <CloudTrigger />
+          <RankedTrigger />
           <LanguageSwitcher />
           <UserNavMenu />
         </div>

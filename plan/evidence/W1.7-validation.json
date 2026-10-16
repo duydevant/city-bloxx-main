@@ -1,0 +1,139 @@
+{
+  "phase": "W1.7",
+  "status": "Implemented",
+  "checkedAt": "2026-10-16T09:15:06.965Z",
+  "sourceBaseCommit": "2e35946cf05b162f2d27057eedd35dd2e2193bb7",
+  "implementation": "feat(w1.7): connect ranked Web play and boards",
+  "environment": "Windows/Docker Desktop Linux/Node22; production Next Web, real Chrome/Nest/PostgreSQL16/Redis7/Mailpit/Nginx; guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:b9692a84536d9a1d62b5be4fe910f3fc555d3935e6950aa6239ea3d87e6d481e",
+    "backendRuntime": "sha256:8ad15cec669fdb062a7f6a3eed5d21a55ac4f5cdc835fe49870a1687693d3083",
+    "web": "sha256:a7eccc9c4a72a05bef4990efa72081c5951f5af8600a18304b02745281d7b3e2"
+  },
+  "checks": {
+    "webCoreUnits": {
+      "tests": 287,
+      "files": 22,
+      "rankedTests": 19,
+      "status": "passed"
+    },
+    "rankedPolicyCoverage": [
+      "durable start request UUID and ticket before bind",
+      "consumed start/finish response retries preserve immutable bodies",
+      "offline reload, quota retry and pre-bound replay recovery",
+      "completed Daily checkpoint recovery after personal replay eviction",
+      "processing two-second polling and session rebind after login",
+      "429/503 Retry-After persists across reload/manual retry",
+      "401 parks owner queue; A/B switch and late response isolation",
+      "terminal expiry/rejection keeps local results and scrubs ticket/inputs",
+      "accepted receipt remains recoverable after ticket TTL",
+      "Daily canonical identity/config; no ticket for imported/personal progress",
+      "stale tab controller fence and 16 pending cap",
+      "UI snapshot excludes ticket/inputs; acceptance cannot mutate C4 rewards"
+    ],
+    "webLint": "passed without warnings",
+    "webProductionBuild": "passed, 21 static outputs including /leaderboards",
+    "playablePackage": "passed typecheck, build, dependency graph/network allowlist, budget and zip; no ranked/backend adapter",
+    "browserRanked": {
+      "status": "passed",
+      "flows": [
+        "Guest and personal Assist start without any ranked API request",
+        "IndexedDB quota before start prevents HTTP ticket allocation and moving game",
+        "actual renderer inputs verify in background worker; one board/audit; terminal secrets scrubbed and retry grants no second C4 reward",
+        "API offline finish/reload/reconnect retains the same durable ticket, inputs and finish body",
+        "finish response lost after server receipt replays immutably after reload and settles once",
+        "A offline queue remains parked through logout/B login; B sees no A results; same-account reauthentication resumes A",
+        "Daily reload/resume preserves original identity/config/date/ticket; complete bodies with roof Miss enter Daily board",
+        "finish queue quota fault keeps personal replay/rewards; retry persists and verifies without a second reward",
+        "public Quick/Daily boards and authenticated own standing render real settled results without internal account IDs",
+        "EN/VI boards and queue panels fit 320/390 portrait and 900 landscape; no persisted auth credentials or uncaught browser exceptions"
+      ],
+      "sizes": [
+        [
+          320,
+          568
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          900,
+          430
+        ]
+      ],
+      "locales": [
+        "en",
+        "vi"
+      ],
+      "backend": "real Nest/PostgreSQL/Redis/SMTP/Nginx with background resimulation",
+      "storage": "actual IndexedDB strict transactions",
+      "clock": "controlled animation frames; real UTC, timers and network",
+      "deployment": false
+    },
+    "browserSharedRegression": "passed full Web/Playable C0-C4/W0; EN/VI portrait/landscape, Daily/City, replay, save recovery, progression, cosmetics, pause/resize/locale; headless SDK mock",
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "backendUnit": {
+      "tests": 42,
+      "files": 10,
+      "status": "passed"
+    },
+    "nestE2e": {
+      "tests": 3,
+      "status": "passed"
+    },
+    "gameSchema": {
+      "scenarios": 15,
+      "status": "passed"
+    },
+    "cloudApi": {
+      "scenarios": 21,
+      "status": "passed"
+    },
+    "runTickets": {
+      "scenarios": 14,
+      "status": "passed"
+    },
+    "verificationBoards": {
+      "scenarios": 14,
+      "status": "passed; now asserts actual settled Daily in public and private boards"
+    },
+    "adminSeed": {
+      "scenarios": 9,
+      "status": "passed"
+    },
+    "security": {
+      "scenarios": 23,
+      "status": "passed; all 51 existing routes documented"
+    },
+    "gateway": "passed actual production Web routing, auth/cookie/origin/redaction/parser limits",
+    "runtimeArtifacts": "passed compiled Quick/Daily core and save workers",
+    "dailyDateRegression": "passed unit calendar key and real SQL/HTTP Daily standings; compiled runtime with actual pg DATE parser under TZ=Asia/Ho_Chi_Minh"
+  },
+  "artifacts": {
+    "infrastructure": "tmp/w1-infrastructure-10ec88f589b5/result.json",
+    "rankedBrowser": "tmp/w1-infrastructure-10ec88f589b5/ranked-browser.json",
+    "screenshots": "tmp/w1-infrastructure-10ec88f589b5/ranked-*.png",
+    "sharedBrowser": "tmp/c0-c2-qa/browser-report.json",
+    "webRoutes": "tmp/c0-c2-qa/w0-browser-report.json",
+    "guide": "base-game-nextjs/docs/ranked-play.md",
+    "note": "Runner reports/screenshots are ignored local artifacts; this tracked summary records successful results."
+  },
+  "isolation": {
+    "testContainersDatabasesAndTemporaryEnvironmentRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveKeysChanged": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "Animation frames are controlled in ranked acceptance; UTC, timers, auth, storage and backend verification are real. Network loss/quota faults are explicitly injected.",
+    "429/503/expiry queue edge behavior is covered by coordinator unit tests and backend integration; this does not claim a physical-device outage trial.",
+    "Public boards are live; refresh from the first page when ranks move.",
+    "Unsaved completion recovery requires the open page, a retained matching replay, or a completed Daily checkpoint; clearing device data loses device-only work.",
+    "Actual-device/YouTube certification, moderation/telemetry/operations/backup/restore and production rollout remain later gates."
+  ],
+  "next": "W1.8 moderation, telemetry, retention/health and backup/restore operations"
+}

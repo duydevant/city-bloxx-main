@@ -24,7 +24,8 @@ async function main() {
     }
     for(const command of ['migrate','seed','seed'])if(spawnSync(process.execPath,[...args,command],{env,encoding:'utf8'}).status!==0)throw new Error('Migration recovery failed');
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/admin-seed.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Admin seed suite failed');
-    api=spawn(process.execPath,['-r','tsconfig-paths/register','dist/src/main.js'],{env,stdio:['ignore','pipe','pipe']});
+    async function startApi(verification=false){
+    api=spawn(process.execPath,['-r','tsconfig-paths/register','dist/src/main.js'],{env:{...env,GAME_VERIFICATION_ENABLED:String(verification)},stdio:['ignore','pipe','pipe']});
     let log='';api.stdout.on('data',chunk=>{log=(log+String(chunk)).slice(-12000);});api.stderr.on('data',chunk=>{log=(log+String(chunk)).slice(-12000);});
     let ready=false;
     for(let i=0;i<100;i++){
@@ -32,11 +33,19 @@ async function main() {
       if(api.exitCode!==null)break;await new Promise(r=>setTimeout(r,200));
     }
     if(!ready){console.error(log);throw new Error('Test API startup failed');}
+    }
+    await startApi(process.env.TEST_BROWSER_RANKED === 'true');
     if (process.env.TEST_BROWSER_AUTH === 'true') {
       const fs=require('node:fs');
       fs.writeFileSync('/tmp/w1-browser-ready',JSON.stringify({database}));
       for(let i=0;i<900&&!fs.existsSync('/tmp/w1-browser-done');i++)await new Promise(resolve=>setTimeout(resolve,1000));
       if(!fs.existsSync('/tmp/w1-browser-done')||fs.readFileSync('/tmp/w1-browser-done','utf8')!=='passed')throw new Error('Web auth browser acceptance failed');
+      // Browser uses real background verification; deterministic lease tests below
+      // require dispatch disabled. Restart only this disposable acceptance API.
+      if(process.env.TEST_BROWSER_RANKED === 'true'){
+        api.kill('SIGTERM');await new Promise(resolve=>api.once('exit',resolve));
+        await startApi(false);
+      }
     }
     if (process.env.TEST_GATEWAY_BASE_URL) {
       if(spawnSync(process.execPath,['test/gateway.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Gateway suite failed');

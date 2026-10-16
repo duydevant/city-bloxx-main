@@ -47,7 +47,7 @@ export interface RunTicketRow {
   physics_version: string;
   ruleset_version: string;
   definition_id: string | null;
-  date_utc: string | null;
+  date_utc: string | Date | null;
   state: 'issued' | 'processing' | 'accepted' | 'rejected' | 'expired';
   submission_hash: string | null;
   lease_id: string | null;

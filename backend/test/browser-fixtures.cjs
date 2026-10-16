@@ -20,6 +20,14 @@ async function main(){
       const result=await db.query("SELECT action,count(*)::int AS count FROM audit_logs WHERE actor_id IN (SELECT id FROM users WHERE email=$1) GROUP BY action",[email]);process.stdout.write(JSON.stringify(result.rows));
     }else if(action==='cloud'){
       const result=await db.query(`SELECT u.id,s.revision,s.schema,s.payload,(SELECT count(*)::int FROM city_bloxx_save_backups b WHERE b.user_id=u.id) AS backups,(SELECT count(*)::int FROM city_bloxx_save_mutations m WHERE m.user_id=u.id) AS mutations FROM users u LEFT JOIN city_bloxx_saves s ON s.user_id=u.id WHERE u.email=$1`,[email]);process.stdout.write(JSON.stringify(result.rows[0]||null));
+    }else if(action==='ranked'){
+      const u=(await db.query('SELECT id FROM users WHERE email=$1',[email])).rows[0];
+      if(!u)throw Error('Fixture account missing');
+      const tickets=(await db.query('SELECT run_id,mode FROM city_bloxx_run_tickets WHERE user_id=$1',[u.id])).rows;
+      const submissions=(await db.query('SELECT s.run_id,s.state,s.result FROM city_bloxx_run_submissions s JOIN city_bloxx_run_tickets t USING(run_id) WHERE t.user_id=$1',[u.id])).rows;
+      const entries=(await db.query('SELECT run_id,population FROM city_bloxx_leaderboard_entries WHERE user_id=$1',[u.id])).rows;
+      const audits=(await db.query("SELECT count(*)::int AS n FROM audit_logs WHERE actor_id=$1 AND action='city_bloxx.run.accept'",[u.id])).rows[0].n;
+      process.stdout.write(JSON.stringify({id:u.id,tickets,submissions,entries,audits}));
     }else if(action==='suspend'){
       await db.query("UPDATE users SET status='suspended',token_version=token_version+1 WHERE email=$1",[email]);
     }else throw Error('Unknown fixture action');

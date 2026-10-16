@@ -123,7 +123,10 @@ async function main(){
   for(const e of list.entries)for(const key of ['userId','user_id','email','fullName','ticket','inputs','run_id','sessionId'])assert.equal(key in e,false);
   const own=status(await api('GET','/leaderboards/quick/me',undefined,a),200);assert.ok(own.entry);assert.equal(list.entries.find(e=>e.publicId===own.entry.publicId).rank,own.entry.rank);
   status(await api('GET','/leaderboards/quick/me'),401);
-  status(await api('GET',`/leaderboards/daily?dateUTC=${daily.t.config.daily.dateUTC}`),200);
+  const dailyBoard=status(await api('GET',`/leaderboards/daily?dateUTC=${daily.t.config.daily.dateUTC}`),200);
+  const dailyOwn=status(await api('GET',`/leaderboards/daily/me?dateUTC=${daily.t.config.daily.dateUTC}`,undefined,a),200);
+  assert.ok(dailyOwn.entry,'settled Daily must be visible in its calendar-date partition');
+  assert.equal(dailyBoard.entries.find(e=>e.publicId===dailyOwn.entry.publicId)?.rank,dailyOwn.entry.rank);
   for(const query of ['limit=51','limit=0','ownerId=forged','limit=nope'])status(await api('GET',`/leaderboards/quick?${query}`),422);
   status(await api('GET','/leaderboards/daily?dateUTC=2026-02-30'),400);
   status(await api('GET','/leaderboards/quick?cursor=invalid'),400);

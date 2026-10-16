@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/i18n"
 import type { TowerSession } from "../../../packages/city-bloxx-renderer/src/session"
 import { browserCloud, registerCheckpoint, trackLocalDrain, waitLocalDrain } from "@/lib/cloud/browser"
 import { useCloud } from "@/lib/cloud/use-cloud"
+import { browserRanked } from "@/lib/ranked/browser"
 export function QuickTower({
   initialScreen,
   content = false,
@@ -49,6 +50,7 @@ export function QuickTower({
         },
       },
       audio: createTowerAudio(),
+      ranked:cloud.scope && cloud.scope!=="guest" ? browserRanked().port(cloud.scope) : undefined,
       seed: () => Date.now() & 0x7fffffff,
       locale: localeRef.current,
       showLanguageSwitch: false,
@@ -94,7 +96,7 @@ export function QuickTower({
       trackLocalDrain(drain)
       sessionRef.current = null
     }
-  }, [setLocale, router, content, available, mount])
+  }, [setLocale, router, content, available, mount, cloud.scope])
   useEffect(() => {
     const pause = () => {
       void sessionRef.current?.checkpointAndPause().then(() => browserCloud().flush())
