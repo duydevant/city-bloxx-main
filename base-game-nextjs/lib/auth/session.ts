@@ -309,6 +309,37 @@ export class AuthSession {
     }
     await (this.env.lock ? this.env.lock(work) : work())
   }
+  adoptPortalSession(tokens: AuthTokens, expiresAt?: number) {
+    const resolvedExpiresAt = expiresAt ?? this.env.now() + tokens.expiresIn * 1000
+    let revision = this.revision
+    try {
+      revision = String(BigInt(this.control().revision) + BigInt(1))
+    } catch {
+      this.canRefresh = false
+    }
+    this.initialized = true
+    this.accept(tokens, resolvedExpiresAt, revision, true)
+    try {
+      if (this.env.lock && this.canRefresh) {
+        this.write({ revision, blocked: false })
+        this.env.post({ type: "session", revision, tokens, expiresAt: resolvedExpiresAt })
+      }
+    } catch {}
+  }
+  adoptPortalGuest() {
+    let revision = this.revision
+    try {
+      revision = String(BigInt(this.control().revision) + BigInt(1))
+      this.write({ revision, blocked: true, guest: true })
+    } catch {
+      this.canRefresh = false
+    }
+    this.initialized = true
+    this.clear(null, true)
+    try {
+      this.env.post({ type: "clear", revision, guest: true })
+    } catch {}
+  }
   dispose() {
     this.stopTimer()
     this.unlisten()

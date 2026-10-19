@@ -12,52 +12,119 @@ import "../../../packages/city-bloxx-renderer/src/session.css"
 import styles from "./quick-tower.module.css"
 import { useI18n } from "@/lib/i18n"
 import type { TowerSession } from "../../../packages/city-bloxx-renderer/src/session"
+import { browserAuth } from "@/lib/auth/session"
 import { browserCloud, registerCheckpoint, trackLocalDrain, waitLocalDrain } from "@/lib/cloud/browser"
 import { useCloud } from "@/lib/cloud/use-cloud"
+import {
+  createPortalAudio,
+  createPortalBridge,
+  createPortalLifecycle,
+  createPortalScorePort,
+  parsePortalQueryConfig,
+  type PortalBridge,
+} from "@/lib/portal/bridge"
 import { browserRanked } from "@/lib/ranked/browser"
+
 export function QuickTower({
   initialScreen,
   content = false,
+  embed = false,
 }: {
   initialScreen?: SessionScreen
   content?: boolean
+  embed?: boolean
 }) {
   const { locale, setLocale } = useI18n()
   const router = useRouter(),
     params = useSearchParams(),
     query = params.toString()
+  const parsedPortal = parsePortalQueryConfig(new URLSearchParams(query))
+  const resolvedInitialScreen =
+    initialScreen ??
+    parsedPortal.screen ??
+    (params.has("screen") ? sessionScreen(params.get("screen")) : undefined)
+  const resolvedInitialReplay = parsedPortal.replayId ?? params.get("replay") ?? undefined
+  const portalQuery = useRef(parsedPortal)
   const initial = useRef({
-    screen: initialScreen ?? (params.has("screen") ? sessionScreen(params.get("screen")) : undefined),
-    replay: params.get("replay") ?? undefined,
+    screen: resolvedInitialScreen,
+    replay: resolvedInitialReplay,
   })
+  const currentScreenRef = useRef<SessionScreen>(resolvedInitialScreen ?? "quick")
   const lastQuery = useRef(query)
   const root = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<TowerSession | null>(null)
-  const localeRef = useRef(locale)
+  const bridgeRef = useRef<PortalBridge | null>(null)
+  const localeRef = useRef(parsedPortal.locale ?? locale)
   const cloud = useCloud()
   const available = cloud.ready,
     mount = cloud.mount
+
+  useEffect(() => {
+    if (embed && portalQuery.current.locale && portalQuery.current.locale !== localeRef.current) {
+      localeRef.current = portalQuery.current.locale
+      setLocale(portalQuery.current.locale)
+    }
+  }, [embed, setLocale])
+
   useEffect(() => {
     if (!root.current || !available) return
     const binding = browserCloud().attach()
+    const portalAudio = embed
+      ? createPortalAudio(portalQuery.current.muted, createTowerAudio, (muted) => {
+          bridgeRef.current?.send("audioChange", { muted })
+        })
+      : null
+    const portalLifecycle = embed
+      ? createPortalLifecycle(false, portalAudio ?? undefined, (paused) => {
+          bridgeRef.current?.send("lifecycleChange", {
+            paused,
+            muted: portalAudio?.isMuted() ?? false,
+          })
+        })
+      : null
+    const portalScore = embed
+      ? createPortalScorePort((payload) => {
+          bridgeRef.current?.notifyScore(payload)
+        })
+      : null
+
     const session = mountQuickTower(root.current, {
       assets: "/game",
       save: {
         ...binding.port,
         load: async () => {
           await waitLocalDrain()
-          return binding.port.load()
+          const loaded = await binding.port.load()
+          portalScore?.reconcileSave(loaded)
+          bridgeRef.current?.notifySaveState(loaded)
+          return loaded
+        },
+        save: async (value) => {
+          const ok = await binding.port.save(value)
+          if (ok) {
+            portalScore?.reconcileSave(value)
+            bridgeRef.current?.notifySaveState(value)
+          }
+          return ok
         },
       },
-      audio: createTowerAudio(),
-      ranked:cloud.scope && cloud.scope!=="guest" ? browserRanked().port(cloud.scope) : undefined,
+      audio: portalAudio ?? createTowerAudio(),
+      lifecycle: portalLifecycle ?? undefined,
+      score: portalScore ?? undefined,
+      ranked: cloud.scope && cloud.scope !== "guest" ? browserRanked().port(cloud.scope) : undefined,
       seed: () => Date.now() & 0x7fffffff,
       locale: localeRef.current,
-      showLanguageSwitch: false,
+      showLanguageSwitch: embed ? portalQuery.current.showLanguageSwitch : false,
+      showSoundControl: embed ? portalQuery.current.showSoundControl : true,
       initialScreen: initial.current.screen,
       initialReplayId: initial.current.replay,
       presentation: content ? "content" : "game",
       onNavigate: (screen, replayId) => {
+        currentScreenRef.current = screen
+        if (embed) {
+          bridgeRef.current?.notifyScreenChange(screen, replayId)
+          return
+        }
         const routes: Partial<Record<SessionScreen, string>> = {
           statistics: "/statistics",
           history: "/my-towers",
@@ -75,7 +142,7 @@ export function QuickTower({
       capabilities: {
         platform: "web",
         externalServices: true,
-        standardScore: false,
+        standardScore: embed,
         account: "backend-ready",
       },
       tracking: {
@@ -85,18 +152,77 @@ export function QuickTower({
             .join(""),
         now: () => Date.now(),
       },
-      onLocaleChange: (next) => setLocale(next === "vi" ? "vi" : "en"),
+      onLocaleChange: (next) => {
+        const normalized = next === "vi" ? "vi" : "en"
+        localeRef.current = normalized
+        setLocale(normalized)
+        bridgeRef.current?.notifyLocaleChange(normalized)
+      },
     })
     sessionRef.current = session
+
+    let unsubscribeAuth = () => {}
+    if (embed && portalAudio && portalLifecycle) {
+      const envOrigins = (process.env.NEXT_PUBLIC_PORTAL_ALLOWED_ORIGINS ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      const allowedOrigins =
+        portalQuery.current.parentOrigin !== "*"
+          ? [portalQuery.current.parentOrigin, ...envOrigins]
+          : envOrigins.length > 0
+            ? envOrigins
+            : ["*"]
+
+      const bridge = createPortalBridge({
+        allowedOrigins,
+        audio: portalAudio,
+        lifecycle: portalLifecycle,
+        getLocale: () => localeRef.current,
+        setLocale: (nextLocale) => {
+          localeRef.current = nextLocale
+          setLocale(nextLocale)
+          sessionRef.current?.setLocale(nextLocale)
+        },
+        getScreen: () => currentScreenRef.current,
+        navigate: (targetScreen, replayId) => {
+          currentScreenRef.current = targetScreen
+          void session.ready.then(() => session.navigate(targetScreen, replayId))
+        },
+        getAuth: () => browserAuth().snapshot(),
+        adoptAuthSession: (tokens, expiresAt) => {
+          browserAuth().adoptPortalSession(tokens, expiresAt)
+        },
+        adoptAuthGuest: () => {
+          browserAuth().adoptPortalGuest()
+        },
+        onCheckpoint: async () => {
+          await session.checkpointAndPause()
+          await browserCloud().flush()
+        },
+      })
+      bridgeRef.current = bridge
+      unsubscribeAuth = browserAuth().subscribe(() => {
+        bridge.notifyAuthState(browserAuth().snapshot())
+      })
+      void session.ready.then(() => {
+        bridge.notifyReady()
+      })
+    }
+
     const unregister = registerCheckpoint(() => session.checkpointAndPause())
     return () => {
+      unsubscribeAuth()
+      bridgeRef.current?.dispose()
+      bridgeRef.current = null
+      portalLifecycle?.dispose()
       unregister()
       session.dispose()
       const drain = session.whenSaved().finally(binding.close)
       trackLocalDrain(drain)
       sessionRef.current = null
     }
-  }, [setLocale, router, content, available, mount, cloud.scope])
+  }, [setLocale, router, content, embed, available, mount, cloud.scope])
   useEffect(() => {
     const pause = () => {
       void sessionRef.current?.checkpointAndPause().then(() => browserCloud().flush())
@@ -120,7 +246,8 @@ export function QuickTower({
   }, [query, params])
   return (
     <section
-      className={content ? styles.content : styles.shell}
+      className={content ? styles.content : embed ? styles.embedShell : styles.shell}
+      data-embed={embed ? "true" : undefined}
       aria-label={locale === "vi" ? "City Bloxx · tiến trình riêng" : "City Bloxx · personal progress"}
     >
       {!available && (
@@ -134,3 +261,4 @@ export function QuickTower({
     </section>
   )
 }
+

@@ -25,11 +25,12 @@ const nextConfig: NextConfig = {
 
   // ─── Security & SEO HTTP Headers ─────────────────────────────────────────
   async headers() {
+    const frameAncestors = process.env.CITY_BLOXX_EMBED_FRAME_ANCESTORS?.trim() || "*"
     return [
       {
-        source: "/(.*)",
+        source: "/((?!embed).*)",
         headers: [
-          // Prevent clickjacking
+          // Prevent clickjacking on standalone website pages
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           // Prevent MIME sniffing
           { key: "X-Content-Type-Options", value: "nosniff" },
@@ -38,6 +39,18 @@ const nextConfig: NextConfig = {
           // Legacy XSS protection for old browsers
           { key: "X-XSS-Protection", value: "1; mode=block" },
           // Restrict browser features not needed by this site
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+      {
+        source: "/embed",
+        headers: [
+          { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",

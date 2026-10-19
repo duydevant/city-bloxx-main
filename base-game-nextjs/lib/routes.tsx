@@ -1,5 +1,5 @@
-﻿export enum Routes {
-  HOME = "/", PLAY = "/play", BUILD_CITY_GUIDE = "/guide/build-city", PROFILE = "/profile",
+export enum Routes {
+  HOME = "/", PLAY = "/play", EMBED = "/embed", BUILD_CITY_GUIDE = "/guide/build-city", PROFILE = "/profile",
   SIGN_IN = "/sign-in", SIGN_UP = "/sign-up",
 }
 // Profile also shows Guest/local progress; authentication is checked per account action.

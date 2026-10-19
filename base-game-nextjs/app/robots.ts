@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow:["/sign-in","/sign-up","/profile","/statistics","/my-towers","/verify-email","/reset-password","/forgot-password","/resend-verification"],
+      disallow:["/embed","/sign-in","/sign-up","/profile","/statistics","/my-towers","/verify-email","/reset-password","/forgot-password","/resend-verification"],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,
   }
