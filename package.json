@@ -22,6 +22,7 @@
     "test:daily": "node scripts/daily-evidence.cjs",
     "test:progression": "node scripts/progression-evidence.cjs",
     "test:cosmetics": "node scripts/cosmetics-evidence.cjs",
+    "evidence:c5": "node scripts/c5-districts-evidence.cjs",
     "lint": "npm --prefix base-game-nextjs run lint",
     "build:web": "npm run assets:check && npm --prefix base-game-nextjs run build",
     "build:playable": "npm run assets:check && npm --prefix base-playable-main run package",

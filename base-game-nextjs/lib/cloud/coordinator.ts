@@ -300,14 +300,15 @@ export class CloudCoordinator {
           record = await this.env.storage.change(owner, (record) => {
             if (record.pending || sameSave(record.raw, record.base) || record.conflict || record.rejected)
               return record
+            const parsed = parseSave(record.raw!)
             return {
               ...record,
               pending: {
                 body: {
                   expectedRevision: record.revision,
                   mutationId: this.env.uuid(),
-                  schema: 4,
-                  payload: parseSave(record.raw!),
+                  schema: parsed.schema,
+                  payload: parsed,
                 },
                 raw: record.raw!,
               },
@@ -486,7 +487,7 @@ export class CloudCoordinator {
       if (record.pending) backup(JSON.stringify(record.pending), "resolve-pending")
       const body: Mutation =
         cloud.revision === "0"
-          ? { expectedRevision: "0", mutationId: this.env.uuid(), schema: 4, payload: parseSave(selected) }
+          ? { expectedRevision: "0", mutationId: this.env.uuid(), schema: parseSave(selected).schema, payload: parseSave(selected) }
           : {
               expectedRevision: cloud.revision,
               mutationId: this.env.uuid(),

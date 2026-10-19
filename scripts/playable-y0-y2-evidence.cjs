@@ -429,7 +429,7 @@ async function main() {
       scoreCalls: window.__sdkLog.scoreCalls,
     })`);
     assert.equal(afterRecovery.cloud.v, 1);
-    assert.equal(afterRecovery.cloud.d.schema, 4);
+    assert.equal(afterRecovery.cloud.d.schema, 5);
     assert.equal(afterRecovery.cloud.d.standardQuickBest, 50);
     assert.deepEqual(afterRecovery.scoreCalls, [50], "Saved PB reconciled and sent on recovery");
     assert.equal(afterRecovery.cloud.score.ackedScore, 50);

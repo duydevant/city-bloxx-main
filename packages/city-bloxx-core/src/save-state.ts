@@ -9,9 +9,11 @@ import { validateDaily } from "./daily";
 import { restoreTower } from "./checkpoint";
 import { acceptedProgression, emptyProgression, normalizeProgression, settleProgression, type ProgressionState } from "./progression";
 import { emptyInventory, grantCosmetics, normalizeInventory, validateRunEquipment, type InventoryState } from "./cosmetics";
+import { emptyDistricts, normalizeDistricts, reconcileDistrictsState, type DistrictsState } from "./districts";
 export type { DailyState } from "./daily-state";
 export type { ProgressionState } from "./progression-types";
 export type { InventoryState } from "./cosmetics";
+export type { DistrictsState } from "./districts";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
@@ -23,15 +25,15 @@ export function completeTutorial(save: GameSave, mode: keyof TutorialState): Gam
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
-  schema: 4; standardQuickBest: number; assistQuickBest: number; runs: number;
-  lastReplay: RunRecord | null; city: CitySave; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
+  schema: 5; standardQuickBest: number; assistQuickBest: number; runs: number;
+  lastReplay: RunRecord | null; city: CitySave; districts: DistrictsState; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
   progression: ProgressionState; inventory: InventoryState; daily: DailyState;
   history: RunSummary[]; replays: { id: string; record: RunRecord }[];
   replayRefs: { latest: string | null; best: string | null; pinned: string | null };
   tracking: { installationId: string; nextSequence: number; settled: [number, number][]; activeQuick: ActiveQuick | null; pendingCity: PendingCity | null };
 }
 export function emptySave(): GameSave {
-  return { schema: 4, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(),
+  return { schema: 5, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(), districts: emptyDistricts(),
     settings: { muted: false, reducedMotion: null, locale: null }, tutorials: { quick:false, city:false, daily:false }, stats: emptyStats(),
     progression: emptyProgression(),
     inventory: emptyInventory(),
@@ -122,23 +124,31 @@ function validateV4(s: GameSave): GameSave {
   }
   next.lastReplay = next.replays.find(r => r.id === next.replayRefs.latest)?.record ?? null;
   next.history = next.history.map(h => ({ ...h, replayStatus: next.replays.some(r => r.id === h.identity.id) ? "available" : h.replayStatus === "available" ? "unsupported" : h.replayStatus }));
-  return next;
+  return { ...next, schema: 5 };
 }
 export function migrateSave(value: unknown): GameSave {
   if (!value || typeof value !== "object") throw new Error("Invalid save; original data preserved");
   const s = value as GameSave;
-  if (![1, 2, 3, 4].includes(s.schema)) throw new Error("Unknown save schema; original save preserved");
-  if (s.schema === 4) {
+  if (![1, 2, 3, 4, 5].includes(s.schema as number)) throw new Error("Unknown save schema; original save preserved");
+  if ((s.schema as number) === 4 || (s.schema as number) === 5) {
     if (![s.standardQuickBest, s.assistQuickBest, s.runs].every(integer)) reject();
     const legacyOwned = (s.city as CitySave & { inventory?: { skins: string[] } }).inventory?.skins ?? [];
-    return validateV4({ ...s, inventory: normalizeInventory(s.inventory, legacyOwned), city: validateCity(s.city), stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
+    const validatedCity = validateCity(s.city, s.districts);
+    const { city, districts } = normalizeDistricts((s.schema as number) === 4 ? undefined : s.districts, validatedCity, 0);
+    return validateV4({ ...s, schema: 5, inventory: normalizeInventory(s.inventory, legacyOwned), city, districts, stats: s.stats?.byMode && s.stats.byMode.daily === undefined ? { ...s.stats, byMode: { ...s.stats.byMode, daily: emptyTotals() } } : s.stats });
   }
   const next = emptySave();
   next.tutorials = { quick:true, city:true, daily:true }; // Existing players never repeat onboarding.
   next.standardQuickBest = integer(s.standardQuickBest) ? s.standardQuickBest : 0;
   next.assistQuickBest = integer(s.assistQuickBest) ? s.assistQuickBest : 0;
   next.runs = integer(s.runs) ? s.runs : 0;
-  if ((s.schema as number) === 3) { next.city = validateCity(s.city); next.inventory = normalizeInventory(next.inventory, (s.city as CitySave & { inventory?: { skins: string[] } }).inventory?.skins ?? []); }
+  if ((s.schema as number) === 3) {
+    const validatedCity = validateCity(s.city);
+    const { city, districts } = normalizeDistricts(undefined, validatedCity, 0);
+    next.city = city;
+    next.districts = districts;
+    next.inventory = normalizeInventory(next.inventory, (s.city as CitySave & { inventory?: { skins: string[] } }).inventory?.skins ?? []);
+  }
   if (s.lastReplay) {
     let supported: RunRecord | null = null;
     try { supported = verifyRecord(s.lastReplay); } catch { /* Optional playback must not destroy supported summary metadata. */ }
@@ -233,10 +243,52 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
 export function acceptTrackedCity(save: GameSave, runId: string, at: number): GameSave {
   const pending = save.city.pending, context = save.tracking.pendingCity;
   if (!pending || pending.runId !== runId || !context || context.cityRunId !== runId) return save;
+  const districtId = pending.districtId ?? "downtown";
+  if (districtId === "harbor" && !save.districts.unlockedDistricts.includes("harbor")) {
+    throw new Error("District is locked");
+  }
   const game = restoreTower(pending.checkpoint), summary = makeSummary(game, context, at);
   const settled = settleRun(save, summary);
   const progression = acceptedProgression(settled, summary, runId, at);
-  return { ...settled, progression, city: acceptCityTower(settled.city, runId), tracking: { ...settled.tracking, pendingCity: null } };
+  if (districtId === "harbor") {
+    const harborProxy: CitySave = {
+      ...settled.city,
+      lots: copy(settled.districts.harbor.lots),
+      stats: copy(settled.districts.harbor.stats),
+    };
+    const acceptedHarbor = acceptCityTower(harborProxy, runId);
+    const updatedCity: CitySave = {
+      ...settled.city,
+      unlocked: acceptedHarbor.unlocked,
+      nextRun: acceptedHarbor.nextRun,
+      pending: null,
+    };
+    const updatedDistricts: DistrictsState = {
+      ...settled.districts,
+      harbor: { lots: acceptedHarbor.lots, stats: acceptedHarbor.stats },
+    };
+    const reconciled = reconcileDistrictsState(updatedCity, updatedDistricts, at);
+    return {
+      ...settled,
+      progression,
+      city: reconciled.city,
+      districts: reconciled.districts,
+      tracking: { ...settled.tracking, pendingCity: null },
+    };
+  }
+  const acceptedDowntown = acceptCityTower(settled.city, runId);
+  const updatedDistricts: DistrictsState = {
+    ...settled.districts,
+    downtown: { lots: copy(acceptedDowntown.lots), stats: copy(acceptedDowntown.stats) },
+  };
+  const reconciled = reconcileDistrictsState(acceptedDowntown, updatedDistricts, at);
+  return {
+    ...settled,
+    progression,
+    city: reconciled.city,
+    districts: reconciled.districts,
+    tracking: { ...settled.tracking, pendingCity: null },
+  };
 }
 // Compatibility callers intentionally allocate a NEW run; the session uses persisted contexts.
 export function commitRun(save: GameSave, record: RunRecord): GameSave {
@@ -256,6 +308,9 @@ export function saveByteSize(save: GameSave): number {
 }
 export function prepareSave(save: GameSave, maxBytes = SAVE_BUDGET_BYTES): GameSave {
   const next = copy(retained(save)), protectedIds = new Set(Object.values(next.replayRefs));
+  const reconciled = reconcileDistrictsState(next.city, next.districts ?? emptyDistricts(), 0);
+  next.city = reconciled.city;
+  next.districts = reconciled.districts;
   let index = lastUnprotected(next.history, protectedIds);
   while (saveByteSize(next) + 64 > maxBytes && index >= 0) {
     next.history.splice(index, 1); index = lastUnprotected(next.history, protectedIds);

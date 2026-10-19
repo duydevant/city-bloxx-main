@@ -45,7 +45,7 @@ assert(Math.max(payload.utf8,payload.utf16,envelope.utf8,envelope.utf16)<=core.S
 assert.throws(()=>core.prepareSave(save,100),/preserved/);
 const sources=["packages/city-bloxx-core/src/save-state.ts","packages/city-bloxx-core/src/tracking.ts","packages/city-bloxx-renderer/src/save-controller.ts","packages/city-bloxx-renderer/src/session.ts","packages/city-bloxx-renderer/src/data-screens.ts","packages/city-bloxx-content/session-locales.ts","packages/city-bloxx-content/settlement.ts"];
 const sourceHash=crypto.createHash("sha256");for(const source of sources)sourceHash.update(fs.readFileSync(path.join(root,source)));
-const report={schema:4,physics:core.PHYSICS_VERSION,rewardVersion:core.RUN_REWARD_VERSION,sourceSHA256:sourceHash.digest("hex"),payload,envelope,budgetBytes:core.SAVE_BUDGET_BYTES,
+const report={schema:save.schema,physics:core.PHYSICS_VERSION,rewardVersion:core.RUN_REWARD_VERSION,sourceSHA256:sourceHash.digest("hex"),payload,envelope,budgetBytes:core.SAVE_BUDGET_BYTES,
   history:save.history.length,replays:save.replays.length,attempts:save.stats.totals.attempts,xp:save.progression.xp,receipts:save.tracking.settled,
   preserved:"legacy v12 pending/PB/counters; receipts and XP survive 70 settlements and pruning; repeated settlement is a no-op; mandatory budget refusal leaves original unchanged"};
 for(const [name,value] of [["save-before-schema3",before],["save-after-migration",migrated],["save-after-70-runs",save],["save-size-report",report]])fs.writeFileSync(path.join(out,name+".json"),JSON.stringify(value,null,2));

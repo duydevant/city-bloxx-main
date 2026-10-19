@@ -1,0 +1,48 @@
+{
+  "version": "harbor-art-1",
+  "generator": "built-in image_gen",
+  "promptSpec": "plan/12-art-requirements.md#9-harbor-prompts",
+  "normalization": "1536x1024 opaque map <=1MiB; 512x512 thumbnail cropped from map; 256x384 RGBA landmark cutout anchored at (128,320); Default and Brick untouched",
+  "packBytes": 597543,
+  "assets": [
+    {
+      "path": "bg/harbor/bg_harbor_default_map.png",
+      "source": "art/source/bg/harbor/bg_harbor_default_map_v001.png",
+      "sourceCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      },
+      "width": 1536,
+      "height": 1024,
+      "bytes": 476545
+    },
+    {
+      "path": "bg/harbor/bg_harbor_default_thumb.png",
+      "source": "art/approved/bg/harbor/bg_harbor_default_map.png",
+      "sourceCrop": {
+        "left": 256,
+        "top": 0,
+        "width": 1024,
+        "height": 1024
+      },
+      "width": 512,
+      "height": 512,
+      "bytes": 74195
+    },
+    {
+      "path": "city/harbor/landmark_dock_clock_tower_mini.png",
+      "source": "art/source/city/harbor/landmark_dock_clock_tower_mini_v001.png",
+      "sourceCrop": {
+        "left": 262,
+        "top": 77,
+        "width": 333,
+        "height": 1092
+      },
+      "width": 256,
+      "height": 384,
+      "bytes": 46803
+    }
+  ]
+}

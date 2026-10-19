@@ -2,12 +2,17 @@ import { BUILDING_IDS, BUILDINGS, isBuildingId, type BuildingId } from "./buildi
 import { checkpointTower, restoreTower, type TowerCheckpoint } from "./checkpoint";
 import { QuickTowerGame, type RunResult } from "./run";
 import { DEFAULT_EQUIPMENT, validateRunEquipment, type RunEquipment } from "./cosmetics";
+import { isDistrictId, type DistrictId } from "../../city-bloxx-content/districts";
+
+function validDistrict(value: unknown): value is DistrictId {
+  return value === "downtown" || value === "harbor" || isDistrictId(value);
+}
 
 export interface CityBuilding {
   runId: string; classId: BuildingId; skin: string; roofSkin?: string; floors: number; population: number;
   roof: boolean; complete: boolean; accuracy: number; rating: RunResult["rating"];
 }
-export interface PendingCityTower { runId: string; lot: number; classId: BuildingId; checkpoint: TowerCheckpoint; equipment?: RunEquipment }
+export interface PendingCityTower { runId: string; districtId?: DistrictId; lot: number; classId: BuildingId; checkpoint: TowerCheckpoint; equipment?: RunEquipment }
 export interface CitySave {
   version: 1; lots: (CityBuilding | null)[]; unlocked: BuildingId[]; nextRun: number;
   pending: PendingCityTower | null;
@@ -30,17 +35,18 @@ export function placementStatus(city: CitySave, lot: number, classId: BuildingId
   return { valid: Number.isInteger(lot) && lot >= 0 && lot < 25 && !locked && missing.length === 0, locked, missing };
 }
 const copy = (city: CitySave): CitySave => JSON.parse(JSON.stringify(city));
-export function beginCityTower(city: CitySave, lot: number, classId: BuildingId, seed: number, equipment: RunEquipment = { ...DEFAULT_EQUIPMENT }): CitySave {
+export function beginCityTower(city: CitySave, lot: number, classId: BuildingId, seed: number, equipment: RunEquipment = { ...DEFAULT_EQUIPMENT }, districtId: DistrictId = "downtown"): CitySave {
   if (city.pending) throw new Error("Finish or cancel the pending tower first");
+  if (!validDistrict(districtId)) throw new Error("Invalid district");
   if (!placementStatus(city, lot, classId).valid) throw new Error("Invalid city placement");
   const next = copy(city), game = new QuickTowerGame({ seed, mode: "city", assist: false, building: classId });
-  next.pending = { runId: `city-${next.nextRun++}`, lot, classId, checkpoint: checkpointTower(game), equipment: validateRunEquipment(equipment,classId) };
+  next.pending = { runId: `city-${next.nextRun++}`, districtId, lot, classId, checkpoint: checkpointTower(game), equipment: validateRunEquipment(equipment,classId) };
   return next;
 }
 export function updateCityCheckpoint(city: CitySave, game: QuickTowerGame): CitySave {
   if (!city.pending || game.config.mode !== "city" || game.config.building !== city.pending.classId || game.config.seed !== city.pending.checkpoint.config.seed) throw new Error("City checkpoint does not match pending tower");
   // Only pending changes per drop/impact; do not JSON-serialize every completed lot on the input path.
-  return { ...city, pending: { ...city.pending, checkpoint: checkpointTower(game) } };
+  return { ...city, pending: { ...city.pending, districtId: city.pending.districtId ?? "downtown", checkpoint: checkpointTower(game) } };
 }
 export function cancelCityTower(city: CitySave): CitySave { const next = copy(city); next.pending = null; return next; }
 export function acceptCityTower(city: CitySave, runId: string): CitySave {
@@ -69,7 +75,7 @@ export function demolishCityBuilding(city: CitySave, lot: number): CitySave {
   const next = copy(city); next.lots[lot] = null; return next;
 }
 function integer(value: unknown, max = 1000000000): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= max; }
-export function validateCity(value: unknown): CitySave {
+export function validateCity(value: unknown, districts?: { harbor?: { lots?: (CityBuilding | null)[] } }): CitySave {
   if (!value || typeof value !== "object") throw new Error("Invalid city; original preserved");
   const city = value as CitySave;
   if (city.version !== 1 || !Array.isArray(city.lots) || city.lots.length !== 25 || !integer(city.nextRun) || city.nextRun < 1 || !Array.isArray(city.unlocked) || !city.unlocked.includes("residential") || city.unlocked.some(id => !isBuildingId(id)) || new Set(city.unlocked).size !== city.unlocked.length || !city.stats || !integer(city.stats.builds) || !integer(city.stats.floors) || !integer(city.stats.completed) || !city.stats.byClass || BUILDING_IDS.some(id => !integer(city.stats.byClass[id]))) throw new Error("Invalid city bounds; original preserved");
@@ -81,14 +87,19 @@ export function validateCity(value: unknown): CitySave {
   });
   if (city.pending !== null) {
     const p = city.pending;
-    if (!p || !isBuildingId(p.classId) || !integer(p.lot, 24) || p.runId !== `city-${city.nextRun - 1}` || runIds.has(p.runId) || !placementStatus(city, p.lot, p.classId).valid) throw new Error("Invalid pending city tower; original preserved");
+    const pDistrict = p?.districtId ?? "downtown";
+    const targetLots = pDistrict === "harbor" && Array.isArray(districts?.harbor?.lots) ? districts!.harbor!.lots! : city.lots;
+    if (!p || !validDistrict(pDistrict) || !isBuildingId(p.classId) || !integer(p.lot, 24) || p.runId !== `city-${city.nextRun - 1}` || runIds.has(p.runId) || !placementStatus({ ...city, lots: targetLots }, p.lot, p.classId).valid) throw new Error("Invalid pending city tower; original preserved");
     const game = restoreTower(p.checkpoint);
     if (game.config.building !== p.classId) throw new Error("Pending class mismatch");
   }
   const next = copy(city);
   const validItemId = (id: unknown) => typeof id === "string" && /^[a-zA-Z0-9_.-]{1,80}$/.test(id);
   next.lots.forEach(lot => { if (lot) { if(!validItemId(lot.skin) || lot.roofSkin !== undefined && !validItemId(lot.roofSkin))throw new Error("Invalid City cosmetic snapshot");validateRunEquipment({building:lot.skin,roof:lot.roofSkin??"default",crane:"default"},lot.classId); } });
-  if (next.pending) next.pending.equipment = validateRunEquipment(next.pending.equipment,next.pending.classId);
+  if (next.pending) {
+    next.pending.districtId = next.pending.districtId ?? "downtown";
+    next.pending.equipment = validateRunEquipment(next.pending.equipment,next.pending.classId);
+  }
   delete (next as CitySave & { inventory?: unknown }).inventory; // GameSave owns the only inventory.
   return next;
 }

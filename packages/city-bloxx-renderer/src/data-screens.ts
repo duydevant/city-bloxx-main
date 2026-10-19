@@ -1,5 +1,5 @@
 import { type SessionTextKey } from "../../city-bloxx-content/session-locales";
-import { BUILDING_IDS, cityPopulation, perfectRate, type BuildingId, type GameSave, type RunRecord, type RunSummary, type StatTotals, type StatsGroup } from "../../city-bloxx-core/src/index";
+import { BUILDING_IDS, perfectRate, totalCityPopulation, type BuildingId, type GameSave, type RunRecord, type RunSummary, type StatTotals, type StatsGroup } from "../../city-bloxx-core/src/index";
 
 interface DataScreenOptions {
   panel: HTMLElement; save(): GameSave; t(en: SessionTextKey): string; className(id: BuildingId): string;
@@ -36,13 +36,15 @@ export function createDataScreens(o: DataScreenOptions) {
     if (page === 2) selector(BUILDING_IDS.map(id => [id, o.className(id)]), building, next => statistics(page, group, next));
     else selector([["all", t("All tracked runs")], ["quick-standard", t("Quick Standard")], ["quick-assist", t("Quick Assist")], ["city", t("Build City")], ["daily", t("Daily Tower")]], group, next => statistics(page, next, building));
     const quality = totals.quality;
+    const acceptedClassBuilds = save.districts.downtown.stats.byClass[building] + save.districts.harbor.stats.byClass[building];
+    const acceptedTotalBuilds = save.districts.downtown.stats.builds + save.districts.harbor.stats.builds;
     o.showStats(page === 1 ? [[t("Perfect rate"), percent(totals)], [t("Scored body drops"), number(totals.scoredBody)],
       [t("Great / Good / Risky"), `${quality.great} / ${quality.good} / ${quality.risky}`], [t("Body misses"), number(quality.miss)],
       [t("Perfect roofs"), number(totals.roof.perfect)], [t("Best combo / streak"), `${totals.maxCombo} / ${totals.bestStreak}`]] :
       [[t("Tracked attempts"), number(totals.attempts)], [t("Best height"), number(totals.bestHeight)],
       [t("Earned population"), number(totals.population)], [t("Complete bodies"), number(totals.completed)],
-      [page === 2 ? t("Accepted complete City builds") : t("Accepted City builds"), number(page === 2 ? save.city.stats.byClass[building] : save.city.stats.builds)],
-      [t("Current city population"), number(cityPopulation(save.city))]]);
+      [page === 2 ? t("Accepted complete City builds") : t("Accepted City builds"), number(page === 2 ? acceptedClassBuilds : acceptedTotalBuilds)],
+      [t("Current city population"), number(totalCityPopulation(save))]]);
     o.panel.classList.add("cb-data-panel"); refresh = () => statistics(page, group, building);
   }
   function history(page = historyPage, filter: "all" | StatsGroup = historyFilter): void {

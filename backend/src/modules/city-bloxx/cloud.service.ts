@@ -21,7 +21,7 @@ const metadata = (save?: CloudSaveRow) =>
         schema: save.schema,
         hash: save.payload_hash,
         updatedAt: save.updated_at,
-        compatibility: [1, 2, 3, 4].includes(save.schema) ? 'compatible' : 'incompatible',
+        compatibility: [1, 2, 3, 4, 5].includes(save.schema) ? 'compatible' : 'incompatible',
       }
     : {
         revision: '0',
@@ -181,7 +181,7 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
         // A future cloud schema cannot be overwritten by a client that cannot read it.
         if (
           current &&
-          ![1, 2, 3, 4].includes(current.schema) &&
+          ![1, 2, 3, 4, 5].includes(current.schema) &&
           resolve?.choice !== 'cloud'
         )
           throw gameError(
@@ -191,7 +191,7 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
             { latest: metadata(current) },
           );
         const payload = resolve?.choice === 'cloud' ? current.payload : validated.payload;
-        const schema = resolve?.choice === 'cloud' ? current.schema : 4;
+        const schema = resolve?.choice === 'cloud' ? current.schema : 5;
         const hash =
           resolve?.choice === 'cloud' ? current.payload_hash : validated.payloadHash;
         if ((await repo.savePayloadBytes(payload)) > 262144)

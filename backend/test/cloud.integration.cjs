@@ -31,7 +31,7 @@ async function user(superAdmin=false) {
   const login=status(await api('POST','/auth/login',{email,password}),201);
   return {id:r.data.id,...login.data};
 }
-const write=(revision,payload=core.emptySave())=>({expectedRevision:revision,mutationId:randomUUID(),schema:4,payload});
+const write=(revision,payload=core.emptySave())=>({expectedRevision:revision,mutationId:randomUUID(),schema:payload.schema,payload});
 const read=u=>api('GET','/city-bloxx/save',undefined,u);
 const put=(u,body)=>api('PUT','/city-bloxx/save',body,u);
 const resolve=(revision,choice,payload)=>({expectedRevision:revision,mutationId:randomUUID(),choice,local:{schema:payload.schema,rawPayload:JSON.stringify(payload)},localBackupAcknowledged:true});
@@ -141,7 +141,7 @@ async function main() {
     assert.deepEqual(status(await read(b),200).data.payload,future);
   });
   await test('BIGINT CAS is exact above JavaScript safe integer and rejects overflow',async()=>{
-    await db.query('UPDATE city_bloxx_saves SET revision=$2,schema=4,payload=$3 WHERE user_id=$1',[b.id,'9007199254740993',core.emptySave()]);
+    await db.query('UPDATE city_bloxx_saves SET revision=$2,schema=5,payload=$3 WHERE user_id=$1',[b.id,'9007199254740993',core.emptySave()]);
     assert.equal(status(await put(b,write('9007199254740993')),200).data.revision,'9007199254740994');
     await db.query("UPDATE city_bloxx_saves SET revision=9223372036854775807 WHERE user_id=$1",[b.id]);
     assert.equal(status(await put(b,write('9223372036854775807')),409).json.errorCode,'GAME_REVISION_EXHAUSTED');

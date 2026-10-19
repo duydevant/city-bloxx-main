@@ -94,7 +94,7 @@ async function screenshot(name) {
 }
 async function trackingSmoke(kind,url,key) {
   const read=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"}})()`);
-  const before=await read();assert.equal(before.schema,4);assert.equal(before.stats.totals.attempts,2);
+  const before=await read();assert.equal(before.schema,5);assert.equal(before.stats.totals.attempts,2);
   assert.equal(before.stats.totals.abandoned,1);assert.equal(before.runs,1);
   assert.equal(before.progression.xp,before.history.reduce((sum,h)=>sum+(h.xpEarned||0),0));
   fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-after-settlement.json`),JSON.stringify(before,null,2));
@@ -123,7 +123,7 @@ async function trackingSmoke(kind,url,key) {
   assert.equal(await evaluate('document.querySelector("[data-motion]").getAttribute("aria-pressed")'),"true");
   assert.deepEqual((await read()).stats,before.stats);
   await click("Sound off");await click("Reduced motion");await delay(40);
-  return {schema:4,bytes,history:"details/filter/pin/reload EN/VI",statistics:"overview/skill/class; foundation and roof excluded",settings:"mute/motion restored",rewards:"replay/read screens do not settle runs"};
+  return {schema:5,bytes,history:"details/filter/pin/reload EN/VI",statistics:"overview/skill/class; foundation and roof excluded",settings:"mute/motion restored",rewards:"replay/read screens do not settle runs"};
 }
 async function recoverySmoke(kind,url,key) {
   await navigate(kind,url,"read-failure");
@@ -140,7 +140,7 @@ async function recoverySmoke(kind,url,key) {
   await switchLanguage(kind,"vi");await panelLayoutSmoke(kind,"recovery-vi");await switchLanguage(kind,"en");
   await click("Retry load");await waitFor('document.querySelector("[data-best]").textContent==="88"');await delay(50);
   const recovered=await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(key)}))`),value=kind==="web"?recovered:recovered.d;
-  assert.equal(value.schema,4);assert.equal(value.standardQuickBest,88);assert.equal(value.runs,10);assert.equal(value.stats.totals.attempts,0);
+  assert.equal(value.schema,5);assert.equal(value.standardQuickBest,88);assert.equal(value.runs,10);assert.equal(value.stats.totals.attempts,0);
   fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-before-migration.json`),legacy);
   fs.writeFileSync(path.join(reportDir,`${kind}-c4-save-after-migration.json`),JSON.stringify(value,null,2));
   for(const broken of ["{corrupt",JSON.stringify(kind==="web"?{schema:999}:{v:1,d:{schema:999}})]) {
@@ -627,7 +627,7 @@ async function citySmoke(kind,url,key) {
   await click("Build selected lot");await waitFor('document.querySelector(".cb-panel").hidden');
   await driveCity(planned.record,0,planned.stopTick);
   const readCity=()=>evaluate(`(()=>{const raw=JSON.parse(localStorage.getItem(${JSON.stringify(key)}));return ${kind==="web"?"raw":"raw.d"};})()`);
-  let saved=await readCity();assert.equal(saved.schema,4);
+  let saved=await readCity();assert.equal(saved.schema,5);
   assert.equal(saved.city.pending.checkpoint.tick,planned.stopTick);
   assert.equal(await evaluate(`CityBloxx.restoreTower(${JSON.stringify(saved.city.pending.checkpoint)}).getSnapshot().floors.length`),2);
   await screenshot(`${kind}-city-checkpoint`);

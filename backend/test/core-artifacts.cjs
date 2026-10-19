@@ -48,11 +48,11 @@ async function main() {
     }
     console.log(`PASS compiled core + isolated worker ${name}, fabricated result rejected`);
   }
-  for (const schema of [1,2,3,4]) {
-    const payload = schema === 4 ? core.emptySave() : {...core.emptySave(),schema};
+  for (const schema of [1,2,3,4,5]) {
+    const payload = schema === 5 ? core.emptySave() : {...core.emptySave(),schema};
     const request = {expectedRevision:'0',mutationId:'00000000-0000-4000-8000-000000000001',schema,payload};
     const result = await runMessage({operation:'save',request});
-    assert.equal(result.ok,true); assert.equal(result.result.payload.schema,4);
+    assert.equal(result.ok,true); assert.equal(result.result.payload.schema,5);
     assert.deepEqual(result.result.payload,core.migrateSave(payload));
     const reordered = {...request,payload:Object.fromEntries(Object.entries(payload).reverse())};
     assert.equal((await runMessage({operation:'save',request:reordered})).result.requestHash,result.result.requestHash);
@@ -60,7 +60,7 @@ async function main() {
   const incompatible = await runMessage({operation:'save',request:{schema:999,payload:{schema:999,raw:'intact'}}});
   assert.equal(incompatible.errorCode,'GAME_SAVE_INCOMPATIBLE');
   let nested={}; for(let i=0;i<70;i++)nested={next:nested};
-  assert.equal((await runMessage({operation:'save',request:{schema:4,payload:{...core.emptySave(),nested}}})).errorCode,'GAME_SAVE_INVALID');
-  console.log('PASS compiled save worker schemas 1-4, canonical hash, future schema and nesting guard');
+  assert.equal((await runMessage({operation:'save',request:{schema:5,payload:{...core.emptySave(),nested}}})).errorCode,'GAME_SAVE_INVALID');
+  console.log('PASS compiled save worker schemas 1-5, canonical hash, future schema and nesting guard');
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

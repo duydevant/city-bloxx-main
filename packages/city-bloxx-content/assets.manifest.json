@@ -532,6 +532,39 @@
         "web",
         "playable"
       ]
+    },
+    {
+      "path": "bg/harbor/bg_harbor_default_map.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 476545,
+      "sha256": "7c2c082a9c8dde301f9414617a62987d383552205b4b80ac15191f10f18ea7a3",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "bg/harbor/bg_harbor_default_thumb.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 74195,
+      "sha256": "2c69179df05bc7eee0df6229af63692dd7766942ffc0776dc428338f19011d1b",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "city/harbor/landmark_dock_clock_tower_mini.png",
+      "width": 256,
+      "height": 384,
+      "bytes": 46803,
+      "sha256": "c6486aaf506397ae04958ae849b4fcc50aed6be3732af699f4ba338631413a57",
+      "targets": [
+        "web",
+        "playable"
+      ]
     }
   ]
 }

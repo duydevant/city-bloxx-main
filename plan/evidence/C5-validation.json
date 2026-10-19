@@ -1,0 +1,415 @@
+{
+  "phase": "C5",
+  "title": "Harbor District, District Goals, Dock Clock Tower Landmark & City Evolution",
+  "verifiedAt": "2026-10-19T05:09:59.133Z",
+  "schema": 5,
+  "assets": {
+    "harborMap": {
+      "logicalPath": "bg/harbor/bg_harbor_default_map.png",
+      "width": 1536,
+      "height": 1024
+    },
+    "harborThumb": {
+      "logicalPath": "bg/harbor/bg_harbor_default_thumb.png",
+      "width": 512,
+      "height": 512
+    },
+    "landmarkMini": {
+      "logicalPath": "city/harbor/landmark_dock_clock_tower_mini.png",
+      "width": 256,
+      "height": 384,
+      "anchor": {
+        "x": 128,
+        "y": 320
+      }
+    }
+  },
+  "web": {
+    "schema": 5,
+    "unlockedDistricts": [
+      "downtown",
+      "harbor"
+    ],
+    "completedDistricts": [
+      "downtown",
+      "harbor"
+    ],
+    "landmark": {
+      "claimed": true,
+      "placed": true,
+      "claimedAt": 1792380000000
+    },
+    "evolution": {
+      "currentStage": "megacity",
+      "highestStage": "megacity",
+      "notifiedStage": "megacity"
+    },
+    "landmarkSlotInfo": {
+      "exists": true,
+      "title": "Dock Clock Tower",
+      "insideGrid": false,
+      "gridLots": 25,
+      "imgComplete": true,
+      "naturalWidth": 256,
+      "naturalHeight": 384,
+      "evolutionStage": "megacity",
+      "highestStage": "megacity"
+    },
+    "layouts": {
+      "initialMapLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 25
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 40
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 26
+        }
+      },
+      "pickerPage0Layout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "pickerPage1LockedLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "unlockModalLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "harborMapLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 43
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 51
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 37
+        }
+      },
+      "landmarkPageEnLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "landmarkPageViLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "harborWithLandmarkLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 36
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 48
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 37
+        }
+      }
+    }
+  },
+  "playable": {
+    "schema": 5,
+    "unlockedDistricts": [
+      "downtown",
+      "harbor"
+    ],
+    "completedDistricts": [
+      "downtown",
+      "harbor"
+    ],
+    "landmark": {
+      "claimed": true,
+      "placed": true,
+      "claimedAt": 1792380000000
+    },
+    "evolution": {
+      "currentStage": "megacity",
+      "highestStage": "megacity",
+      "notifiedStage": "megacity"
+    },
+    "landmarkSlotInfo": {
+      "exists": true,
+      "title": "Dock Clock Tower",
+      "insideGrid": false,
+      "gridLots": 25,
+      "imgComplete": true,
+      "naturalWidth": 256,
+      "naturalHeight": 384,
+      "evolutionStage": "megacity",
+      "highestStage": "megacity"
+    },
+    "layouts": {
+      "initialMapLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 37
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 55
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 42
+        }
+      },
+      "pickerPage0Layout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "pickerPage1LockedLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "unlockModalLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "harborMapLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 55
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 62
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 53
+        }
+      },
+      "landmarkPageEnLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "landmarkPageViLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": null
+        }
+      },
+      "harborWithLandmarkLayout": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 48
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 62
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": [],
+          "minLotHeight": 53
+        }
+      }
+    }
+  }
+}

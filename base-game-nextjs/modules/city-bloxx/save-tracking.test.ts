@@ -180,7 +180,7 @@ describe("C4.0 save and tracking", () => {
   it("migrates schema 1/2/3 without inventing history/lifetime statistics", () => {
     for (const schema of [1, 2, 3]) {
       const save = migrateSave({ schema, standardQuickBest: 88, assistQuickBest: 22, runs: 10, city: emptySave().city })
-      expect(save.schema).toBe(4); expect(save.runs).toBe(10)
+      expect(save.schema).toBe(5); expect(save.runs).toBe(10)
       expect(save.history).toHaveLength(0); expect(save.stats.totals.attempts).toBe(0)
       expect(save.standardQuickBest).toBe(88)
     }

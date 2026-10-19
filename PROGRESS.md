@@ -4,6 +4,13 @@ Cập nhật 19/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## C5 — hoàn thành triển khai Harbor, mục tiêu district, landmark và city evolution (19/10/2026)
+
+Tiếp tục từ Soft Launch `7df93dd` theo [09](plan/09-C5-districts-landmarks.md) và [12](plan/12-art-requirements.md):
+- **District Catalog & Save Schema 5**: Thêm `DISTRICT_CATALOG` (`districts-1`: `downtown` và `harbor`, mỗi quận 25 ô `5×5` riêng), `DOCK_CLOCK_TOWER_LANDMARK` (`landmarks-1`) và 6 cấp `CITY_EVOLUTION_STAGES` (`Village` → `Megacity`). Nâng cấp `GameSave` lên `schema: 5` (`1..4 -> 5`), đồng bộ `city.lots`/`districts.downtown`, gán `districtId: "downtown"` cho `pending` legacy, tách biệt hoàn toàn điều kiện kề 4 hướng trong từng quận nhưng dùng chung class đã mở khoá toàn cục, và lưu biên nhận một chiều (`district-complete`, `district-unlock`, `landmark-claim`) để phá nhà không khoá lại quận hay làm mất cấp đô thị cao nhất (`highestStage`).
+- **Harbor Art & Runtime Import**: Sinh và chuẩn hoá `bg/harbor/bg_harbor_default_map.png` (`1536×1024`), `bg/harbor/bg_harbor_default_thumb.png` (`512×512`) và `city/harbor/landmark_dock_clock_tower_mini.png` (`256×384` RGBA, neo chân tại `(128,320)`), đồng bộ sang cả hai `public/game` và `packages/city-bloxx-content/assets.manifest.json` (`51 approved assets, 14.13 MiB`).
+- **UI & Kiểm chứng đa nền tảng**: Thêm màn hình chọn Quận / Biểu tượng & Tiến hoá đô thị (`1/3..3/3`), modal chúc mừng mở khoá Harbor, preload nền Harbor với fallback màu trung tính, và ô quảng trường riêng `[data-landmark-slot="dock_clock_tower"]` ngoài lưới 25 ô. Qua **304/304 unit tests (25 files)**, `npm run check`, `npm run test:save` và `npm run evidence:c5` trên Chrome headless cả Web lẫn Playable ở `320×568`, `390×844`, `900×430` ([Evidence C5](plan/evidence/C5-validation.json)).
+
 ## 08 — hoàn thành nghiệm thu Soft Launch & `/embed` Portal SDK (19/10/2026)
 
 Tiếp tục từ Y0–Y2 `edc86c9` và `/embed` `b98edde` theo [08](plan/08-soft-launch-checklist.md):

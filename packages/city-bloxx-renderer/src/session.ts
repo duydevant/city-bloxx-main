@@ -1,5 +1,5 @@
 import { SESSION_TEXT, type SessionTextKey } from "../../city-bloxx-content/session-locales";
-import { allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type ScoreSyncState, type TrackingPort } from "../../city-bloxx-core/src/index";
+import { acknowledgeEvolutionStage, allocateRun, beginDistrictTower, BUILDING_IDS, BUILDINGS, cancelCityTower, CITY_EVOLUTION_STAGES, demolishDistrictBuilding, deriveEvolutionStage, districtGoalProgress, districtPlacementStatus, DOCK_CLOCK_TOWER_LANDMARK, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, selectDistrict, settleRun, totalCityPopulation, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type DistrictId, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type ScoreSyncState, type TrackingPort } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
 import { createDataScreens } from "./data-screens";
@@ -10,6 +10,7 @@ import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rer
 import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
 import { DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, grantCosmetics, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
 import { createBookScreens } from "./book-screens";
+import { createDistrictScreens, preloadDistrictBackground } from "./district-screens";
 import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
 import type { RankedPort } from "../../city-bloxx-core/src/ports";
 
@@ -142,7 +143,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     dailyScreens.clear();
     progressionScreens.clear();
     bookScreens.clear();
-    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel");
+    districtScreens.clear();
+    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
@@ -224,6 +226,29 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const bookLabel = () => vi ? "Sổ kiến trúc" : "Architecture Book";
   const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
     equip: (id,equipment) => { if(rewardSaveStatus === "pending")return;let next=save;for(const item of [equipment.building,equipment.roof,equipment.crane])next=equipCosmetic(next,item,id);save=next;persist(); } });
+  let harborBgFailed = false;
+  async function switchDistrict(districtId: DistrictId): Promise<void> {
+    if (!save.districts.unlockedDistricts.includes(districtId)) return;
+    if (districtId === "harbor") {
+      const ok = await preloadDistrictBackground(`${options.assets.replace(/\/$/, "")}/bg/harbor/bg_harbor_default_map.png`);
+      harborBgFailed = !ok;
+    }
+    save = selectDistrict(save, districtId);
+    persist();
+    cityMap();
+  }
+  const districtScreens = createDistrictScreens({
+    panel,
+    assets: options.assets,
+    save: () => save,
+    vi: () => vi,
+    className,
+    showPanel,
+    button,
+    selectDistrict: switchDistrict,
+    updateSave: next => { save = next; persist(); },
+    backToMap: cityMap,
+  });
   const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) {
     if (ready) { const next = ensureMissions(save, now()); if (next !== save) { save = next; persist(); } }
     dailyScreens.tick(); progressionScreens.tick(); bookScreens.tick();
@@ -296,10 +321,12 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function paint(s = current()): void {
     renderer.render(s, replay?.getPreviousRenderSnapshot(s) ?? run?.getPreviousRenderSnapshot(s), replay?.getInterpolationAlpha() ?? run?.getInterpolationAlpha() ?? 1, reducedMotion);
     if(mapView&&!run&&!replay) {
-      setText(".cb-toolbar strong",cityName());setText("[data-mode]",t("Downtown"));
+      const activeDistrict = save.districts.activeDistrict;
+      const districtState = activeDistrict === "harbor" ? save.districts.harbor : save.districts.downtown;
+      setText(".cb-toolbar strong",cityName());setText("[data-mode]",activeDistrict === "harbor" ? wt("Harbor","Bến cảng") : t("Downtown"));
       showLives(3);
-      setText("[data-population]",String(cityPopulation(save.city)));
-      setText("[data-floors]",String(save.city.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0)));
+      setText("[data-population]",String(totalCityPopulation(save)));
+      setText("[data-floors]",String(districtState.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0)));
       combo.parentElement!.hidden=true;pauseButton.disabled=true;
       setText(".cb-hint",t("Complete a tier to unlock the next. A roof is a separate drop."));
       return;
@@ -626,8 +653,24 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     mapView=true;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; userPaused = false; paint();
     rankedId=null;
-    const city = save.city, status = placementStatus(city, selectedLot, selectedClass), old = city.lots[selectedLot];
-    const summary = `${cityPopulation(city)} ${t("city population")} · ${city.lots.filter(Boolean).length}/25 ${t("lots")}\n${t("Select a lot and class. Green highlights legal locations.")}`;
+    if (save.districts.evolution.notifiedStage !== save.districts.evolution.highestStage) {
+      const stageDef = CITY_EVOLUTION_STAGES.find(st => st.id === save.districts.evolution.highestStage);
+      if (stageDef) {
+        message(wt(`New highest city stage reached: ${stageDef.title.en}!`, `Đạt cấp đô thị cao nhất mới: ${stageDef.title.vi}!`));
+      }
+      save = acknowledgeEvolutionStage(save);
+      persist();
+    }
+    const activeDistrict = save.districts.activeDistrict;
+    const districtState = activeDistrict === "harbor" ? save.districts.harbor : save.districts.downtown;
+    const city = save.city;
+    const status = districtPlacementStatus(save, activeDistrict, selectedLot, selectedClass);
+    const old = districtState.lots[selectedLot];
+    const totalPop = totalCityPopulation(save);
+    const currentStageDef = deriveEvolutionStage(totalPop);
+    const highestStageDef = CITY_EVOLUTION_STAGES.find(st => st.id === save.districts.evolution.highestStage) ?? currentStageDef;
+    const goal = districtGoalProgress(save, activeDistrict);
+    const summary = `${totalPop} ${t("city population")} · ${districtState.lots.filter(Boolean).length}/25 ${t("lots")}\n${t("Select a lot and class. Green highlights legal locations.")}`;
     const actions: HTMLButtonElement[] = [];
     if (city.pending) {
       actions.push(button(t("Resume tower"), () => { void resumeCity(); }), button(t("Cancel pending tower"), () => {
@@ -637,26 +680,56 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       const build = button(old ? t("Rebuild selected lot") : t("Build selected lot"), () => { void beginSelectedCity(); });
       build.disabled = !status.valid || loadingCity; actions.push(build);
       if (old) actions.push(button(t("Demolish"), () => {
-        showPanel(t("Demolish building?"), `${t("Population change")}: -${old.population}.\n${t("Existing neighbors and unlocked classes stay intact.")}`, [button(t("Confirm demolition"), () => { save.city = demolishCityBuilding(save.city, selectedLot); persist(); cityMap(); }), button(t("Back"), cityMap)]);
+        showPanel(t("Demolish building?"), `${t("Population change")}: -${old.population}.\n${t("Existing neighbors and unlocked classes stay intact.")}`, [button(t("Confirm demolition"), () => { save = demolishDistrictBuilding(save, activeDistrict, selectedLot, now()); persist(); cityMap(); }), button(t("Back"), cityMap)]);
       }));
     }
+    const districtsBtn = button(wt("Districts", "Quận"), () => districtScreens.open(activeDistrict === "harbor" ? 1 : 0));
+    districtsBtn.dataset.districtsOpen = "true";
+    actions.push(districtsBtn);
     actions.push(button(t("Home"), home), button(t("Retry save"), persist));
     actions.push(button(t("Guide"), () => showGuide(0,cityMap)));
-    showPanel(t("Build City · Downtown"), summary, actions);
+    const panelTitle = activeDistrict === "harbor" ? wt("Build City · Harbor", "Xây thành phố · Bến cảng") : t("Build City · Downtown");
+    showPanel(panelTitle, summary, actions);
     tutorialHint("city",wt("Select the highlighted lot, then a class. Higher classes need completed neighbors sharing an edge.","Chọn ô được đánh dấu rồi chọn loại nhà. Loại cao hơn cần nhà hoàn thành kề cạnh."));
     panel.classList.add("cb-city-panel");
+    if (save.districts.landmarks.dock_clock_tower.placed) {
+      const lmSlot = document.createElement("div");
+      lmSlot.className = "cb-landmark-slot";
+      lmSlot.dataset.landmarkSlot = "dock_clock_tower";
+      lmSlot.title = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
+      const lmImg = document.createElement("img");
+      lmImg.src = `${options.assets}/city/harbor/landmark_dock_clock_tower_mini.png`;
+      lmImg.alt = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
+      lmImg.width = 20;
+      lmImg.height = 30;
+      lmImg.addEventListener("error", () => lmImg.remove());
+      lmSlot.append(lmImg);
+      panel.append(lmSlot);
+    }
     const classes = document.createElement("div"); classes.className = "cb-city-classes";
     for (const id of BUILDING_IDS) {
       const b = button(`${className(id)} · ${BUILDINGS[id].floors}${city.unlocked.includes(id) ? "" : " 🔒"}`, () => { selectedClass = id; cityMap(); });
       b.dataset.class = id; b.style.borderColor = BUILDINGS[id].color; b.setAttribute("aria-pressed", String(id === selectedClass)); classes.append(b);
     }
-    const grid = document.createElement("div"); grid.className = "cb-city-grid"; grid.setAttribute("role", "group"); grid.setAttribute("aria-label", t("Downtown 5 by 5 lots"));
-    grid.style.backgroundImage = `url('${options.assets}/bg/default/bg_downtown_default_map.png')`;
+    const grid = document.createElement("div"); grid.className = "cb-city-grid"; grid.setAttribute("role", "group");
+    grid.setAttribute("aria-label", activeDistrict === "harbor" ? wt("Harbor 5 by 5 lots", "Bến cảng: 5 hàng, 5 cột ô đất") : t("Downtown 5 by 5 lots"));
+    grid.dataset.district = activeDistrict;
+    grid.dataset.evolutionStage = currentStageDef.id;
+    grid.dataset.highestStage = highestStageDef.id;
+    grid.style.border = `2px solid ${currentStageDef.accent}`;
+    if (activeDistrict === "harbor") {
+      grid.style.backgroundColor = "#c8d6df";
+      if (!harborBgFailed) {
+        grid.style.backgroundImage = `url('${options.assets}/bg/harbor/bg_harbor_default_map.png')`;
+      }
+    } else {
+      grid.style.backgroundColor = "#d8e5cc";
+      grid.style.backgroundImage = `url('${options.assets}/bg/default/bg_downtown_default_map.png')`;
+    }
     for (let index = 0; index < 25; index++) {
-      const lot = city.lots[index], valid = placementStatus(city, index, selectedClass).valid;
+      const lot = districtState.lots[index], lotStatus = districtPlacementStatus(save, activeDistrict, index, selectedClass), valid = lotStatus.valid;
       const b = button("", () => { selectedLot = index; cityMap(); });
       b.dataset.lot = String(index); b.dataset.valid = String(valid); b.setAttribute("aria-pressed", String(index === selectedLot));
-      const lotStatus = placementStatus(city, index, selectedClass);
       b.title = `(${Math.floor(index / 5) + 1},${index % 5 + 1}) · ${lotStatus.locked ? t("Locked: complete and accept the previous tier.") : lotStatus.missing.length ? `${t("Needs edge-adjacent")}: ${lotStatus.missing.map(className).join(" + ")}` : t("Click to select this valid lot")}`;
       b.setAttribute("aria-label", `${t("Lot")} ${index + 1}: ${lot ? `${className(lot.classId)}, ${lot.floors} ${t("floors")}, ${lot.population} ${t("people")}` : t("empty")}`);
       if (lot) {
@@ -666,27 +739,31 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       const label = document.createElement("span"); label.textContent = lot ? `${lot.floors}${lot.roof ? " ▲" : ""}` : String(index + 1); b.append(label); grid.append(b);
     }
     const detail = document.createElement("p"); detail.className = "cb-city-detail";
-    detail.textContent = `${t("Lot")} ${selectedLot + 1} · ${className(selectedClass)}\n${old ? `${t("Current")}: ${old.population} ${t("people")} · ${old.rating}\n` : ""}${status.locked ? t("Locked: complete and accept the previous tier first.") : status.missing.length ? `${t("Needs adjacent")}: ${status.missing.map(className).join(" + ")}` : t("Valid placement. Only four-direction neighbors count.")}`;
+    detail.dataset.evolutionStage = currentStageDef.id;
+    detail.dataset.highestStage = highestStageDef.id;
+    const stageLabel = `${currentStageDef.title[vi ? "vi" : "en"]} (${goal.completedTowers.current}/${goal.completedTowers.target}${goal.completedPreviously ? " ✓" : ""})`;
+    detail.textContent = `${t("Lot")} ${selectedLot + 1} · ${className(selectedClass)} · ${stageLabel}\n${old ? `${t("Current")}: ${old.population} ${t("people")} · ${old.rating}\n` : ""}${status.locked ? t("Locked: complete and accept the previous tier first.") : status.missing.length ? `${t("Needs adjacent")}: ${status.missing.map(className).join(" + ")}` : t("Valid placement. Only four-direction neighbors count.")}`;
     detail.textContent += ` · (${Math.floor(selectedLot / 5) + 1},${selectedLot % 5 + 1})`;
     detail.title = t("Click/tap selects a lot; hovering only previews its tooltip. Diagonals do not count.");
-    if (!status.locked && !city.lots.some((lot, index) => !lot && placementStatus(city, index, selectedClass).valid)) {
+    if (!status.locked && !districtState.lots.some((lot, index) => !lot && districtPlacementStatus(save, activeDistrict, index, selectedClass).valid)) {
       detail.textContent += `\n${t("No valid empty lot. Add a supporting neighbor.")}`;
     }
     panel.insertBefore(classes, panel.querySelector(".cb-actions")); panel.insertBefore(grid, panel.querySelector(".cb-actions")); panel.insertBefore(detail, panel.querySelector(".cb-actions"));
     hint.textContent = t("Complete a tier to unlock the next. A roof is a separate drop.");
-    el("[data-population]").textContent = String(cityPopulation(city));
-    el("[data-floors]").textContent = String(city.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0));
+    el("[data-population]").textContent = String(totalPop);
+    el("[data-floors]").textContent = String(districtState.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0));
     el(".cb-toolbar strong").textContent = cityName();
-    el("[data-mode]").textContent = t("Downtown");
+    el("[data-mode]").textContent = activeDistrict === "harbor" ? wt("Harbor", "Bến cảng") : t("Downtown");
   }
   async function beginSelectedCity(): Promise<void> {
-    if (loadingCity || save.city.pending || !placementStatus(save.city, selectedLot, selectedClass).valid) return;
+    const activeDistrict = save.districts.activeDistrict;
+    if (loadingCity || save.city.pending || !districtPlacementStatus(save, activeDistrict, selectedLot, selectedClass).valid) return;
     loadingCity = true;
     const lot = selectedLot, id = selectedClass;
     showPanel(t("Preparing construction"), t("Loading building artwork…"), []);
     const equipment=equipmentFor(save,id);await loadRunArtwork(id,equipment);
     loadingCity = false; if (disposed) return;
-    save.city = beginCityTower(save.city, lot, id, options.seed(),equipment); ensurePendingContext(now()); persist();
+    save = beginDistrictTower(save, activeDistrict, lot, id, options.seed(), now(), equipment); persist();
     await resumeCity();
   }
   async function resumeCity(): Promise<void> {
@@ -704,11 +781,26 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function cityResults(): void {
     checkpointCity();
     const pending = save.city.pending; if (!pending || !run) return;
-    const result = run.getResult(), s = run.getSnapshot(), old = save.city.lots[pending.lot];
+    const targetDistrict = pending.districtId ?? "downtown";
+    const targetLots = targetDistrict === "harbor" ? save.districts.harbor.lots : save.districts.downtown.lots;
+    const result = run.getResult(), s = run.getSnapshot(), old = targetLots[pending.lot];
     const complete = result.height === BUILDINGS[pending.classId].floors;
     const body = `${className(pending.classId)}\n${s.roof ? t("Roof placed") : complete ? t("Body complete, roof missed") : t("Unfinished tower · no completion unlock")}\n${old ? `${t("Old building stays until you accept")}: ${old.population}` : ""}`;
     const actions = [button(result.height ? t("Accept building") : t("Return to city"), () => {
-      save = acceptTrackedCity(save, pending.runId, now()); cityActive = false; runContext = null; persist(); cityMap();
+      const wasHarborUnlocked = save.districts.unlockedDistricts.includes("harbor");
+      save = acceptTrackedCity(save, pending.runId, now()); cityActive = false; runContext = null; persist();
+      if (!wasHarborUnlocked && save.districts.unlockedDistricts.includes("harbor")) {
+        showPanel(
+          wt("Harbor District Unlocked!", "Đã mở khoá Quận Bến cảng!"),
+          wt("Downtown goal completed! You can now build in the coastal 5×5 Harbor district and work toward the Dock Clock Tower landmark.", "Đã đạt mục tiêu Trung tâm! Bạn có thể xây dựng ở Quận Bến cảng 5×5 và chinh phục biểu tượng Tháp Đồng hồ Cảng."),
+          [
+            button(wt("Enter Harbor", "Vào Bến cảng"), () => { void switchDistrict("harbor"); }),
+            button(wt("Stay in Downtown", "Ở lại Trung tâm"), cityMap),
+          ],
+        );
+        return;
+      }
+      cityMap();
     }), button(old ? t("Keep old building") : t("Discard tower"), () => { discardPendingCity(); cityMap(); }), button(t("Retry save"), persist)];
     const rewards = rewardButton(cityResults); if (rewards) actions.push(rewards);
     showPanel(`${t("City tower complete")} · ${result.rating}`, body, actions);
@@ -744,7 +836,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
     el("[data-motion]").textContent=t("Reduced motion");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       if(rankedId&&run?.config.mode==="daily"&&run.getPhase()==="ended"&&!replay){dailyResults();return;}
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
