@@ -95,40 +95,19 @@ Cập nhật 08/10/2026. Phân biệt **code/kiểm thử đã xong** với **ng
 5. [x] Reduced-motion, pause theo lifecycle, cleanup khi đổi scene; kết quả cũ không phát thưởng lại. Nút skip riêng chưa có, là polish tùy chọn.
 6. [ ] SFX/FX mái/nhận nhà/Perfect/miss, rồi test cả Web và Playable trên điện thoại thật.
 
-### Ưu tiên 2 — C4: Daily và progression (chưa triển khai)
+### Ưu tiên 2 — C4–C7, W0–W1, Y0–Y2 & Soft Launch (đã hoàn thành kỹ thuật 19/10/2026)
 
-- [ ] Daily theo UTC date + schedule/content version, finite 20 tầng, local PB cho Playable.
-- [ ] Daily missions khả thi theo unlock, reroll có giới hạn, achievements và claim idempotent.
-- [ ] Mastery bốn class, XP/builder level, stats, Architecture Book.
-- [ ] Cosmetic kiếm và trang bị được, không thay collision/score; bounded replay/save và rollover không phá active run.
+- [x] **C4.0–C4.3**: Save schema 4, thống kê/lịch sử 50 lượt, Daily Tower (`daily-v1`) + chuỗi ngày UTC, Builder Level `1–50`, Mastery 4 class `1–20`, 15 nhiệm vụ ngày + 20 thành tựu, bộ trang bị Classic Brick 19 món & Sổ kiến trúc ([Evidence C4.3](plan/evidence/C4.3-validation.json)).
+- [x] **W0 & W1**: 8 trang nội dung Web EN/VI responsive, IndexedDB save, Auth thật + Cloud Save CAS + Server-authoritative Daily/Run Ticket + Worker Pool Resimulation + Keyset Leaderboards + Admin Moderation + Backup/Restore ([Evidence W0](plan/evidence/W0-validation.json), [Evidence W1](plan/evidence/W1-nest-validation.json)).
+- [x] **Y0–Y2 & Soft Launch (08)**: Tích hợp YouTube Playables SDK (`firstFrameReady`, `gameReady`, lifecycle/audio pause, save envelope UTF-16 `<= 256 KiB`, score retry backoff), đóng gói `dist.zip` (`14.56 MiB <= 20 MiB`), và route nhúng `/embed` kèm `PortalHost` SDK + Feature Flags ([Evidence Y0–Y2](plan/evidence/Y0-Y2-validation.json), [Evidence 08](plan/evidence/08-soft-launch-validation.json)).
+- [x] **C5 — Districts & Landmarks**: Quận Harbor `5×5`, biểu tượng Tháp Đồng hồ Cảng (`dock_clock_tower`), 6 cấp tiến hoá đô thị (`Village` → `Megacity`), `GameSave` schema 5 ([Evidence C5](plan/evidence/C5-validation.json)).
+- [x] **C6 — Challenges, Replay & Social**: Chế độ One Drop v1 + biểu đồ nhiệt 40 bin, Replay tốc độ `0.5×..4×` + tua mốc thả, Personal Ghost, Hall of Fame (5 ghim) + Skyline Album (3 ảnh chụp), chia sẻ tháp/hồ sơ công khai/Beat This Tower ([Evidence C6](plan/evidence/C6-validation.json)).
+- [x] **C7 — Weekly Contracts, Modes bổ sung, Events/Season, LiveOps & Adaptive Audio**: Hợp đồng tuần Thứ Hai UTC, Perfect Rush (60s), Skyline Sprint (20 tầng + phạt 5s/Miss), Sự kiện Mùa đông (14 ngày), Mùa giải Miễn phí (42 ngày, 20 bậc), dịch vụ cấu hình Web LiveOps (`/content/active` TTL 15 phút + audit/rollback/kill switch) và nhạc nền thích ứng 4 lớp theo combo `3/6/10` ([Evidence C7](plan/evidence/C7-validation.json)).
 
-### Ưu tiên 3 — hoàn thiện riêng từng nền tảng
+## 5. Các cổng vận hành / phần cứng thực tế giữ riêng
 
-**Web W0 (mới có shell Quick/City, chưa đủ W0):**
+- [ ] Playtest người thật (5–8 người) và đo GPU/FPS trên thiết bị di động vật lý (Android/iPhone).
+- [ ] Upload gói `dist.zip` lên YouTube Playables Developer Portal và ký duyệt trên thiết bị thật.
+- [ ] Cấu hình tên miền/TLS/SMTP thực tế khi triển khai máy chủ Production công khai.
 
-- [ ] Route/menu Quick/City/Daily hoàn chỉnh; guest-first; IndexedDB cho save/replay, navigation checkpoint.
-- [ ] i18n/keyboard/accessibility/analytics, refresh/back/rotation/private-mode QA.
-
-**Web W1/W2 (chưa triển khai):**
-
-- [ ] Auth thật, database/cloud save, guest→account và xử lý conflict/revision.
-- [ ] Run ticket, server resimulation/score validation, chống submit lặp/rate-limit.
-- [ ] Leaderboard/replay/profile, soft-launch telemetry, retention/performance/error monitoring.
-
-**Playable Y0 (adapter có, chưa audit/certification SDK thật):**
-
-- [ ] Test ready/save/score/pause/resume trong host YouTube thật; quota/save errors; không lấy mock preview làm bằng chứng certification.
-
-**Playable Y1/Y2 (chưa hoàn thành):**
-
-- [ ] Tích hợp Daily/meta, rà dependency/external requests, startup/payload/memory.
-- [ ] Test Suite, thiết bị thật, submission metadata/package và sửa lỗi review. Có zip chưa đồng nghĩa được duyệt/phát hành.
-
-## 5. Quyết định cần người dùng soát
-
-- [ ] Có giữ band Risky không? Nếu có, duyệt ngưỡng Good/Risky mới bên trên.
-- [ ] Có muốn cơ chế sụp cả tháp hay chỉ rơi khối sai như hiện tại?
-- [ ] Ưu tiên người nhảy dù/feel polish trước Daily như đề xuất?
-- [ ] Art còn 12 building compact chưa gen/import; 8 ảnh người/dù đã hoàn thành. Tài liệu prompt: [v3](City_Bloxx_Art_Prompts_v3.0.md).
-
-Nguồn ảnh building: `art/source/stack/compact-v3/`. Nguồn người/dù: `art/source/fx/population/default/`. Trạng thái kỹ thuật mới nhất: [PROGRESS](PROGRESS.md). Checklist này không tự đánh dấu các đầu việc tương lai là đã triển khai.
+Nguồn ảnh building: `art/source/stack/`. Nguồn người/dù: `art/source/fx/population/default/`. Trạng thái kỹ thuật mới nhất: [PROGRESS](PROGRESS.md).

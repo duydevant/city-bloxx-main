@@ -27,6 +27,8 @@ export type GhostResolution =
 function expectedRuleset(config: RunConfig): string {
   if (config.mode === "one-drop") return config.oneDrop?.rulesetVersion ?? RULESET_VERSION;
   if (config.mode === "daily") return config.daily?.rulesetVersion ?? RULESET_VERSION;
+  if (config.mode === "perfect-rush") return config.perfectRush?.rulesetVersion ?? "perfect-rush-1";
+  if (config.mode === "skyline-sprint") return config.skylineSprint?.rulesetVersion ?? "skyline-sprint-1";
   return config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION;
 }
 
@@ -82,6 +84,24 @@ export function resolvePersonalGhost(save: GameSave, config: RunConfig): GhostRe
         return b.record.result.accuracy - a.record.result.accuracy;
       }
       return a.record.result.durationTicks - b.record.result.durationTicks;
+    }
+    if (config.mode === "perfect-rush") {
+      if (b.record.result.perfectCount !== a.record.result.perfectCount) {
+        return b.record.result.perfectCount - a.record.result.perfectCount;
+      }
+      if (b.record.result.population !== a.record.result.population) {
+        return b.record.result.population - a.record.result.population;
+      }
+      return a.record.result.durationTicks - b.record.result.durationTicks;
+    }
+    if (config.mode === "skyline-sprint") {
+      const aComplete = Number(a.record.result.height >= 20);
+      const bComplete = Number(b.record.result.height >= 20);
+      if (aComplete !== bComplete) return bComplete - aComplete;
+      const aScore = a.record.result.sprintScoreTicks ?? a.record.result.durationTicks + a.record.result.misses * 300;
+      const bScore = b.record.result.sprintScoreTicks ?? b.record.result.durationTicks + b.record.result.misses * 300;
+      if (aScore !== bScore) return aScore - bScore;
+      return b.record.result.accuracy - a.record.result.accuracy;
     }
     if (b.record.result.population !== a.record.result.population) {
       return b.record.result.population - a.record.result.population;

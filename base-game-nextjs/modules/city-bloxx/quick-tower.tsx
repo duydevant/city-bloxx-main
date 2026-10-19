@@ -24,6 +24,7 @@ import {
   type PortalBridge,
 } from "@/lib/portal/bridge"
 import { browserRanked } from "@/lib/ranked/browser"
+import { resolveWebLiveOpsManifest } from "@/lib/liveops/service"
 
 export function QuickTower({
   initialScreen,
@@ -165,6 +166,10 @@ export function QuickTower({
       },
     })
     sessionRef.current = session
+    let disposed = false
+    void resolveWebLiveOpsManifest().then(({ manifest }) => {
+      if (!disposed) session.setLiveOpsManifest?.(manifest)
+    })
 
     let unsubscribeAuth = () => {}
     if (embed && portalAudio && portalLifecycle) {
@@ -217,6 +222,7 @@ export function QuickTower({
 
     const unregister = registerCheckpoint(() => session.checkpointAndPause())
     return () => {
+      disposed = true
       unsubscribeAuth()
       bridgeRef.current?.dispose()
       bridgeRef.current = null

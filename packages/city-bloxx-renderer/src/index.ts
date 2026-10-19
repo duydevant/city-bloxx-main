@@ -31,7 +31,7 @@ export class QuickTowerRenderer {
   private populationFx: {building:BuildingId;count:number;elapsed:number;x:number;y:number;population:number} | null = null;
   private buildingImages = new Map<string, { base: HTMLImageElement; mid: HTMLImageElement; roof: HTMLImageElement }>();
   private equipment: RunEquipment = { ...DEFAULT_EQUIPMENT };
-  private brickCrane: { rig: HTMLImageElement; hook: HTMLImageElement } | null = null;
+  private customCranes = new Map<"brick" | "winter" | "season", { rig: HTMLImageElement; hook: HTMLImageElement }>();
   private ghost: PersonalGhost | null = null;
   private cssWidth = 1;
   private cssHeight = 1;
@@ -53,10 +53,23 @@ export class QuickTowerRenderer {
     this.background = null;
     this.sprites.clear();this.warmSprites();
   }
-  async loadBuilding(id: BuildingId, set: "default" | "brick" = "default"): Promise<void> {
+  async loadBuilding(id: BuildingId, set: "default" | "brick" | "winter" | "season" = "default"): Promise<void> {
     await this.loadPopulation(id);
     const key = `${id}:${set}`;
     if (this.buildingImages.has(key)) return;
+    if (set === "winter") {
+      await this.loadBuilding(id, "default");
+      const def = this.buildingImages.get(`${id}:default`)!;
+      const roof = id === "residential" ? await loadImage(`${this.assetBase}/stack/winter/bldg_residential_winter_roof.png`) : def.roof;
+      this.buildingImages.set(key, { base: def.base, mid: def.mid, roof });
+      this.warmSprites();
+      return;
+    }
+    if (set === "season") {
+      await this.loadBuilding(id, "default");
+      this.buildingImages.set(key, this.buildingImages.get(`${id}:default`)!);
+      return;
+    }
     const [base, mid, roof] = await Promise.all(["base", "mid", "roof"].map(part => loadImage(`${this.assetBase}/stack/${set}/bldg_${id}_${set}_${part}.png`)));
     this.buildingImages.set(key, { base, mid, roof });
     this.warmSprites();
@@ -73,9 +86,10 @@ export class QuickTowerRenderer {
       const image=this.buildingImages.get(`${building}:${set}`)?.[part],a=buildingSourceRect(building,part,set);
       if(image)ctx.drawImage(image,a.x,a.y,a.width,a.height,left,bottom-(index+1)*h,w,h);
     }
-    const brick=renderCosmetic(equipment.crane,"crane",building).set === "brick" && this.brickCrane;
-    const rig=brick?brick.rig:this.images?.crane,hook=brick?brick.hook:this.images?.hook;
-    const a=brick?BRICK_ANCHORS.crane:A.crane;
+    const craneSet = renderCosmetic(equipment.crane,"crane",building).set;
+    const themedCrane = craneSet !== "default" ? this.customCranes.get(craneSet) : null;
+    const rig=themedCrane?themedCrane.rig:this.images?.crane,hook=themedCrane?themedCrane.hook:this.images?.hook;
+    const a=themedCrane?BRICK_ANCHORS.crane:A.crane;
     if(rig)ctx.drawImage(rig,a.x,a.y,a.width,a.height,100,16,130,a.height/a.width*130);
     if(hook)ctx.drawImage(hook,0,0,128,128,180,73,27,27);
     if(locked) {ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,112,240,24);ctx.fillStyle="#ffdf78";ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.fillText(this.vi?"XEM TRƯỚC · CHƯA MỞ":"LOCKED PREVIEW",120,128);}
@@ -83,9 +97,10 @@ export class QuickTowerRenderer {
   async loadEquipment(id: BuildingId, value: RunEquipment): Promise<void> {
     const sets = new Set([renderCosmetic(value.building, "building", id).set, renderCosmetic(value.roof, "roof", id).set]);
     await Promise.all([...sets].map(set => this.loadBuilding(id, set)));
-    if (renderCosmetic(value.crane, "crane", id).set === "brick" && !this.brickCrane) {
-      const [rig, hook] = await Promise.all(["rig", "hook"].map(part => loadImage(`${this.assetBase}/rig/brick/crane_${part}_brick_sprite.png`)));
-      this.brickCrane = { rig, hook }; this.warmSprites();
+    const craneSet = renderCosmetic(value.crane, "crane", id).set;
+    if (craneSet !== "default" && !this.customCranes.has(craneSet)) {
+      const [rig, hook] = await Promise.all(["rig", "hook"].map(part => loadImage(`${this.assetBase}/rig/${craneSet}/crane_${part}_${craneSet}_sprite.png`)));
+      this.customCranes.set(craneSet, { rig, hook }); this.warmSprites();
     }
   }
   private buildingSprite(building: BuildingId, part: "base" | "mid" | "roof") {
@@ -98,7 +113,7 @@ export class QuickTowerRenderer {
   resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
   dispose(): void {
     this.sprites.clear(); this.populationImages.clear(); this.populationLoads.clear(); this.buildingImages.clear();
-    this.background = null; this.images = null; this.brickCrane = null; this.populationFx = null; this.ghost = null;
+    this.background = null; this.images = null; this.customCranes.clear(); this.populationFx = null; this.ghost = null;
   }
   async loadPopulation(id: BuildingId): Promise<void> {
     if (this.populationLoads.has(id)) return this.populationLoads.get(id);
@@ -146,17 +161,17 @@ export class QuickTowerRenderer {
     if(!this.images)return;
     const scale=Math.min(this.cssHeight/R.worldHeight,this.cssWidth/R.worldWidth);
     for(const key of new Set(["residential:default",...this.buildingImages.keys()]))for(const part of ["base","mid","roof"] as const) {
-      const [id,set] = key.split(":") as [BuildingId,"default"|"brick"];
+      const [id,set] = key.split(":") as [BuildingId,"default"|"brick"|"winter"|"season"];
       const image=this.buildingImages.get(key)?.[part]??(key==="residential:default"&&part==="mid"?this.images.floor:null);
       if(image) { const a=buildingSourceRect(id,part,set);this.cachedSprite(`${key}:${part}`,image,a.x,a.y,a.width,a.height,R.floorWidth*scale,R.floorHeight*scale); }
     }
     const a=A.crane,ratio=a.scale*scale;
     this.cachedSprite("crane",this.images.crane,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio);
     this.cachedSprite("hook",this.images.hook,0,0,128,128,128*A.hook.scale*scale,128*A.hook.scale*scale);
-    if(this.brickCrane) {
-      const a=BRICK_ANCHORS.crane;this.cachedSprite("brick-crane",this.brickCrane.rig,a.x,a.y,a.width,a.height,a.width*a.scale*scale,a.height*a.scale*scale);
+    for (const [set, crane] of this.customCranes.entries()) {
+      const a=BRICK_ANCHORS.crane;this.cachedSprite(`${set}-crane`,crane.rig,a.x,a.y,a.width,a.height,a.width*a.scale*scale,a.height*a.scale*scale);
       const ratio=BRICK_ANCHORS.hook.scale*scale;
-      this.cachedSprite("brick-hook",this.brickCrane.hook,0,0,128,128,128*ratio,128*ratio);
+      this.cachedSprite(`${set}-hook`,crane.hook,0,0,128,128,128*ratio,128*ratio);
     }
   }
   render(snapshot: QuickTowerSnapshot, previous?: QuickTowerSnapshot, alpha = 1, reducedMotion = false): void {
@@ -331,9 +346,11 @@ export class QuickTowerRenderer {
     ctx.restore();
   }
   private drawCrane(pivot: Point, scale: number): void {
-    if(this.brickCrane && renderCosmetic(this.equipment.crane,"crane","residential").set === "brick") {
+    const craneSet = renderCosmetic(this.equipment.crane,"crane","residential").set;
+    const themed = craneSet !== "default" ? this.customCranes.get(craneSet) : null;
+    if(themed) {
       const a=BRICK_ANCHORS.crane,ratio=a.scale*scale;
-      this.context.drawImage(this.cachedSprite("brick-crane",this.brickCrane.rig,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio),pivot.x-(a.pulley.x-a.x)*ratio,pivot.y-(a.pulley.y-a.y)*ratio,a.width*ratio,a.height*ratio);return;
+      this.context.drawImage(this.cachedSprite(`${craneSet}-crane`,themed.rig,a.x,a.y,a.width,a.height,a.width*ratio,a.height*ratio),pivot.x-(a.pulley.x-a.x)*ratio,pivot.y-(a.pulley.y-a.y)*ratio,a.width*ratio,a.height*ratio);return;
     }
     const ctx=this.context, a=A.crane, ratio=a.scale*scale;
     const x=pivot.x-(a.pulley.x-a.x)*ratio, y=pivot.y-(a.pulley.y-a.y)*ratio;
@@ -341,10 +358,12 @@ export class QuickTowerRenderer {
     else { ctx.fillStyle="#deb93d";ctx.fillRect(x,pivot.y-12*scale,pivot.x-x,24*scale); }
   }
   private drawHook(tip: Point, scale: number): void {
-    if(this.brickCrane && renderCosmetic(this.equipment.crane,"crane","residential").set === "brick") {
+    const craneSet = renderCosmetic(this.equipment.crane,"crane","residential").set;
+    const themed = craneSet !== "default" ? this.customCranes.get(craneSet) : null;
+    if(themed) {
       const a=BRICK_ANCHORS.hook,ratio=a.scale*scale, ctx=this.context;
       ctx.save();ctx.translate(tip.x,tip.y);ctx.rotate(a.rotation);
-      ctx.drawImage(this.cachedSprite("brick-hook",this.brickCrane.hook,0,0,128,128,128*ratio,128*ratio),-a.tip.x*ratio,-a.tip.y*ratio,128*ratio,128*ratio);ctx.restore();return;
+      ctx.drawImage(this.cachedSprite(`${craneSet}-hook`,themed.hook,0,0,128,128,128*ratio,128*ratio),-a.tip.x*ratio,-a.tip.y*ratio,128*ratio,128*ratio);ctx.restore();return;
     }
     const ctx=this.context, a=A.hook, ratio=a.scale*scale;
     if(this.images) ctx.drawImage(this.cachedSprite("hook",this.images.hook,0,0,128,128,128*ratio,128*ratio),tip.x-a.tip.x*ratio,tip.y-a.tip.y*ratio,128*ratio,128*ratio);

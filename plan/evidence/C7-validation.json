@@ -1,0 +1,609 @@
+{
+  "phase": "C7",
+  "title": "Weekly Contracts, Perfect Rush, Skyline Sprint, Winter Event, Free Season, Web LiveOps Config & Adaptive Audio",
+  "verifiedAt": "2026-10-19T08:41:58.836Z",
+  "schema": 5,
+  "web": {
+    "schema": 5,
+    "saveBytes": 21780,
+    "weeklyClaimedReceipts": [
+      "2026-10-12:weekly-land-200"
+    ],
+    "winterClaimedGoals": [
+      "winter-land-500",
+      "winter-perfect-100",
+      "winter-daily-7"
+    ],
+    "seasonClaimedTiers": [
+      1
+    ],
+    "ownedCosmetics": [
+      "default",
+      "winter-roof-residential",
+      "winter-crane",
+      "winter-badge"
+    ],
+    "layouts": {
+      "perfectRushEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "weeklyContractsEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "weeklyContractsVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "winterEventEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "winterEventVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "freeSeasonEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "freeSeasonVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "customizeEventSeasonEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "customizeEventSeasonVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      }
+    },
+    "liveOpsEndpoint": {
+      "status": 200,
+      "cacheControl": "public, max-age=900, stale-while-revalidate=60",
+      "revision": "rev-2026-10-15-v1",
+      "ttlSeconds": 900,
+      "catalogIds": {
+        "weeklyVersion": "weekly-contracts-1",
+        "winterEventId": "winter-2026",
+        "freeSeasonId": "season-1"
+      }
+    }
+  },
+  "playable": {
+    "schema": 5,
+    "saveBytes": 21894,
+    "weeklyClaimedReceipts": [
+      "2026-10-12:weekly-land-200"
+    ],
+    "winterClaimedGoals": [
+      "winter-land-500",
+      "winter-perfect-100",
+      "winter-daily-7"
+    ],
+    "seasonClaimedTiers": [
+      1
+    ],
+    "ownedCosmetics": [
+      "default",
+      "winter-roof-residential",
+      "winter-crane",
+      "winter-badge"
+    ],
+    "layouts": {
+      "perfectRushEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "perfectRushGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineSprintGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "weeklyContractsEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "weeklyContractsVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "winterEventEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "winterEventVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "freeSeasonEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "freeSeasonVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "customizeEventSeasonEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "customizeEventSeasonVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      }
+    },
+    "externalNetworkRequests": 0,
+    "runtimeAudioExternalBytes": 0
+  }
+}

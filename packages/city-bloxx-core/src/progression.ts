@@ -2,6 +2,7 @@ import { ACHIEVEMENT_CATALOG, MISSION_CATALOG, MISSION_FALLBACKS, PROGRESSION_RU
 import { BUILDING_IDS, type BuildingId } from "./buildings";
 import { isUTCDate, utcDate } from "./daily";
 import { acceptedMission, checkedAdd, DIFFICULTIES, missionExpired, refreshMissions, rerollMission, updateRunMissions, validateMissionCatalog } from "./missions";
+import { addSeasonSPWithReceipt, BUNDLED_LIVEOPS_MANIFEST, emptyLiveOpsSave, updateRunWeeklyContracts } from "./c7-modes-liveops";
 import type { ProgressionState } from "./progression-types";
 import type { GameSave } from "./save-state";
 import type { RunSummary } from "./tracking";
@@ -92,7 +93,15 @@ export function settleProgression(save: GameSave, summary: RunSummary, baseXP: n
 export function recordRunProgress(save: GameSave, summary: RunSummary): GameSave {
   if (summary.mode === "one-drop") return save;
   if (save.tracking.settled.some(([lo, hi]) => summary.identity.sequence >= lo && summary.identity.sequence <= hi)) return save;
-  return { ...save, progression: updateRunMissions(save.progression, summary, save.tracking.installationId, save.city.unlocked, summary.endedAt) };
+  const liveOps = save.liveOps ?? emptyLiveOpsSave();
+  return {
+    ...save,
+    progression: updateRunMissions(save.progression, summary, save.tracking.installationId, save.city.unlocked, summary.endedAt),
+    liveOps: {
+      ...liveOps,
+      weekly: updateRunWeeklyContracts(liveOps.weekly, summary, save.city.unlocked, summary.endedAt),
+    },
+  };
 }
 export function ensureMissions(save: GameSave, at: number): GameSave {
   const progression = refreshMissions(save.progression, utcDate(at), save.tracking.installationId || "local", save.city.unlocked);
@@ -102,7 +111,19 @@ export function claimMission(save: GameSave, date: string, id: string, at: numbe
   const next = ensureMissions(save, at), p = next.progression;
   const day = p.missionDays.find(d => d.dateUTC === date), slot = day?.slots.find(s => s.definition.id === id);
   if (!slot || slot.status !== "ready" || at < slot.completedAt! || date > utcDate(at) || missionExpired(date, p.latestMissionDate!)) return next;
-  return { ...next, progression: { ...p, xp: checkedAdd(p.xp, slot.definition.xp), missionDays: p.missionDays.map(d => d !== day ? d : { ...d, slots: d.slots.map(s => s !== slot ? s : { ...s, status: "claimed", claimedAt: at }) }) } };
+  const liveOps = next.liveOps ?? emptyLiveOpsSave();
+  const freeSeason = addSeasonSPWithReceipt(
+    liveOps.freeSeason,
+    `mission:${date}:${id}`,
+    BUNDLED_LIVEOPS_MANIFEST.freeSeason.spSources.dailyMissionClaim,
+    at,
+    BUNDLED_LIVEOPS_MANIFEST,
+  );
+  return {
+    ...next,
+    progression: { ...p, xp: checkedAdd(p.xp, slot.definition.xp), missionDays: p.missionDays.map(d => d !== day ? d : { ...d, slots: d.slots.map(s => s !== slot ? s : { ...s, status: "claimed", claimedAt: at }) }) },
+    liveOps: { ...liveOps, freeSeason },
+  };
 }
 export function rerollSaveMission(save: GameSave, date: string, id: string, at: number): GameSave {
   const next = ensureMissions(save, at);

@@ -88,11 +88,69 @@ onAudioEnabled((enabled) => {
   if (!enabled) suspend();
 });
 
+const STEM_FREQUENCIES = [110, 164.81, 220, 329.63] as const;
+const STEM_MAX_GAINS = [0.018, 0.014, 0.012, 0.01] as const;
+const FADE_SECONDS = 0.15;
+
+let stemsInit = false;
+let activeLayers = 1;
+const stemOscs: OscillatorNode[] = [];
+const stemGains: GainNode[] = [];
+
+function computeLayers(combo: number): number {
+  if (combo >= 10) return 4;
+  if (combo >= 6) return 3;
+  if (combo >= 3) return 2;
+  return 1;
+}
+
+function ensureStems(c: AudioContext): void {
+  if (stemsInit) return;
+  stemsInit = true;
+  const now = c.currentTime;
+  for (let i = 0; i < STEM_FREQUENCIES.length; i++) {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = i === 0 ? "sine" : "triangle";
+    osc.frequency.setValueAtTime(STEM_FREQUENCIES[i], now);
+    gain.gain.setValueAtTime(i < activeLayers && isAudioEnabled() ? STEM_MAX_GAINS[i] : 0, now);
+    osc.connect(gain).connect(c.destination);
+    osc.start(now);
+    stemOscs.push(osc);
+    stemGains.push(gain);
+  }
+}
+
+function applyStemGains(layers: number): void {
+  if (!ctx || !stemsInit) return;
+  try {
+    const now = ctx.currentTime;
+    const enabled = isAudioEnabled();
+    for (let i = 0; i < stemGains.length; i++) {
+      const target = enabled && i < layers ? STEM_MAX_GAINS[i] : 0;
+      const g = stemGains[i].gain;
+      g.cancelScheduledValues?.(now);
+      g.setValueAtTime(g.value ?? 0, now);
+      g.linearRampToValueAtTime(target, now + FADE_SECONDS);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function setCombo(combo: number): void {
+  const nextLayers = computeLayers(Math.max(0, Math.floor(Number.isFinite(combo) ? combo : 0)));
+  if (nextLayers === activeLayers) return;
+  activeLayers = nextLayers;
+  applyStemGains(activeLayers);
+}
+
 export function playBeep(name: BeepName): void {
   if (!isAudioEnabled()) return;
   const c = getCtx();
   if (!c) return;
   if (c.state === "suspended") void c.resume().catch(() => {});
+  ensureStems(c);
 
   const defs = BEEPS[name];
   if (!defs) return;
@@ -119,12 +177,26 @@ export function playBeep(name: BeepName): void {
 
 /** Tat ngay moi am thanh (dung khi bi pause). */
 export function suspend(): void {
+  applyStemGains(0);
   if (ctx && ctx.state === "running") void ctx.suspend().catch(() => {});
 }
 export function resume(): void {
-  if (ctx && ctx.state === "suspended" && isAudioEnabled()) void ctx.resume().catch(() => {});
+  if (ctx && ctx.state === "suspended" && isAudioEnabled()) {
+    void ctx.resume().catch(() => {});
+    applyStemGains(activeLayers);
+  }
 }
 export function dispose(): void {
+  for (const osc of stemOscs) {
+    try { osc.stop(); osc.disconnect(); } catch { /* ignore */ }
+  }
+  for (const g of stemGains) {
+    try { g.disconnect(); } catch { /* ignore */ }
+  }
+  stemOscs.length = 0;
+  stemGains.length = 0;
+  stemsInit = false;
+  activeLayers = 1;
   const c = ctx;
   ctx = null;
   unlocked = false;
@@ -132,3 +204,4 @@ export function dispose(): void {
     void c.close().catch(() => {});
   }
 }
+

@@ -22,8 +22,10 @@ describe("C4.3 cosmetic ownership and snapshots",()=>{
     expect(dx*Math.sin(b.rotation)+dy*Math.cos(b.rotation)).toBeCloseTo((a.eye.y-a.tip.y)*a.scale,8)
   })
   it("has stable IDs, compatible classes, complete assets and free defaults",()=>{
-    expect(COSMETIC_CATALOG).toHaveLength(19);expect(new Set(COSMETIC_CATALOG.map(i=>i.id)).size).toBe(19)
+    expect(COSMETIC_CATALOG).toHaveLength(24);expect(new Set(COSMETIC_CATALOG.map(i=>i.id)).size).toBe(24)
     expect(COSMETIC_CATALOG.filter(i=>i.set==="brick")).toHaveLength(10)
+    expect(COSMETIC_CATALOG.filter(i=>i.set==="winter")).toHaveLength(3)
+    expect(COSMETIC_CATALOG.filter(i=>i.set==="season")).toHaveLength(2)
     for(const item of COSMETIC_CATALOG){expect(item.available).toBe(true);expect(item.assets.length).toBeGreaterThan(0);expect(item.title.en).toBeTruthy();expect(item.title.vi).toBeTruthy()}
     expect(cosmeticItem("brick-roof-residential","building","residential")).toBeNull()
     expect(cosmeticItem("default","building","industrial")?.set).toBe("default")

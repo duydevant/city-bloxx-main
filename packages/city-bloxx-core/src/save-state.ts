@@ -12,19 +12,28 @@ import { restoreTower } from "./checkpoint";
 import { acceptedProgression, emptyProgression, normalizeProgression, settleProgression, type ProgressionState } from "./progression";
 import { emptyInventory, grantCosmetics, normalizeInventory, validateRunEquipment, type InventoryState } from "./cosmetics";
 import { emptyDistricts, normalizeDistricts, reconcileDistrictsState, type DistrictsState } from "./districts";
+import {
+  emptyLiveOpsSave,
+  settleLiveOpsOnRun,
+  validateLiveOpsSaveState,
+  validatePerfectRush,
+  validateSkylineSprint,
+  type LiveOpsSaveState,
+} from "./c7-modes-liveops";
 export type { DailyState } from "./daily-state";
 export type { OneDropState } from "./one-drop";
 export type { SkylineAlbumState } from "./album";
 export type { ProgressionState } from "./progression-types";
 export type { InventoryState } from "./cosmetics";
 export type { DistrictsState } from "./districts";
+export type { LiveOpsSaveState } from "./c7-modes-liveops";
 
 export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
 export interface TutorialState { quick: boolean; city: boolean; daily: boolean }
-export function completeTutorial(save: GameSave, mode: keyof TutorialState | "one-drop"): GameSave {
-  if (mode === "one-drop") return save;
+export function completeTutorial(save: GameSave, mode: keyof TutorialState | "one-drop" | "perfect-rush" | "skyline-sprint"): GameSave {
+  if (mode === "one-drop" || mode === "perfect-rush" || mode === "skyline-sprint") return save;
   return save.tutorials[mode] ? save : { ...save, tutorials: { ...save.tutorials, [mode]: true } };
 }
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
@@ -32,7 +41,7 @@ interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
   schema: 5; standardQuickBest: number; assistQuickBest: number; runs: number;
   lastReplay: RunRecord | null; city: CitySave; districts: DistrictsState; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
-  progression: ProgressionState; inventory: InventoryState; daily: DailyState; oneDrop: OneDropState;
+  progression: ProgressionState; inventory: InventoryState; daily: DailyState; oneDrop: OneDropState; liveOps: LiveOpsSaveState;
   history: RunSummary[]; replays: { id: string; record: RunRecord }[];
   replayRefs: { latest: string | null; best: string | null; pinned: string | null };
   hallOfFame: string[];
@@ -44,7 +53,7 @@ export function emptySave(): GameSave {
     settings: { muted: false, reducedMotion: null, locale: null }, tutorials: { quick:false, city:false, daily:false }, stats: emptyStats(),
     progression: emptyProgression(),
     inventory: emptyInventory(),
-    daily: emptyDaily(), oneDrop: emptyOneDrop(), history: [], replays: [],
+    daily: emptyDaily(), oneDrop: emptyOneDrop(), liveOps: emptyLiveOpsSave(), history: [], replays: [],
     replayRefs: { latest: null, best: null, pinned: null },
     hallOfFame: [],
     album: emptyAlbum(),
@@ -78,13 +87,21 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
   if (s?.mode === "one-drop") {
     try { const o = validateOneDrop(s.oneDrop); if (s.building !== o.classId || s.seed !== o.seed || s.physicsVersion !== o.physicsVersion || s.rulesetVersion !== o.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > o.targetBodyFloors || (s.metrics && s.metrics.foundation !== 0)) return false; } catch { return false; }
   } else if (s?.oneDrop !== undefined) return false;
+  if (s?.mode === "perfect-rush") {
+    try { const pr = validatePerfectRush(s.perfectRush); if (s.building !== pr.classId || s.physicsVersion !== pr.physicsVersion || s.rulesetVersion !== pr.rulesetVersion || s.assist || s.result?.ranked || s.endTick > pr.maxEndTick) return false; } catch { return false; }
+  } else if (s?.perfectRush !== undefined) return false;
+  if (s?.mode === "skyline-sprint") {
+    try { const sp = validateSkylineSprint(s.skylineSprint); if (s.building !== sp.classId || s.physicsVersion !== sp.physicsVersion || s.rulesetVersion !== sp.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > sp.targetBodyFloors) return false; } catch { return false; }
+  } else if (s?.skylineSprint !== undefined) return false;
   const expectedComplete =
     s?.mode === "one-drop"
       ? s.outcome === "ended" && s.result?.height === s.oneDrop?.targetBodyFloors
-      : s?.mode !== "quick" && s?.outcome === "ended" && s?.result?.height === BUILDINGS[s.building]?.floors;
+      : s?.mode === "skyline-sprint"
+        ? s.outcome === "ended" && s.result?.height === s.skylineSprint?.targetBodyFloors
+        : s?.mode !== "quick" && s?.mode !== "perfect-rush" && s?.outcome === "ended" && s?.result?.height === BUILDINGS[s.building]?.floors;
   return !!s && validIdentity(s.identity, next, installation) && integer(s.startedAt) && integer(s.endedAt) &&
-    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city", "daily", "one-drop"].includes(s.mode) && isBuildingId(s.building) &&
-    typeof s.assist === "boolean" && !((s.mode === "city" || s.mode === "one-drop") && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
+    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city", "daily", "one-drop", "perfect-rush", "skyline-sprint"].includes(s.mode) && isBuildingId(s.building) &&
+    typeof s.assist === "boolean" && !((s.mode === "city" || s.mode === "one-drop" || s.mode === "perfect-rush" || s.mode === "skyline-sprint") && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
     ["ended", "abandoned"].includes(s.outcome) && s.complete === expectedComplete &&
     s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
@@ -118,6 +135,7 @@ function validateV4(s: GameSave): GameSave {
   validateRunEquipment(tr.activeQuick?.equipment,"residential"); validateRunEquipment(tr.pendingCity?.equipment,s.city.pending?.classId); validateRunEquipment(s.daily.pending?.equipment,s.daily.pending?.checkpoint.config.building);
   s = { ...s, daily: validateDailyState(s.daily) };
   s = { ...s, oneDrop: validateOneDropState(s.oneDrop) };
+  s = { ...s, liveOps: validateLiveOpsSaveState(s.liveOps) };
   s = { ...s, album: validateAlbumState(s.album) };
   s = { ...s, progression: normalizeProgression(s) };
   const dp = s.daily.pending;
@@ -132,7 +150,7 @@ function validateV4(s: GameSave): GameSave {
   if (s.history.some(h => !isSettled(s, h.identity))) reject();
   const next = copy(s), ids = new Set<string>();
   next.replays = next.replays.filter(entry => {
-    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && ["quick", "daily", "one-drop"].includes(h.mode) && h.outcome === "ended")) reject();
+    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && ["quick", "daily", "one-drop", "perfect-rush", "skyline-sprint"].includes(h.mode) && h.outcome === "ended")) reject();
     ids.add(entry.id);
     try { entry.record = validateRecord(entry.record); return true; } catch { return false; }
   });
@@ -194,6 +212,7 @@ export function initializeTracking(save: GameSave, installationId: string, now: 
   const next = { ...save, stats: { ...save.stats, trackedSince: save.stats.trackedSince || now } };
   if (save.tracking.installationId && save.tracking.installationId !== "legacy") return next;
   const rename = (id: string | null) => id ? `${installationId}:${id.split(":")[1]}` : null;
+  const liveOps = save.liveOps ?? emptyLiveOpsSave();
   return { ...next, tracking: { ...save.tracking, installationId },
     history: save.history.map(h => ({ ...h, identity: { ...h.identity, installationId, id: rename(h.identity.id)! } })),
     replays: save.replays.map(r => ({ ...r, id: rename(r.id)! })),
@@ -203,6 +222,17 @@ export function initializeTracking(save: GameSave, installationId: string, now: 
       ...(save.oneDrop ?? emptyOneDrop()),
       allTimeBest: save.oneDrop?.allTimeBest ? { ...save.oneDrop.allTimeBest, identityId: rename(save.oneDrop.allTimeBest.identityId)! } : null,
       days: (save.oneDrop?.days ?? []).map(d => ({ ...d, best: d.best ? { ...d.best, identityId: rename(d.best.identityId)! } : null })),
+    },
+    liveOps: {
+      ...liveOps,
+      perfectRush: {
+        ...liveOps.perfectRush,
+        best: liveOps.perfectRush.best ? { ...liveOps.perfectRush.best, identityId: rename(liveOps.perfectRush.best.identityId)! } : null,
+      },
+      skylineSprint: {
+        ...liveOps.skylineSprint,
+        bestComplete: liveOps.skylineSprint.bestComplete ? { ...liveOps.skylineSprint.bestComplete, identityId: rename(liveOps.skylineSprint.bestComplete.identityId)! } : null,
+      },
     } };
 }
 export function allocateRun(save: GameSave, startedAt: number): { save: GameSave; context: RunContext } {
@@ -246,6 +276,7 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   if (!validSummary(summary, save.tracking.nextSequence, save.tracking.installationId)) throw new Error("Invalid run settlement");
   if (isSettled(save, summary.identity)) return save;
   const isOneDrop = summary.mode === "one-drop";
+  const isExtraMode = summary.mode === "perfect-rush" || summary.mode === "skyline-sprint";
   const group: StatsGroup = summary.mode === "daily" ? "daily" : summary.mode === "city" ? "city" : summary.assist ? "quick-assist" : "quick-standard";
   const quickEnded = summary.mode === "quick" && summary.outcome === "ended";
   const ranked = quickEnded && !summary.assist;
@@ -254,6 +285,7 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
   const daily = summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily;
   const oneDrop = isOneDrop ? settleOneDrop(save.oneDrop ?? emptyOneDrop(), summary) : (save.oneDrop ?? emptyOneDrop());
+  const liveOps = settleLiveOpsOnRun(save, summary, save.daily.lifetimeCreditedDays, daily.lifetimeCreditedDays);
   const progression = settleProgression(save, summary, xpEarned, daily.lifetimeCreditedDays);
   const totalXP = progression.xp - save.progression.xp;
   const stats = isOneDrop
@@ -261,7 +293,7 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     : {
         ...save.stats,
         totals: applySummary(save.stats.totals, summary),
-        byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
+        byMode: isExtraMode ? save.stats.byMode : { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
         byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) },
       };
   const next: GameSave = { ...save,
@@ -270,6 +302,7 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     runs: save.runs + Number(quickEnded),
     daily,
     oneDrop,
+    liveOps,
     stats,
     history: [{ ...copy(summary), xpEarned: totalXP, baseXPEarned: xpEarned, bonusXPEarned: totalXP - xpEarned, builderXPBefore: save.progression.xp,
       unlockedAchievements: progression.achievements.filter(id => !save.progression.achievements.includes(id)), progressionRewardVersion: progression.catalogVersion, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
@@ -278,9 +311,9 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     progression,
     tracking: { ...save.tracking, settled: receiptRanges(save.tracking.settled, summary.identity.sequence),
       activeQuick: save.tracking.activeQuick?.identity.id === summary.identity.id ? null : save.tracking.activeQuick } };
-  if (record && summary.outcome === "ended" && ["quick", "daily", "one-drop"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
+  if (record && summary.outcome === "ended" && ["quick", "daily", "one-drop", "perfect-rush", "skyline-sprint"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
     const valid = validateRecord(record);
-    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.config.daily?.id !== summary.daily?.id || valid.config.oneDrop?.id !== summary.oneDrop?.id || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
+    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.config.daily?.id !== summary.daily?.id || valid.config.oneDrop?.id !== summary.oneDrop?.id || valid.config.perfectRush?.id !== summary.perfectRush?.id || valid.config.skylineSprint?.id !== summary.skylineSprint?.id || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
     next.replays.push({ id: summary.identity.id, record: valid }); next.replayRefs.latest = summary.identity.id;
     if (nextBest) next.replayRefs.best = summary.identity.id;
   }

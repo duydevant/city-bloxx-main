@@ -1,0 +1,57 @@
+{
+  "version": "c7-art-1",
+  "promptSpec": "plan/12-art-requirements.md#9",
+  "normalization": "Deterministic material edit from approved Brick rig/hook/roof preserving exact alpha cutout, bounding boxes and anchors",
+  "packBytes": 396806,
+  "assets": [
+    {
+      "path": "rig/winter/crane_rig_winter_sprite.png",
+      "source": "art/source/rig/winter/crane_rig_winter_sprite_v001.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 178810
+    },
+    {
+      "path": "rig/winter/crane_hook_winter_sprite.png",
+      "source": "art/source/rig/winter/crane_hook_winter_sprite_v001.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 7672
+    },
+    {
+      "path": "stack/winter/bldg_residential_winter_roof.png",
+      "source": "art/source/stack/winter/bldg_residential_winter_roof_v001.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 23480
+    },
+    {
+      "path": "ui/winter/event-badge.svg",
+      "source": "code-native SVG badge",
+      "width": 256,
+      "height": 256,
+      "bytes": 491
+    },
+    {
+      "path": "rig/season/crane_rig_season_sprite.png",
+      "source": "art/source/rig/season/crane_rig_season_sprite_v001.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 178282
+    },
+    {
+      "path": "rig/season/crane_hook_season_sprite.png",
+      "source": "art/source/rig/season/crane_hook_season_sprite_v001.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 7732
+    },
+    {
+      "path": "ui/season/season-badge.svg",
+      "source": "code-native SVG badge",
+      "width": 256,
+      "height": 256,
+      "bytes": 339
+    }
+  ]
+}

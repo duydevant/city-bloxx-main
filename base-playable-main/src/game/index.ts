@@ -46,6 +46,7 @@ export const game: PlayableGame = {
       },
       audio: {
         play: quality => host.beep(quality === "miss" ? "lose" : quality === "perfect" ? "merge" : "tap"),
+        setCombo: combo => host.setAudioCombo?.(combo),
         suspend: () => host.suspendAudio(),
         dispose: () => {
           offAudio();

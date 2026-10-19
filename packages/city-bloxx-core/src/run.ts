@@ -4,10 +4,12 @@ import { sweepTower } from "./collision";
 import { emptyMetrics, recordMetric, type RunMetrics } from "./metrics";
 import { validateDaily, type DailyDefinition } from "./daily";
 import { validateOneDrop, type OneDropDefinition } from "./one-drop";
+import { PERFECT_RUSH_RECIPE, SKYLINE_SPRINT_RECIPE, computeSprintScoreTicks, validatePerfectRush, validateSkylineSprint, type PerfectRushDefinition, type SkylineSprintDefinition } from "./c7-modes-liveops";
 
 export type PlacementQuality = "perfect" | "great" | "good" | "risky" | "miss";
 export type RunPhase = "preparing" | "swing" | "falling" | "settling" | "miss" | "ended";
-export interface RunConfig { seed: number; mode: "quick" | "city" | "daily" | "one-drop"; assist: boolean; building?: BuildingId; daily?: DailyDefinition; oneDrop?: OneDropDefinition; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
+export type RunMode = "quick" | "city" | "daily" | "one-drop" | "perfect-rush" | "skyline-sprint";
+export interface RunConfig { seed: number; mode: RunMode; assist: boolean; building?: BuildingId; daily?: DailyDefinition; oneDrop?: OneDropDefinition; perfectRush?: PerfectRushDefinition; skylineSprint?: SkylineSprintDefinition; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
 export interface DropInput { tick: number; sequence: number; fraction: number }
 export type DropEvent = DropInput;
 export interface PlacedFloor { x: number; quality: Exclude<PlacementQuality, "miss">; population: number; error: number }
@@ -15,6 +17,8 @@ export interface RunResult {
   population: number; height: number; accuracy: number; perfectCount: number;
   bestStreak: number; durationTicks: number; misses: number; ranked: boolean;
   rating: "S" | "A" | "B" | "C" | "D"; ratingVersion: string;
+  deadlineTick?: number;
+  sprintScoreTicks?: number;
 }
 export interface QuickTowerSnapshot {
   physicsVersion: string; rulesetVersion: string; seed: number; assist: boolean;
@@ -33,7 +37,7 @@ export interface QuickTowerSnapshot {
 }
 export interface RunRecord {
   schema: 1; config: RunConfig; physicsVersion: string; rulesetVersion: string;
-  inputs: DropInput[]; endTick: number; result: RunResult;
+  inputs: DropInput[]; endTick: number; deadlineTick?: number; result: RunResult;
 }
 const q = (n: number) => Math.round(n * 1000) / 1000;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
@@ -100,17 +104,28 @@ export class QuickTowerGame {
   private swayPhase = 0;
   constructor(config: number | RunConfig = 1) {
     const value = typeof config === "number" ? { seed: config, mode: "quick" as const, assist: false } : config;
-    if (!Number.isInteger(value.seed) || !["quick", "city", "daily", "one-drop"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
+    if (!Number.isInteger(value.seed) || !["quick", "city", "daily", "one-drop", "perfect-rush", "skyline-sprint"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
     const daily = value.mode === "daily" ? validateDaily(value.daily) : undefined;
     if (daily ? value.assist || value.seed !== daily.seed || value.building !== daily.classId : value.daily !== undefined) throw new Error("Invalid Daily config");
     const oneDrop = value.mode === "one-drop" ? validateOneDrop(value.oneDrop) : undefined;
     if (oneDrop ? value.assist || value.seed !== oneDrop.seed || (value.building !== undefined && value.building !== oneDrop.classId) : value.oneDrop !== undefined) throw new Error("Invalid One Drop config");
+    const perfectRush = value.mode === "perfect-rush" ? (value.perfectRush ? validatePerfectRush(value.perfectRush) : undefined) : undefined;
+    if (value.mode === "perfect-rush" ? value.assist || (value.building !== undefined && value.building !== "residential") : value.perfectRush !== undefined) throw new Error("Invalid Perfect Rush config");
+    const skylineSprint = value.mode === "skyline-sprint" ? (value.skylineSprint ? validateSkylineSprint(value.skylineSprint) : undefined) : undefined;
+    if (value.mode === "skyline-sprint" ? value.assist || (value.building !== undefined && value.building !== "residential") : value.skylineSprint !== undefined) throw new Error("Invalid Skyline Sprint config");
     if (value.legacyPerfect !== undefined && (value.mode !== "city" || typeof value.legacyPerfect !== "boolean")) throw new Error("Invalid legacy rules");
     if (value.legacyOverlap !== undefined && (value.mode !== "city" || typeof value.legacyOverlap !== "boolean")) throw new Error("Invalid legacy overlap rules");
     if (value.legacyScoring !== undefined && (value.mode !== "city" || typeof value.legacyScoring !== "boolean")) throw new Error("Invalid legacy scoring rules");
     if (value.legacyMotion !== undefined && (value.mode !== "city" || typeof value.legacyMotion !== "boolean")) throw new Error("Invalid legacy motion rules");
     if (value.motionVersion !== undefined && (value.mode !== "city" || ![11,12].includes(value.motionVersion))) throw new Error("Invalid motion version");
-    this.config = Object.freeze({ ...value, ...(daily ? { daily } : {}), ...(oneDrop ? { oneDrop, building: oneDrop.classId } : {}), seed: value.seed | 0 });
+    this.config = Object.freeze({
+      ...value,
+      ...(daily ? { daily } : {}),
+      ...(oneDrop ? { oneDrop, building: oneDrop.classId } : {}),
+      ...(value.mode === "perfect-rush" ? { building: "residential" as const, ...(perfectRush ? { perfectRush } : {}) } : {}),
+      ...(value.mode === "skyline-sprint" ? { building: "residential" as const, ...(skylineSprint ? { skylineSprint } : {}) } : {}),
+      seed: value.seed | 0,
+    });
     this.lives = oneDrop ? oneDrop.lives : R.lives;
     if (oneDrop) {
       for (let i = 0; i < oneDrop.prebuiltFloors; i++) {
@@ -188,6 +203,7 @@ export class QuickTowerGame {
     if (!this.paused) for (let i = 0; i < count; i++) this.step();
   }
   drop(renderFraction = 1): boolean {
+    if (this.config.mode === "perfect-rush" && this.tickCount >= PERFECT_RUSH_RECIPE.deadlineTick) return false;
     const previous = this.drops[this.drops.length - 1];
     if (this.paused || this.phase !== "swing" || (previous && this.tickCount - previous.tick < R.inputDebounceTicks)) return false;
     const fraction = Math.round(clamp(renderFraction, 0, 1) * 1000);
@@ -204,8 +220,34 @@ export class QuickTowerGame {
     return true;
   }
   getSnapshot(): QuickTowerSnapshot {
+    const rulesetVersion =
+      this.config.mode === "one-drop"
+        ? this.config.oneDrop!.rulesetVersion
+        : this.config.mode === "perfect-rush"
+          ? PERFECT_RUSH_RECIPE.rulesetVersion
+          : this.config.mode === "skyline-sprint"
+            ? SKYLINE_SPRINT_RECIPE.rulesetVersion
+            : this.config.mode === "daily"
+              ? this.config.daily!.rulesetVersion
+              : this.config.mode === "city"
+                ? this.config.legacyPerfect
+                  ? "build-city-1"
+                  : this.config.legacyOverlap
+                    ? "build-city-2"
+                    : this.config.legacyScoring
+                      ? "build-city-3"
+                      : this.config.legacyMotion
+                        ? "build-city-4"
+                        : this.config.motionVersion === 11
+                          ? "build-city-5"
+                          : this.config.motionVersion === 12
+                            ? "build-city-6"
+                            : CITY_RULESET_VERSION
+                : this.config.assist
+                  ? ASSIST_RULESET_VERSION
+                  : RULESET_VERSION;
     return {
-      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "one-drop" ? this.config.oneDrop!.rulesetVersion : this.config.mode === "daily" ? this.config.daily!.rulesetVersion : this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
+      physicsVersion: PHYSICS_VERSION, rulesetVersion,
       seed: this.config.seed, assist: this.config.assist, tick: this.tickCount, phase: this.phase,
       lives: this.lives, population: this.population, perfectCount: this.perfectCount,
       streak: this.streak, bestStreak: this.bestStreak, comboLevel: this.comboLevel,
@@ -245,16 +287,67 @@ export class QuickTowerGame {
     }
     const scored = this.config.legacyScoring ? this.floors : this.floors.slice(1);
     const accuracy = scored.length ? q(scored.reduce((sum, f) => sum + 1 - f.error, 0) / scored.length * 100) : 0;
+    const misses = R.lives - this.lives;
+    if (this.config.mode === "perfect-rush") {
+      const rushRating: RunResult["rating"] =
+        this.perfectCount >= 20 ? "S" : this.perfectCount >= 12 ? "A" : this.perfectCount >= 6 ? "B" : this.floors.length > 0 ? "C" : "D";
+      return {
+        population: this.population,
+        height: this.floors.length,
+        accuracy,
+        perfectCount: this.perfectCount,
+        bestStreak: this.bestStreak,
+        durationTicks: this.tickCount,
+        misses,
+        ranked: false,
+        rating: rushRating,
+        ratingVersion: CITY_RATING_VERSION,
+        deadlineTick: PERFECT_RUSH_RECIPE.deadlineTick,
+      };
+    }
+    if (this.config.mode === "skyline-sprint") {
+      const sprintRating: RunResult["rating"] =
+        this.floors.length < SKYLINE_SPRINT_RECIPE.targetBodyFloors
+          ? "D"
+          : accuracy >= 94 && misses === 0
+            ? "S"
+            : accuracy >= 85
+              ? "A"
+              : accuracy >= 70
+                ? "B"
+                : "C";
+      return {
+        population: this.population,
+        height: this.floors.length,
+        accuracy,
+        perfectCount: this.perfectCount,
+        bestStreak: this.bestStreak,
+        durationTicks: this.tickCount,
+        misses,
+        ranked: false,
+        rating: sprintRating,
+        ratingVersion: CITY_RATING_VERSION,
+        sprintScoreTicks: computeSprintScoreTicks(this.tickCount, misses),
+      };
+    }
     const rating = this.floors.length >= Rating.sHeight && accuracy >= Rating.sAccuracy ? "S" : this.floors.length >= Rating.aHeight && accuracy >= Rating.aAccuracy ? "A" : this.floors.length >= Rating.bHeight && accuracy >= Rating.bAccuracy ? "B" : this.floors.length > 0 ? "C" : "D";
     const cityRating = this.config.mode !== "quick" ? (this.floors.length < this.targetFloors() ? "D" : this.roof && accuracy >= 94 && this.roof.error <= .08 ? "S" : this.roof && accuracy >= 85 ? "A" : accuracy >= 70 ? "B" : "C") : rating;
     return { population: this.population, height: this.floors.length, accuracy, perfectCount: this.perfectCount,
-      bestStreak: this.bestStreak, durationTicks: this.tickCount, misses: R.lives - this.lives,
+      bestStreak: this.bestStreak, durationTicks: this.tickCount, misses,
       ranked: this.config.mode === "quick" && !this.config.assist, rating: cityRating, ratingVersion: this.config.mode !== "quick" ? CITY_RATING_VERSION : RATING_VERSION };
   }
   getRecord(): RunRecord {
     if (this.phase !== "ended") throw new Error("Cannot record unfinished run");
-    return { schema: 1, config: { ...this.config }, physicsVersion: PHYSICS_VERSION,
-      rulesetVersion: this.getSnapshot().rulesetVersion, inputs: this.drops.map(d => ({ ...d })), endTick: this.tickCount, result: this.getResult() };
+    return {
+      schema: 1,
+      config: { ...this.config },
+      physicsVersion: PHYSICS_VERSION,
+      rulesetVersion: this.getSnapshot().rulesetVersion,
+      inputs: this.drops.map(d => ({ ...d })),
+      endTick: this.tickCount,
+      ...(this.config.mode === "perfect-rush" ? { deadlineTick: PERFECT_RUSH_RECIPE.deadlineTick } : {}),
+      result: this.getResult(),
+    };
   }
   private step(): void {
     if (this.phase === "ended") return;
@@ -270,6 +363,16 @@ export class QuickTowerGame {
     if (this.comboTicks > 0 && --this.comboTicks === 0) this.comboLevel = 0;
     // Recovery changes amplitude without jumping the tower at impact.
     this.swayBias = q(this.swayBias * .85);
+    if (this.config.mode === "perfect-rush") {
+      if (this.tickCount >= PERFECT_RUSH_RECIPE.maxEndTick) {
+        this.phase = "ended";
+        return;
+      }
+      if (this.tickCount >= PERFECT_RUSH_RECIPE.deadlineTick && this.phase !== "falling" && this.phase !== "miss") {
+        this.phase = "ended";
+        return;
+      }
+    }
     if (this.phase === "settling") {
       if (--this.transitionTicks <= 0) {
         if (this.config.mode === "one-drop") this.phase = "ended";
@@ -322,6 +425,9 @@ export class QuickTowerGame {
       this.metrics.foundation = 1;
       this.population += population; this.currentY = targetY;
       this.lastPlacement = null; this.feedbackId++; this.feedbackTicks = 0;
+      if (this.config.mode === "perfect-rush" && this.tickCount >= PERFECT_RUSH_RECIPE.deadlineTick) {
+        this.phase = "ended"; return;
+      }
       this.phase = "settling"; this.transitionTicks = R.landingHoldTicks; return;
     }
     const previousX = this.floors.length ? this.floors[this.floors.length - 1].x : 0;
@@ -370,6 +476,12 @@ export class QuickTowerGame {
     this.swayBias = q(offset - newWave * this.swayAmplitude());
     this.population += population; this.currentY = targetY;
     this.lastPlacement = quality; this.feedbackId++; this.feedbackTicks = R.feedbackTicks;
+    if (
+      (this.config.mode === "skyline-sprint" && this.floors.length >= SKYLINE_SPRINT_RECIPE.targetBodyFloors) ||
+      (this.config.mode === "perfect-rush" && this.tickCount >= PERFECT_RUSH_RECIPE.deadlineTick)
+    ) {
+      this.phase = "ended"; return;
+    }
     this.phase = "settling"; this.transitionTicks = R.landingHoldTicks;
   }
   private registerMiss(): void {
@@ -419,12 +531,12 @@ export class QuickTowerGame {
     const belowView = this.currentY+this.cameraY>R.worldHeight+R.floorHeight;
     const onGround = this.missGroundTick>=0 && this.tickCount-this.missGroundTick>=12;
     if (this.missTicks<=0 && (belowView || onGround || this.missAge>=180)) {
-      if (this.lives<=0 || this.isRoof()) this.phase="ended";
+      if (this.lives<=0 || this.isRoof() || (this.config.mode === "perfect-rush" && this.tickCount >= PERFECT_RUSH_RECIPE.deadlineTick)) this.phase="ended";
       else this.spawnFloor();
     }
   }
-  private targetFloors(): number { return this.config.mode === "daily" ? this.config.daily!.targetBodyFloors : this.config.mode === "city" ? BUILDINGS[this.config.building!].floors : 0; }
-  private isRoof(): boolean { return this.targetFloors() > 0 && this.floors.length >= this.targetFloors(); }
+  private targetFloors(): number { return this.config.mode === "daily" ? this.config.daily!.targetBodyFloors : this.config.mode === "skyline-sprint" ? SKYLINE_SPRINT_RECIPE.targetBodyFloors : this.config.mode === "city" ? BUILDINGS[this.config.building!].floors : 0; }
+  private isRoof(): boolean { return this.config.mode !== "skyline-sprint" && this.targetFloors() > 0 && this.floors.length >= this.targetFloors(); }
   private spawnFloor(): void { this.phase = "preparing"; this.transitionTicks = R.prepareTicks; this.fallSpeed = 0; this.impact = null; this.updateSwing(); }
   private updateCamera(): void {
     const top = this.floors.length ? this.floors[this.floors.length - 1].x : 0;

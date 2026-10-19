@@ -43,6 +43,7 @@ export function normalizeInventory(value: InventoryState, legacyOwned: readonly 
 }
 export function cosmeticProgress(save: GameSave, item: CosmeticItem): number {
   if (item.rule === "free") return 0;
+  if (item.rule === "event" || item.rule === "season") return save.inventory.owned.includes(item.id) ? item.target : 0;
   if (item.rule === "completed") return Math.min(item.target, save.progression.counts.classes[item.classId!]);
   if (item.rule === "perfect") return Math.min(item.target, save.stats.byClass[item.classId!].quality.perfect);
   if (item.rule === "daily") return Math.min(item.target, save.daily.lifetimeCreditedDays);
@@ -51,11 +52,11 @@ export function cosmeticProgress(save: GameSave, item: CosmeticItem): number {
 export function ownsCosmetic(save: GameSave, item: CosmeticItem): boolean { return item.rule === "free" || save.inventory.owned.includes(item.id); }
 export function validateCosmeticCatalog(catalog: readonly CosmeticItem[] = COSMETIC_CATALOG): void {
   if(!Array.isArray(catalog)||catalog.length>128||new Set(catalog.map(d=>d?.id)).size!==catalog.length)throw new Error("Invalid cosmetic catalog");
-  for(const d of catalog)if(!d||!tag(d.id)||d.version!=="cosmetics-1"||!["building","roof","crane","badge"].includes(d.category)||!["default","brick"].includes(d.set)||typeof d.available!=="boolean"||
-    !["free","completed","perfect","daily","collection"].includes(d.rule)||!integer(d.target)||d.target>1000000||(d.rule==="free"?d.target!==0:d.target<1)||
+  for(const d of catalog)if(!d||!tag(d.id)||d.version!=="cosmetics-1"||!["building","roof","crane","badge"].includes(d.category)||!["default","brick","winter","season"].includes(d.set)||typeof d.available!=="boolean"||
+    !["free","completed","perfect","daily","collection","event","season"].includes(d.rule)||!integer(d.target)||d.target>1000000||(d.rule==="free"?d.target!==0:d.target<1)||
     (d.category==="building"||d.category==="roof"?d.classId===null||!BUILDING_IDS.includes(d.classId):d.classId!==null)||
     d.rule==="completed"&&d.category!=="building"||d.rule==="perfect"&&d.category!=="roof"||d.rule==="daily"&&d.category!=="crane"||d.rule==="collection"&&d.category!=="badge"||
-    !Array.isArray(d.assets)||!d.assets.length||d.assets.length>3||d.assets.some((a:unknown)=>typeof a!=="string"||! /^(stack|city|rig|ui)\/(default|brick)\/[a-z0-9_-]+\.(png|svg)$/.test(a))||
+    !Array.isArray(d.assets)||!d.assets.length||d.assets.length>3||d.assets.some((a:unknown)=>typeof a!=="string"||! /^(stack|city|rig|ui)\/(default|brick|winter|season)\/[a-z0-9_-]+\.(png|svg)$/.test(a))||
     !d.title||![d.title.en,d.title.vi].every(v=>typeof v==="string"&&v.length>0&&v.length<=160))throw new Error("Invalid cosmetic definition");
 }
 export function grantCosmetics(save: GameSave, at: number, catalog = COSMETIC_CATALOG): GameSave {
@@ -63,7 +64,19 @@ export function grantCosmetics(save: GameSave, at: number, catalog = COSMETIC_CA
   if (!integer(at)) throw new Error("Invalid reward timestamp");
   let next = save;
   for (const item of catalog) {
-    if (!item.available || item.rule === "free" || next.inventory.owned.includes(item.id) || cosmeticProgress(next, item) < item.target) continue;
+    if (!item.available || item.rule === "free" || item.rule === "event" || item.rule === "season" || next.inventory.owned.includes(item.id) || cosmeticProgress(next, item) < item.target) continue;
+    if (next.inventory.owned.length >= 128 || next.inventory.grants.length >= 128) throw new Error("Inventory bounds exceeded; previous preserved");
+    next = { ...next, inventory: { ...next.inventory, owned: [...next.inventory.owned, item.id], grants: [...next.inventory.grants, { id: item.id, version: item.version, at }] } };
+  }
+  return next;
+}
+export function grantSpecificCosmetics(save: GameSave, itemIds: readonly string[], at: number, catalog = COSMETIC_CATALOG): GameSave {
+  validateCosmeticCatalog(catalog);
+  if (!integer(at)) throw new Error("Invalid reward timestamp");
+  let next = save;
+  for (const id of itemIds) {
+    const item = catalog.find(d => d.id === id);
+    if (!item || !item.available || next.inventory.owned.includes(item.id)) continue;
     if (next.inventory.owned.length >= 128 || next.inventory.grants.length >= 128) throw new Error("Inventory bounds exceeded; previous preserved");
     next = { ...next, inventory: { ...next.inventory, owned: [...next.inventory.owned, item.id], grants: [...next.inventory.grants, { id: item.id, version: item.version, at }] } };
   }

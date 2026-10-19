@@ -20,7 +20,7 @@ export const BUILDING_BODY_RECTS: Readonly<Record<BuildingId, Readonly<Record<"b
     base: { x:127,y:61,width:258,height:132 }, mid: { x:126,y:75,width:260,height:108 },
   },
 };
-export function buildingSourceRect(building: BuildingId, part: BuildingPart, set: "default" | "brick" = "default"): SourceRect {
-  if (set === "brick") return { x:160,y:48,width:192,height:160 };
+export function buildingSourceRect(building: BuildingId, part: BuildingPart, set: "default" | "brick" | "winter" | "season" = "default"): SourceRect {
+  if (set === "brick" || set === "winter" || set === "season") return { x:160,y:48,width:192,height:160 };
   return part === "roof" ? { x:128,y:32,width:256,height:160 } : BUILDING_BODY_RECTS[building][part];
 }

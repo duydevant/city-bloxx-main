@@ -43,7 +43,7 @@ export function validateRecord(value: unknown): RunRecord {
     r.schema !== 1 ||
     r.physicsVersion !== PHYSICS_VERSION ||
     !r.config ||
-    !["quick", "daily", "one-drop"].includes(r.config.mode) ||
+    !["quick", "daily", "one-drop", "perfect-rush", "skyline-sprint"].includes(r.config.mode) ||
     !Number.isInteger(r.config.seed) ||
     typeof r.config.assist !== "boolean" ||
     r.rulesetVersion !==
@@ -51,14 +51,22 @@ export function validateRecord(value: unknown): RunRecord {
         ? r.config.oneDrop?.rulesetVersion
         : r.config.mode === "daily"
           ? r.config.daily?.rulesetVersion
-          : r.config.assist
-            ? ASSIST_RULESET_VERSION
-            : RULESET_VERSION) ||
+          : r.config.mode === "perfect-rush"
+            ? r.config.perfectRush?.rulesetVersion
+            : r.config.mode === "skyline-sprint"
+              ? r.config.skylineSprint?.rulesetVersion
+              : r.config.assist
+                ? ASSIST_RULESET_VERSION
+                : RULESET_VERSION) ||
     !Number.isInteger(r.endTick) ||
     r.endTick < 1 ||
     r.endTick > MAX_REPLAY_TICKS ||
     !Array.isArray(r.inputs) ||
-    (r.config.mode === "one-drop" ? r.inputs.length !== 1 : r.inputs.length < 3 || r.inputs.length > MAX_REPLAY_INPUTS) ||
+    (r.config.mode === "one-drop"
+      ? r.inputs.length !== 1
+      : r.config.mode === "perfect-rush"
+        ? r.inputs.length < 1 || r.inputs.length > MAX_REPLAY_INPUTS
+        : r.inputs.length < 3 || r.inputs.length > MAX_REPLAY_INPUTS) ||
     !r.result
   ) {
     throw new Error("Unsupported replay version or bounds");
@@ -107,6 +115,47 @@ export function validateRecord(value: unknown): RunRecord {
       !["S", "A", "B", "C", "D"].includes(result.rating)
     ) {
       throw new Error("Invalid One Drop replay bounds");
+    }
+  } else if (r.config.mode === "perfect-rush") {
+    const result = r.result;
+    if (
+      r.endTick > 3780 ||
+      r.inputs.some(inp => inp.tick >= 3600) ||
+      ![result.height, result.population, result.perfectCount, result.bestStreak, result.misses].every(
+        n => Number.isSafeInteger(n) && n >= 0,
+      ) ||
+      result.ranked !== false ||
+      result.misses > 3 ||
+      result.durationTicks !== r.endTick ||
+      !Number.isFinite(result.accuracy) ||
+      result.accuracy < 0 ||
+      result.accuracy > 100 ||
+      result.ratingVersion !== "city-rating-1" ||
+      !["S", "A", "B", "C", "D"].includes(result.rating)
+    ) {
+      throw new Error("Invalid Perfect Rush replay bounds");
+    }
+  } else if (r.config.mode === "skyline-sprint") {
+    const result = r.result;
+    if (
+      r.inputs.length < 3 ||
+      r.inputs.length > 23 ||
+      ![result.height, result.population, result.perfectCount, result.bestStreak, result.misses].every(
+        n => Number.isSafeInteger(n) && n >= 0,
+      ) ||
+      result.height < 1 ||
+      result.height > 20 ||
+      result.ranked !== false ||
+      result.misses > 3 ||
+      result.durationTicks !== r.endTick ||
+      result.sprintScoreTicks !== result.durationTicks + result.misses * 300 ||
+      !Number.isFinite(result.accuracy) ||
+      result.accuracy < 0 ||
+      result.accuracy > 100 ||
+      result.ratingVersion !== "city-rating-1" ||
+      !["S", "A", "B", "C", "D"].includes(result.rating)
+    ) {
+      throw new Error("Invalid Skyline Sprint replay bounds");
     }
   }
   let previous = -1;

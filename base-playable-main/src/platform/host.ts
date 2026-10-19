@@ -24,7 +24,7 @@ import {
 } from "./engagement.js";
 import { showInterstitial, showRewarded, canShowInterstitial, interstitialThen } from "./ads.js";
 import { isAudioEnabled, onAudioEnabled } from "./audio.js";
-import { playBeep, suspend as suspendSfx, dispose as disposeSfx } from "./sfx.js";
+import { playBeep, setCombo as setSfxCombo, suspend as suspendSfx, dispose as disposeSfx } from "./sfx.js";
 import { t as translate, currentLocale } from "./i18n.js";
 import {
   onPause,
@@ -91,6 +91,7 @@ export function createHost(opts: { mount?: HTMLElement } = {}): PlayableHost {
     isAudioEnabled: () => isAudioEnabled(),
     onAudioEnabled: (cb) => onAudioEnabled(cb),
     beep: (name) => playBeep(name),
+    setAudioCombo: (combo) => setSfxCombo(combo),
     suspendAudio: () => suspendSfx(),
     disposeAudio: () => disposeSfx(),
 

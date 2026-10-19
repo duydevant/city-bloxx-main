@@ -80,6 +80,7 @@ export interface PlayableHost {
    * Tu dong tat khi YouTube bao nguoi dung tat tieng.
    */
   beep(name: BeepName): void;
+  setAudioCombo?(combo: number): void;
   suspendAudio(): void;
   disposeAudio(): void;
 

@@ -4,6 +4,7 @@ import type { QuickTowerGame, RunConfig, RunResult } from "./run";
 import { SETTLEMENT_REWARDS } from "../../city-bloxx-content/settlement";
 import { type DailyDefinition } from "./daily";
 import { type OneDropDefinition } from "./one-drop";
+import { type PerfectRushDefinition, type SkylineSprintDefinition } from "./c7-modes-liveops";
 import type { RunEquipment } from "./cosmetics";
 
 export type StatsGroup = "quick-standard" | "quick-assist" | "city" | "daily";
@@ -21,6 +22,8 @@ export interface RunSummary extends RunContext {
   unlockedCosmetics?: string[];
   daily?: DailyDefinition;
   oneDrop?: OneDropDefinition;
+  perfectRush?: PerfectRushDefinition;
+  skylineSprint?: SkylineSprintDefinition;
 }
 export interface StatTotals {
   attempts: number; abandoned: number; landedBody: number; scoredBody: number;
@@ -46,13 +49,17 @@ export function makeSummary(game: QuickTowerGame, context: RunContext, endedAt: 
     outcome === "ended" &&
     (game.config.mode === "one-drop"
       ? result.height === game.config.oneDrop!.targetBodyFloors
-      : game.config.mode !== "quick" && result.height === state.targetFloors);
+      : game.config.mode === "skyline-sprint"
+        ? result.height === game.config.skylineSprint!.targetBodyFloors
+        : game.config.mode !== "quick" && game.config.mode !== "perfect-rush" && result.height === state.targetFloors);
   return { ...context, mode: game.config.mode, building: state.building, assist: game.config.assist, seed: game.config.seed,
     physicsVersion: state.physicsVersion, rulesetVersion: state.rulesetVersion, endedAt: Math.max(context.startedAt, endedAt), endTick: state.tick,
     result, metrics: game.getMetrics(), outcome,
     complete,
     ...(game.config.mode === "daily" ? { daily: game.config.daily } : {}),
     ...(game.config.mode === "one-drop" ? { oneDrop: game.config.oneDrop } : {}),
+    ...(game.config.mode === "perfect-rush" ? { perfectRush: game.config.perfectRush } : {}),
+    ...(game.config.mode === "skyline-sprint" ? { skylineSprint: game.config.skylineSprint } : {}),
     verification: "local", replayStatus: "not-recorded" };
 }
 export function applySummary(totals: StatTotals, summary: RunSummary): StatTotals {

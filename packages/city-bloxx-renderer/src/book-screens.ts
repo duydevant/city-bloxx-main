@@ -48,28 +48,41 @@ export function createBookScreens(o: Options) {
       const badge=COSMETIC_CATALOG.find(d=>d.id==="brick-badge")!,owned=save.inventory.owned.includes(badge.id),card=document.createElement("article"),icon=document.createElement("img"),label=document.createElement("strong");card.className="cb-book-badge";
       icon.src=`${o.assets.replace(/\/$/,"")}/${badge.assets[0]}`;icon.width=32;icon.height=32;icon.alt="";icon.addEventListener("error",()=>{icon.hidden=true;},{once:true});
       label.textContent=`${owned?"★":"☆"} ${badge.title[o.vi()?"vi":"en"]} · ${collected.length}/9 · ${owned?t("Owned","Đã sở hữu"):t("Locked","Chưa mở")}`;card.append(icon,label);cards.append(card);
-      const members=COSMETIC_CATALOG.filter(d=>d.set==="brick"&&d.category!=="badge");
+      const members=COSMETIC_CATALOG.filter(d=>d.set!=="default");
+      const maxCollectionPage=Math.max(0,Math.ceil(members.length/3)-1);
       for(const item of members.slice(collectionPage*3,collectionPage*3+3)){const row=document.createElement("small");row.textContent=`${save.inventory.owned.includes(item.id)?"★":"☆"} ${item.title[o.vi()?"vi":"en"]}`;cards.append(row);}
       const pager=document.createElement("div");pager.className="cb-actions";
       if(collectionPage>0)pager.append(o.button(t("Earlier items","Vật phẩm trước"),()=>book(page,collectionPage-1)));
-      if(collectionPage<2)pager.append(o.button(t("More items","Thêm vật phẩm"),()=>book(page,collectionPage+1)));
+      if(collectionPage<maxCollectionPage)pager.append(o.button(t("More items","Thêm vật phẩm"),()=>book(page,collectionPage+1)));
       cards.append(pager);
     }
     saved(box);refresh=()=>book(page,collectionPage);
   }
-  function customize(id:BuildingId,step=0,draft=canonical(id)){
+  function customize(id:BuildingId,step=0,draft=canonical(id),groupPage=0){
     const categories:CosmeticCategory[]=["building","roof","crane"],category=categories[step],save=o.save();
     const selected=category==="building"?draft.building:category==="roof"?draft.roof:draft.crane;
-    const items=COSMETIC_CATALOG.filter(d=>d.category===category&&(d.classId===null||d.classId===id));
+    const allItems=COSMETIC_CATALOG.filter(d=>d.category===category&&(d.classId===null||d.classId===id));
+    const items=allItems.slice(groupPage*2,groupPage*2+2);
     const allOwned=(["building","roof","crane"] as const).every(c=>{const item=cosmeticItem(draft[c],c,id);return !!item&&item.available&&ownsCosmetic(save,item);});
-    const equip=o.button(t("Equip selection","Trang bị đã chọn"),()=>{if(equip.disabled)return;o.equip(id,draft);customize(id,step,draft);});equip.disabled=true;equip.dataset.cosmeticEquip="";
-    const actions=[equip];if(step>0)actions.push(o.button(t("Previous","Trước"),()=>customize(id,step-1,draft)));if(step<2)actions.push(o.button(t("Next","Tiếp"),()=>customize(id,step+1,draft)));actions.push(o.button(t("Back to Book","Về Sổ kiến trúc"),()=>book(BUILDING_IDS.indexOf(id))));if(o.saveStatus()==="error")actions.push(o.button(t("Retry save","Thử lưu lại"),o.retrySave));
+    const equip=o.button(t("Equip selection","Trang bị đã chọn"),()=>{if(equip.disabled)return;o.equip(id,draft);customize(id,step,draft,groupPage);});equip.disabled=true;equip.dataset.cosmeticEquip="";
+    const actions=[equip];if(step>0)actions.push(o.button(t("Previous","Trước"),()=>customize(id,step-1,draft,0)));if(step<2)actions.push(o.button(t("Next","Tiếp"),()=>customize(id,step+1,draft,0)));actions.push(o.button(t("Back to Book","Về Sổ kiến trúc"),()=>book(BUILDING_IDS.indexOf(id))));if(o.saveStatus()==="error")actions.push(o.button(t("Retry save","Thử lưu lại"),o.retrySave));
     const box=shell(`${t("Customize","Tùy chỉnh")} · ${o.className(id)} · ${step+1}/3`,t("Cosmetics change appearance, never score. New runs/rebuilds use your selection.","Trang bị chỉ đổi hình, không tăng điểm. Áp dụng cho lượt mới/rebuild."),actions);
     const cards=document.createElement("div");cards.className="cb-book-cards";box.append(cards);
-    for(const d of items){const card=document.createElement("article"),title=document.createElement("strong"),progress=document.createElement("small");title.textContent=d.title[o.vi()?"vi":"en"];progress.textContent=!d.available?t("Unavailable","Chưa có"):ownsCosmetic(save,d)?t("Owned","Đã sở hữu"):`${t("Locked","Chưa mở")} · ${cosmeticProgress(save,d)}/${d.target}`;
-      const choose=o.button(t("Preview","Xem trước"),()=>customize(id,step,{...draft,[category]:d.id}));choose.dataset.cosmeticId=d.id;choose.setAttribute("aria-label",`${t("Preview","Xem trước")} ${d.title[o.vi()?"vi":"en"]}`);choose.setAttribute("aria-pressed",String(d.id===selected));choose.disabled=!d.available;card.append(title,progress,choose);cards.append(card);
+    if(allItems.length>2){
+      const groupSelect=document.createElement("select");groupSelect.className="cb-data-select";groupSelect.dataset.cosmeticGroup="";
+      groupSelect.setAttribute("aria-label",t("Cosmetic collection","Bộ sưu tập trang bị"));
+      const opt0=document.createElement("option");opt0.value="0";opt0.textContent=t("Standard & Brick","Mặc định & Gạch");
+      const opt1=document.createElement("option");opt1.value="1";opt1.textContent=t("Event & Season","Sự kiện & Mùa giải");
+      groupSelect.append(opt0,opt1);groupSelect.value=String(groupPage);
+      groupSelect.onchange=()=>customize(id,step,draft,Number(groupSelect.value));
+      cards.append(groupSelect);
     }
-    preview(box,id,draft,!allOwned,equip);saved(box);refresh=()=>customize(id,step,draft);
+    for(const d of items){const card=document.createElement("article"),title=document.createElement("strong"),progress=document.createElement("small");title.textContent=d.title[o.vi()?"vi":"en"];
+      const lockDetail=d.set==="winter"?t("Winter Event","Sự kiện Mùa đông"):d.set==="season"?t("Season Tier 20","Bậc 20 Mùa giải"):`${cosmeticProgress(save,d)}/${d.target}`;
+      progress.textContent=!d.available?t("Unavailable","Chưa có"):ownsCosmetic(save,d)?t("Owned","Đã sở hữu"):`${t("Locked","Chưa mở")} · ${lockDetail}`;
+      const choose=o.button(t("Preview","Xem trước"),()=>customize(id,step,{...draft,[category]:d.id},groupPage));choose.dataset.cosmeticId=d.id;choose.setAttribute("aria-label",`${t("Preview","Xem trước")} ${d.title[o.vi()?"vi":"en"]}`);choose.setAttribute("aria-pressed",String(d.id===selected));choose.disabled=!d.available;card.append(title,progress,choose);cards.append(card);
+    }
+    preview(box,id,draft,!allOwned,equip);saved(box);refresh=()=>customize(id,step,draft,groupPage);
   }
   return {book,clear,isOpen:()=>!!refresh,refresh:()=>refresh?.(),tick:()=>{if(refresh&&shownSave!==o.saveStatus())refresh();}};
 }

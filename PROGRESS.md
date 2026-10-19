@@ -4,6 +4,20 @@ Cập nhật 19/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## C7 — hoàn thành triển khai Weekly Contracts, Perfect Rush, Skyline Sprint, Winter Event, Free Season, Web LiveOps & Adaptive Audio (19/10/2026)
+
+Tiếp tục từ C6 `1a53909` theo [11](plan/11-C7-weekly-modes-liveops.md) và [12](plan/12-art-requirements.md):
+- **C7.1 — Weekly Contracts (`weekly-contracts-1`)**: Tính tuần UTC bắt đầu Thứ Hai tất định (`utcWeekStart`, xử lý chuẩn Chủ Nhật và giao thừa), 3 hợp đồng mặc định (`200` tầng thân `200 XP`, `50` Perfect không Assist `300 XP`, `5` tháp hữu hạn `400 XP`), tính tiến độ theo tuần bắt đầu lượt (`utcWeekStart(startedDateUTC)`), ân hạn nhận thưởng 7 ngày sau khi hết tuần, thưởng `+50 SP` mỗi hợp đồng nhận, và giới hạn `weeks.length <= 2` trong `GameSave` đồng thời giữ bền vững `claimedReceipts`.
+- **C7.2 & C7.3 — Perfect Rush (`perfect-rush-v1`) & Skyline Sprint (`skyline-sprint-v1`)**:
+  - **Perfect Rush**: 60 giây mô phỏng chủ động (`deadlineTick = 3600`), Residential, không mái, 3 mạng, từ chối mọi input tại `tick >= 3600`, giải quyết khối đang rơi trong tối đa `180` tick phụ (`maxEndTick = 3780`), xếp hạng PB theo số tầng thân Perfect -> dân số -> thời lượng, chỉ cộng XP tầng thân (không thưởng hoàn thành hữu hạn), không ghi đè Quick PB hay gửi điểm lên Playable Quick SDK.
+  - **Skyline Sprint**: 20 tầng thân Residential, không mái, 3 mạng, `sprintScoreTicks = durationTicks + 300 * misses` (`+5 giây` mỗi Miss), chỉ ghi kỷ lục thời gian (`bestComplete`) khi đạt đủ `20/20` tầng (lượt trượt lưu `bestFailedHeight`), cộng XP tầng thân + thưởng hoàn thành hữu hạn khi đạt `20/20`, không gửi điểm lên Playable Quick SDK.
+- **C7.4 & C7.5 — Winter Event (14 ngày), Free Season (42 ngày, 20 bậc) & Web LiveOps Config Service**:
+  - Sinh và duyệt 7 asset mới (`bldg_residential_winter_roof.png`, `crane_rig_winter_sprite.png`, `crane_hook_winter_sprite.png`, `ui/winter/event-badge.svg`, `crane_rig_season_sprite.png`, `crane_hook_season_sprite.png`, `ui/season/season-badge.svg` — nâng tổng số lên `58` approved assets, `14.51 MiB`).
+  - Winter Event (`500` tầng thân -> mái tuyết Residential, `100` Perfect không Assist -> cần cẩu Băng giá, `7` Daily hoàn thành -> huy hiệu Băng giá) hỗ trợ 24 giờ ân hạn chốt lượt bắt đầu trước giờ đóng và 7 ngày ân hạn nhận thưởng; vật phẩm đã sở hữu thuộc về người chơi vĩnh viễn.
+  - Free Season 20 bậc (`100 SP`/bậc; Daily hoàn thành đầu ngày `+20 SP`, nhận nhiệm vụ ngày `+10 SP`, nhận hợp đồng tuần `+50 SP`, khử trùng lặp qua `spReceipts`, không cộng SP qua replay; bậc lẻ `+50 XP`, bậc chẵn `+100 XP`, bậc 10 huy hiệu Mùa giải, bậc 20 cần cẩu Kỷ nguyên Vàng).
+  - Dịch vụ cấu hình Web LiveOps (`GET /content/active` và `/api/v1/city-bloxx/content/active`): bản sửa đổi bất biến, kiểm duyệt schema allowlist (cấm mọi trường physics/swing/collision/band và mã JS thực thi), bộ nhớ đệm TTL 15 phút (`max-age=900`), nhật ký kiểm toán xuất bản & rollback của admin, và công tắc ngắt (`killSwitch`) chỉ chặn mở lượt mới nhưng bảo toàn lượt đang chơi và vật phẩm đã sở hữu. Bản Playable đóng gói sẵn manifest, `0` request mạng ngoài.
+- **C7.6 — Adaptive Audio Polish**: Vòng nhạc nền cơ sở + 3 lớp âm nhạc mở khóa ở combo `3 / 6 / 10` với chuyển tiếp âm lượng mượt `150ms` (`0.15s`), tái sử dụng bộ dao động cố định (không tạo oscillator hay giải mã âm thanh mỗi frame), tự động giảm về lớp nền khi hết combo, không ép tắt tiếng khi bật Reduced Motion, tạm dừng toàn bộ lớp nhạc khi mute/pause/host `suspend()`, không chặn `gameReady()`, và `0 B` file âm thanh ngoài (`<= 1 MiB`). Qua **323/323 unit tests (27 files)**, `npm run check` và `npm run evidence:c7` trên cả hai nền tảng ([Evidence C7](plan/evidence/C7-validation.json)).
+
 ## C6 — hoàn thành triển khai One Drop, Replay nâng cao, Personal Ghost, Hall/Album & Web Social (19/10/2026)
 
 Tiếp tục từ C5 `38241de` theo [10](plan/10-C6-challenges-replay-social.md):

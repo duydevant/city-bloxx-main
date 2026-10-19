@@ -1,5 +1,5 @@
 import { SESSION_TEXT, type SessionTextKey } from "../../city-bloxx-content/session-locales";
-import { acknowledgeEvolutionStage, allocateRun, beginDistrictTower, BUILDING_IDS, BUILDINGS, cancelCityTower, CITY_EVOLUTION_STAGES, demolishDistrictBuilding, deriveEvolutionStage, districtGoalProgress, districtPlacementStatus, DOCK_CLOCK_TOWER_LANDMARK, emptySave, extractOneDropResult, initializeTracking, isSettled, makeSummary, pinReplay, prepareSave, QuickTowerGame, QuickTowerReplay, REPLAY_SPEEDS, resolveOneDrop, resolvePersonalGhost, restoreTower, selectDistrict, settleRun, toggleHallOfFame, totalCityPopulation, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type DistrictId, type GameSave, type LifecyclePort, type ReplaySpeed, type RunConfig, type RunContext, type RunRecord, type SavePort, type ScorePort, type ScoreSyncState, type TrackingPort } from "../../city-bloxx-core/src/index";
+import { acknowledgeEvolutionStage, allocateRun, beginDistrictTower, BUNDLED_LIVEOPS_MANIFEST, BUILDING_IDS, BUILDINGS, cancelCityTower, CITY_EVOLUTION_STAGES, claimSeasonTier, claimWeeklyContract, claimWinterEventGoal, demolishDistrictBuilding, deriveEvolutionStage, districtGoalProgress, districtPlacementStatus, DOCK_CLOCK_TOWER_LANDMARK, emptySave, ensureWeeklyContracts, extractOneDropResult, initializeTracking, isSettled, makeSummary, pinReplay, prepareSave, QuickTowerGame, QuickTowerReplay, REPLAY_SPEEDS, resolveOneDrop, resolvePerfectRush, resolvePersonalGhost, resolveSkylineSprint, restoreTower, selectDistrict, settleRun, toggleHallOfFame, totalCityPopulation, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type DistrictId, type GameSave, type LifecyclePort, type LiveOpsManifest, type ReplaySpeed, type RunConfig, type RunContext, type RunRecord, type SavePort, type ScorePort, type ScoreSyncState, type TrackingPort } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
 import { createDataScreens } from "./data-screens";
@@ -14,9 +14,9 @@ import { createDistrictScreens, preloadDistrictBackground } from "./district-scr
 import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
 import type { RankedPort } from "../../city-bloxx-core/src/ports";
 
-export type SessionScreen = "quick" | "city" | "daily" | "one-drop" | "statistics" | "history" | "book" | "progression";
+export type SessionScreen = "quick" | "city" | "daily" | "one-drop" | "perfect-rush" | "skyline-sprint" | "statistics" | "history" | "book" | "progression";
 export function sessionScreen(value: string | null): SessionScreen {
-  return ["quick","city","daily","one-drop","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
+  return ["quick","city","daily","one-drop","perfect-rush","skyline-sprint","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
 }
 
 export interface SessionFeatureFlags {
@@ -33,10 +33,12 @@ export interface SessionOptions {
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
   ranked?: RankedPort;
   featureFlags?: SessionFeatureFlags;
+  liveOpsManifest?: LiveOpsManifest;
 }
-export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; setFeatureFlags(flags:SessionFeatureFlags): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():Promise<boolean>; whenSaved():Promise<void>; dispose(): void }
+export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; setFeatureFlags(flags:SessionFeatureFlags): void; setLiveOpsManifest?(manifest:LiveOpsManifest): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():Promise<boolean>; whenSaved():Promise<void>; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
   let featureFlags: SessionFeatureFlags = { daily: true, meta: true, cosmetics: true, ...options.featureFlags };
+  let liveOpsManifest: LiveOpsManifest = options.liveOpsManifest ?? BUNDLED_LIVEOPS_MANIFEST;
   let vi = !!options.locale?.startsWith("vi");
   const translations = new Map<string,string>(Object.entries(SESSION_TEXT));
   const t = (en: SessionTextKey) => vi ? SESSION_TEXT[en] : en;
@@ -80,6 +82,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let ghostEnabled = true;
   let replayScrubPaused = false;
   let oneDropMenuOpen = false;
+  let perfectRushMenuOpen = false;
+  let skylineSprintMenuOpen = false;
 
   root.classList.add("cb-game");
   root.classList.toggle("cb-content-session",options.presentation === "content");
@@ -145,6 +149,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     tutorial.hidden=true;
     replayControls.hidden=true;
     oneDropMenuOpen=false;
+    perfectRushMenuOpen=false;
+    skylineSprintMenuOpen=false;
     panel.removeAttribute("aria-modal");
     dataScreens.clear();
     dailyScreens.clear();
@@ -215,6 +221,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       if (!success) { delete notice.dataset.scoreNotice; message(t("Save failed. Your result is kept for this session; retry saving.")); }
       else if (notice.dataset.scoreNotice !== "true") message("");
       if (success && (userPaused || !run || run.getPhase() === "ended")) void options.save.flush?.();
+      progressionScreens.tick(); bookScreens.tick();
     });
   }
   const dataScreens = createDataScreens({ panel, save: () => save, t, className, showPanel, showStats, button, home,
@@ -233,6 +240,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const progressionScreens = createProgressionScreens({ panel, save: () => save, now, locale: () => vi ? "vi" : "en", className, showPanel, button, home,
     claim: (date, id) => { if (rewardSaveStatus === "pending") return; save = claimMission(save, date, id, now()); persist(); },
     reroll: (date, id) => { if (rewardSaveStatus === "pending") return; save = rerollSaveMission(save, date, id, now()); persist(); },
+    claimWeekly: (weekStartUTC, id) => { if (rewardSaveStatus === "pending") return; save = claimWeeklyContract(save, weekStartUTC, id, now(), liveOpsManifest); persist(); },
+    claimEventGoal: goalId => { if (rewardSaveStatus === "pending") return; save = claimWinterEventGoal(save, goalId, now(), liveOpsManifest); persist(); },
+    claimSeasonTier: tier => { if (rewardSaveStatus === "pending") return; save = claimSeasonTier(save, tier, now(), liveOpsManifest); persist(); },
+    liveOpsManifest: () => liveOpsManifest,
     retry: persist, status: () => rewardSaveStatus, paused: () => hostPaused || userPaused, reducedMotion: () => reducedMotion });
   const bookLabel = () => vi ? "Sổ kiến trúc" : "Architecture Book";
   const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
@@ -261,7 +272,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     backToMap: cityMap,
   });
   const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) {
-    if (ready) { const next = ensureMissions(save, now()); if (next !== save) { save = next; persist(); } }
+    if (ready) {
+      let next = ensureMissions(save, now());
+      next = ensureWeeklyContracts(next, now(), liveOpsManifest);
+      if (next !== save) { save = next; persist(); }
+    }
     dailyScreens.tick(); progressionScreens.tick(); bookScreens.tick();
   } }, 1000);
   cleanups.push(() => window.clearInterval(dailyTimer));
@@ -279,7 +294,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
     checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
     cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
-    save = ensureMissions(save, now()); persist(); progressionScreens.menu();
+    save = ensureWeeklyContracts(ensureMissions(save, now()), now(), liveOpsManifest); persist(); progressionScreens.menu();
   }
   function openBook(): void {
     if (featureFlags.cosmetics === false) {
@@ -313,7 +328,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (rankedId && finishedRecord) void options.ranked?.complete(rankedId,finishedRecord).catch(() => message(wt("Online result could not be queued. Open Ranked to retry; personal progress is kept.","Chưa lưu được kết quả online. Mở Xếp hạng để thử lại; giữ kết quả cá nhân.")));
   }
   function abandonQuick(): void {
-    if (!run || run.config.mode !== "quick" || replay || !runContext) return;
+    options.audio.setCombo?.(0);
+    if (!run || !["quick", "perfect-rush", "skyline-sprint"].includes(run.config.mode) || replay || !runContext) return;
     if (run.getPhase() === "ended") settleCurrent();
     else if (!isSettled(save, runContext.identity)) { save = settleRun(save, makeSummary(run, runContext, now(), "abandoned")); persist(); void options.ranked?.abandon(runContext.identity.id).catch(()=>{}); }
     rankedId = null;
@@ -462,21 +478,27 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
     const daily = replay?.record.config.daily ?? run?.config.daily;
     const oneDrop = replay?.record.config.oneDrop ?? run?.config.oneDrop;
-    setText(".cb-toolbar strong", oneDrop ? "One Drop" : daily ? t("Daily Tower") : s.targetFloors ? cityName() : quickName());
+    const perfectRush = replay?.record.config.perfectRush ?? run?.config.perfectRush;
+    const skylineSprint = replay?.record.config.skylineSprint ?? run?.config.skylineSprint;
+    setText(".cb-toolbar strong", oneDrop ? "One Drop" : perfectRush ? "Perfect Rush" : skylineSprint ? "Skyline Sprint" : daily ? t("Daily Tower") : s.targetFloors ? cityName() : quickName());
     setText("[data-population]", String(s.population));
-    setText("[data-floors]", oneDrop ? `${Math.max(0, s.floors.length - oneDrop.prebuiltFloors)}/${oneDrop.targetBodyFloors}` : s.targetFloors ? `${s.floors.length}/${s.targetFloors}${s.isRoof && !s.roof ? " ▲" : ""}` : String(s.floors.length));
+    setText("[data-floors]", oneDrop ? `${Math.max(0, s.floors.length - oneDrop.prebuiltFloors)}/${oneDrop.targetBodyFloors}` : skylineSprint ? `${s.floors.length}/${skylineSprint.targetBodyFloors}` : s.targetFloors ? `${s.floors.length}/${s.targetFloors}${s.isRoof && !s.roof ? " ▲" : ""}` : String(s.floors.length));
     showLives(s.lives);
     const odBest = oneDrop ? save.oneDrop.days.find(d => d.dateUTC === oneDrop.dateUTC)?.best : null;
-    setText("[data-best]", oneDrop ? (odBest ? `${(odBest.absError * 100).toFixed(1)}%` : "0") : String(daily ? save.daily.days.find(d => d.dateUTC === daily.dateUTC)?.bestComplete?.result.population ?? 0 : s.assist ? save.assistQuickBest : save.standardQuickBest));
+    const prBest = perfectRush ? save.liveOps?.perfectRush?.best : null;
+    const spBest = skylineSprint ? save.liveOps?.skylineSprint?.bestComplete : null;
+    setText("[data-best]", oneDrop ? (odBest ? `${(odBest.absError * 100).toFixed(1)}%` : "0") : perfectRush ? `${prBest?.perfectCount ?? 0} P` : skylineSprint ? (spBest ? `${(spBest.sprintScoreTicks / 60).toFixed(1)}s` : "0") : String(daily ? save.daily.days.find(d => d.dateUTC === daily.dateUTC)?.bestComplete?.result.population ?? 0 : s.assist ? save.assistQuickBest : save.standardQuickBest));
     const comboWidth = `${s.comboRatio * 100}%`;
     combo.parentElement!.hidden = !(s.comboLevel > 0 && s.comboRatio > 0 && panel.hidden);
     if (combo.style.width !== comboWidth) combo.style.width = comboWidth;
-    setText("[data-mode]", replay ? t("Replay") : oneDrop ? `${oneDrop.dateUTC} · 1 Drop` : daily ? `${daily.dateUTC} UTC` : s.targetFloors ? className(s.building) : s.assist ? t("Assist · unranked") : t("Standard"));
+    const rushSecondsLeft = perfectRush ? Math.max(0, Math.ceil((perfectRush.deadlineTick - Math.min(perfectRush.deadlineTick, s.tick)) / 60)) : 0;
+    const sprintElapsedSec = skylineSprint ? ((s.tick + (3 - s.lives) * skylineSprint.missPenaltyTicks) / 60).toFixed(1) : "0.0";
+    setText("[data-mode]", replay ? t("Replay") : oneDrop ? `${oneDrop.dateUTC} · 1 Drop` : perfectRush ? `${rushSecondsLeft}s · ${s.perfectCount} Perfect` : skylineSprint ? `${sprintElapsedSec}s (+${(3 - s.lives) * 5}s)` : daily ? `${daily.dateUTC} UTC` : s.targetFloors ? className(s.building) : s.assist ? t("Assist · unranked") : t("Standard"));
     pauseButton.disabled = !run && !replay || s.phase === "ended" && !celebrating;
-    let hintText = !replay ? oneDrop ? wt("One Drop · Land 1 block on the swaying 4-floor tower with minimal error.", "One Drop · Thả 1 khối lên tháp 4 tầng đang lắc với độ lệch nhỏ nhất.") : s.drops.length === 0 ? t("1/3 · Tap, click, Space or Enter to drop one floor.") :
+    let hintText = !replay ? oneDrop ? wt("One Drop · Land 1 block on the swaying 4-floor tower with minimal error.", "One Drop · Thả 1 khối lên tháp 4 tầng đang lắc với độ lệch nhỏ nhất.") : perfectRush ? wt("Perfect Rush · 60s clock, 3 lives, no roof. Maximize Perfect placements!", "Perfect Rush · 60 giây, 3 mạng, không mái. Tối đa hoá số lần Hoàn hảo!") : skylineSprint ? wt("Skyline Sprint · Reach 20 floors fastest (+5s per Miss, no roof).", "Skyline Sprint · Đạt 20 tầng nhanh nhất (+5 giây mỗi lần trượt, không mái).") : s.drops.length === 0 ? t("1/3 · Tap, click, Space or Enter to drop one floor.") :
       s.drops.length === 1 ? t("2/3 · Aim at the moving top of the tower. Three misses end the run.") :
       s.drops.length === 2 ? t("3/3 · Perfect refreshes combo and steadies the tower.") : t("Drop on the tower · Perfect keeps the combo alive") : t("Recorded inputs · Replay never submits a score");
-    if (s.targetFloors && !oneDrop && s.isRoof && s.phase !== "ended") hintText = t("Final drop: place the roof. You only get one attempt.");
+    if (s.targetFloors && !oneDrop && !skylineSprint && s.isRoof && s.phase !== "ended") hintText = t("Final drop: place the roof. You only get one attempt.");
     setText(".cb-hint", hintText);
     if(run?.config.mode === "quick" && !replay && panel.hidden && !save.tutorials.quick){
       if(s.drops.length>=3){save=completeTutorial(save,"quick");tutorial.hidden=true;persist();}
@@ -551,6 +573,16 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const oneDropBtn = button("One Drop", openOneDrop);
     oneDropBtn.dataset.openOneDrop = "true";
     actions.push(oneDropBtn);
+    if (!liveOpsManifest.killSwitch.rushDisabled) {
+      const rushBtn = button("Perfect Rush", openPerfectRush);
+      rushBtn.dataset.openPerfectRush = "true";
+      actions.push(rushBtn);
+    }
+    if (!liveOpsManifest.killSwitch.sprintDisabled) {
+      const sprintBtn = button("Skyline Sprint", openSkylineSprint);
+      sprintBtn.dataset.openSkylineSprint = "true";
+      actions.push(sprintBtn);
+    }
     if(options.ranked){
       const onlineButtons = [button(wt("Ranked Quick","Quick xếp hạng"),()=>{void startOnline("quick");})];
       if (featureFlags.daily !== false || save.daily.pending) onlineButtons.push(button(wt("Ranked Daily","Daily xếp hạng"),()=>{void startOnline("daily");}));
@@ -563,6 +595,248 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (featureFlags.cosmetics !== false) actions.push(button(bookLabel(),openBook));
     if (!storageWritable) actions.push(button(t("Recover saved progress"), confirmRecovery));
     showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."), actions);
+  }
+  function openPerfectRush(): void {
+    if (liveOpsManifest.killSwitch.rushDisabled) {
+      message(wt("Perfect Rush is temporarily paused for maintenance.", "Perfect Rush đang tạm dừng bảo trì."));
+      home();
+      return;
+    }
+    startGeneration++;
+    checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; runContext = null; cityActive = false; mapView = false;
+    rankedId = null; userPaused = false; celebrating = false; renderer.resetEffects(); renderer.setGhost(null); paint();
+    const def = resolvePerfectRush();
+    const prState = save.liveOps?.perfectRush;
+    const best = prState?.best ?? null;
+    const ghostResolution = resolvePersonalGhost(save, { mode: "perfect-rush", assist: false, seed: best?.seed ?? 0, building: "residential", perfectRush: def });
+    const actions: HTMLButtonElement[] = [];
+    const playBtn = button(wt("Play", "Chơi"), () => { void startPerfectRush(); });
+    playBtn.dataset.perfectRushStart = "true";
+    actions.push(playBtn);
+    if (best) {
+      const replayEntry = save.replays.find(r => r.id === best.identityId);
+      if (replayEntry) {
+        const watchBtn = button(t("Replay"), () => { void startReplay(replayEntry.record); });
+        watchBtn.dataset.perfectRushReplay = "true";
+        actions.push(watchBtn);
+      }
+    }
+    const ghostBtn = button(`Ghost: ${ghostEnabled ? wt("On", "Bật") : wt("Off", "Tắt")}`, () => {
+      ghostEnabled = !ghostEnabled;
+      openPerfectRush();
+    });
+    ghostBtn.dataset.ghostToggle = "true";
+    ghostBtn.setAttribute("aria-pressed", String(ghostEnabled));
+    const guideBtn = button(wt("Rules", "Luật"), perfectRushGuide);
+    guideBtn.dataset.perfectRushGuide = "true";
+    actions.push(ghostBtn, guideBtn, button(t("Home"), home));
+    showPanel(
+      "Perfect Rush · 60s",
+      wt("60s simulation · Residential · 3 lives · No roof · Ranked by Perfect body count.", "60 giây mô phỏng · Nhà ở · 3 mạng · Không mái · Xếp hạng theo số tầng Hoàn hảo."),
+      actions,
+    );
+    perfectRushMenuOpen = true;
+    panel.dataset.perfectRushScreen = "entry";
+    showStats([
+      [wt("Best Perfects", "Hoàn hảo cao nhất"), best ? String(best.perfectCount) : "—"],
+      [t("Population"), best ? String(best.population) : "—"],
+      [t("Floors"), best ? String(best.height) : "—"],
+      [t("Accuracy"), best ? `${best.accuracy.toFixed(1)}%` : "—"],
+      [wt("Attempts", "Số lượt"), String(prState?.attempts ?? 0)],
+      ["Ghost", ghostResolution.status === "available" ? wt("Ready", "Sẵn sàng") : "—"],
+    ]);
+  }
+  function perfectRushGuide(): void {
+    showPanel(
+      wt("Perfect Rush · Rules", "Perfect Rush · Luật chơi"),
+      wt(
+        "• 60s simulation timer (3600 ticks).\n• Residential class, no roof, 3 lives.\n• Ranked by Perfect body count, then population.\n• Earns body XP only (no finite completion bonus).\n• Separate PB; never overwrites Quick Tower.",
+        "• Đồng hồ 60 giây mô phỏng (3600 tick).\n• Nhóm Nhà ở, không mái, 3 mạng.\n• Xếp hạng theo số tầng Hoàn hảo, sau đó dân số.\n• Chỉ nhận XP tầng thân (không thưởng hoàn thành hữu hạn).\n• Kỷ lục riêng; không ghi đè Quick Tower.",
+      ),
+      [button(t("Back"), openPerfectRush)],
+    );
+    perfectRushMenuOpen = true;
+    panel.dataset.perfectRushScreen = "guide";
+  }
+  async function startPerfectRush(customSeed?: number): Promise<void> {
+    if (liveOpsManifest.killSwitch.rushDisabled) return;
+    const def = resolvePerfectRush();
+    const generation = ++startGeneration;
+    checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; cityActive = false; mapView = false;
+    rankedId = null;
+    renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
+    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    const equipment = equipmentFor(save, def.classId);
+    await loadRunArtwork(def.classId, equipment);
+    if (disposed || generation !== startGeneration) return;
+    const seed = customSeed ?? options.seed();
+    run = new QuickTowerGame({ mode: "perfect-rush", assist: false, seed, building: def.classId, perfectRush: def });
+    applyGhost(run.config);
+    const allocated = allocateRun(save, now());
+    save = allocated.save;
+    runContext = { ...allocated.context, equipment };
+    finishedRecord = null;
+    save = { ...save, tracking: { ...save.tracking, activeQuick: { ...runContext, progress: makeSummary(run, runContext, now(), "abandoned") } } };
+    persist();
+    lastFeedback = 0; userPaused = false;
+    panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint(); syncPause(); schedule();
+  }
+  function perfectRushResults(isReplay = false): void {
+    const record = isReplay ? replay!.record : run!.getRecord();
+    const result = record.result;
+    const prevBest = save.liveOps?.perfectRush?.best ?? null;
+    if (!isReplay) settleCurrent();
+    const newBest = save.liveOps?.perfectRush?.best ?? null;
+    const retryBtn = button(wt("Retry Perfect Rush", "Thử lại Perfect Rush"), () => { void startPerfectRush(); });
+    retryBtn.dataset.perfectRushRetry = "true";
+    const actions: HTMLButtonElement[] = [
+      retryBtn,
+      button(t("Replay / restart"), () => { void startReplay(record); }),
+      button("Perfect Rush", openPerfectRush),
+      button(t("Home"), home),
+    ];
+    const rewards = !isReplay ? rewardButton(() => perfectRushResults()) : null;
+    if (rewards) actions.push(rewards);
+    const isNewBest = !isReplay && newBest && (!prevBest || newBest.identityId === runContext?.identity.id);
+    showPanel(
+      `${isReplay ? t("Replay complete") : "Perfect Rush"} · ${result.perfectCount} Perfect`,
+      `60s · ${result.rating}${isNewBest ? ` · ${wt("New Personal Best!", "Kỷ lục cá nhân mới!")}` : ""}`,
+      actions,
+    );
+    panel.dataset.perfectRushScreen = "result";
+    showStats([
+      [t("Perfect"), String(result.perfectCount)],
+      [t("Population"), String(result.population)],
+      [t("Floors"), String(result.height)],
+      [t("Accuracy"), `${result.accuracy.toFixed(1)}%`],
+      [t("Duration"), `${(result.durationTicks / 60).toFixed(1)}s`],
+      [wt("Best Perfects", "Hoàn hảo cao nhất"), newBest ? String(newBest.perfectCount) : String(result.perfectCount)],
+    ]);
+    paint();
+  }
+  function openSkylineSprint(): void {
+    if (liveOpsManifest.killSwitch.sprintDisabled) {
+      message(wt("Skyline Sprint is temporarily paused for maintenance.", "Skyline Sprint đang tạm dừng bảo trì."));
+      home();
+      return;
+    }
+    startGeneration++;
+    checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; runContext = null; cityActive = false; mapView = false;
+    rankedId = null; userPaused = false; celebrating = false; renderer.resetEffects(); renderer.setGhost(null); paint();
+    const def = resolveSkylineSprint();
+    const spState = save.liveOps?.skylineSprint;
+    const best = spState?.bestComplete ?? null;
+    const ghostResolution = resolvePersonalGhost(save, { mode: "skyline-sprint", assist: false, seed: best?.seed ?? 0, building: "residential", skylineSprint: def });
+    const actions: HTMLButtonElement[] = [];
+    const playBtn = button(wt("Play", "Chơi"), () => { void startSkylineSprint(); });
+    playBtn.dataset.skylineSprintStart = "true";
+    actions.push(playBtn);
+    if (best) {
+      const replayEntry = save.replays.find(r => r.id === best.identityId);
+      if (replayEntry) {
+        const watchBtn = button(t("Replay"), () => { void startReplay(replayEntry.record); });
+        watchBtn.dataset.skylineSprintReplay = "true";
+        actions.push(watchBtn);
+      }
+    }
+    const ghostBtn = button(`Ghost: ${ghostEnabled ? wt("On", "Bật") : wt("Off", "Tắt")}`, () => {
+      ghostEnabled = !ghostEnabled;
+      openSkylineSprint();
+    });
+    ghostBtn.dataset.ghostToggle = "true";
+    ghostBtn.setAttribute("aria-pressed", String(ghostEnabled));
+    const guideBtn = button(wt("Rules", "Luật"), skylineSprintGuide);
+    guideBtn.dataset.skylineSprintGuide = "true";
+    actions.push(ghostBtn, guideBtn, button(t("Home"), home));
+    showPanel(
+      "Skyline Sprint · 20F",
+      wt("20 Residential body floors · No roof · 3 lives · +5s penalty per Miss.", "20 tầng thân Nhà ở · Không mái · 3 mạng · Phạt +5 giây mỗi lần trượt."),
+      actions,
+    );
+    skylineSprintMenuOpen = true;
+    panel.dataset.skylineSprintScreen = "entry";
+    showStats([
+      [wt("Best time", "Thời gian tốt nhất"), best ? `${(best.sprintScoreTicks / 60).toFixed(2)}s` : "—"],
+      [wt("Raw time", "Thời gian gốc"), best ? `${(best.durationTicks / 60).toFixed(2)}s (+${best.misses * 5}s)` : "—"],
+      [wt("Completed", "Hoàn thành"), String(spState?.completedRuns ?? 0)],
+      [wt("Best failed", "Chưa xong cao nhất"), `${spState?.bestFailedHeight ?? 0}/20`],
+      [wt("Attempts", "Số lượt"), String(spState?.attempts ?? 0)],
+      ["Ghost", ghostResolution.status === "available" ? wt("Ready", "Sẵn sàng") : "—"],
+    ]);
+  }
+  function skylineSprintGuide(): void {
+    showPanel(
+      wt("Skyline Sprint · Rules", "Skyline Sprint · Luật chơi"),
+      wt(
+        "• Land 20 Residential body floors (no roof, 3 lives).\n• Sprint Time = duration + 5s per Miss.\n• Only 20/20 completed runs record a time PB.\n• Earns body XP + finite completion bonus on 20/20.\n• Separate PB; never overwrites Quick Tower.",
+        "• Đặt 20 tầng thân Nhà ở (không mái, 3 mạng).\n• Thời gian Sprint = thời lượng + 5 giây mỗi lần trượt.\n• Chỉ lượt đạt 20/20 mới ghi kỷ lục thời gian.\n• Nhận XP tầng thân + thưởng hoàn thành khi đạt 20/20.\n• Kỷ lục riêng; không ghi đè Quick Tower.",
+      ),
+      [button(t("Back"), openSkylineSprint)],
+    );
+    skylineSprintMenuOpen = true;
+    panel.dataset.skylineSprintScreen = "guide";
+  }
+  async function startSkylineSprint(customSeed?: number): Promise<void> {
+    if (liveOpsManifest.killSwitch.sprintDisabled) return;
+    const def = resolveSkylineSprint();
+    const generation = ++startGeneration;
+    checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; cityActive = false; mapView = false;
+    rankedId = null;
+    renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
+    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    const equipment = equipmentFor(save, def.classId);
+    await loadRunArtwork(def.classId, equipment);
+    if (disposed || generation !== startGeneration) return;
+    const seed = customSeed ?? options.seed();
+    run = new QuickTowerGame({ mode: "skyline-sprint", assist: false, seed, building: def.classId, skylineSprint: def });
+    applyGhost(run.config);
+    const allocated = allocateRun(save, now());
+    save = allocated.save;
+    runContext = { ...allocated.context, equipment };
+    finishedRecord = null;
+    save = { ...save, tracking: { ...save.tracking, activeQuick: { ...runContext, progress: makeSummary(run, runContext, now(), "abandoned") } } };
+    persist();
+    lastFeedback = 0; userPaused = false;
+    panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint(); syncPause(); schedule();
+  }
+  function skylineSprintResults(isReplay = false): void {
+    const record = isReplay ? replay!.record : run!.getRecord();
+    const result = record.result;
+    const prevBest = save.liveOps?.skylineSprint?.bestComplete ?? null;
+    if (!isReplay) settleCurrent();
+    const newBest = save.liveOps?.skylineSprint?.bestComplete ?? null;
+    const completed = result.height >= 20;
+    const sprintTicks = result.sprintScoreTicks ?? result.durationTicks + result.misses * 300;
+    const retryBtn = button(wt("Retry Sprint", "Thử lại Sprint"), () => { void startSkylineSprint(); });
+    retryBtn.dataset.skylineSprintRetry = "true";
+    const actions: HTMLButtonElement[] = [
+      retryBtn,
+      button(t("Replay / restart"), () => { void startReplay(record); }),
+      button("Skyline Sprint", openSkylineSprint),
+      button(t("Home"), home),
+    ];
+    const rewards = !isReplay ? rewardButton(() => skylineSprintResults()) : null;
+    if (rewards) actions.push(rewards);
+    const isNewBest = !isReplay && completed && newBest && (!prevBest || newBest.identityId === runContext?.identity.id);
+    showPanel(
+      completed
+        ? `${isReplay ? t("Replay complete") : "Skyline Sprint"} · ${(sprintTicks / 60).toFixed(2)}s`
+        : `${wt("Sprint Incomplete", "Sprint chưa hoàn thành")} (${result.height}/20)`,
+      completed
+        ? `20/20 · ${result.rating}${isNewBest ? ` · ${wt("New Personal Best!", "Kỷ lục cá nhân mới!")}` : ""}`
+        : wt("Reach 20/20 floors to record a Sprint time PB.", "Đạt 20/20 tầng để ghi kỷ lục thời gian Sprint."),
+      actions,
+    );
+    panel.dataset.skylineSprintScreen = "result";
+    showStats([
+      [wt("Sprint time", "Thời gian Sprint"), completed ? `${(sprintTicks / 60).toFixed(2)}s` : `${wt("Failed", "Trượt")} (${result.height}/20)`],
+      [wt("Raw time", "Thời gian gốc"), `${(result.durationTicks / 60).toFixed(2)}s`],
+      [wt("Miss penalty", "Phạt trượt"), `+${result.misses * 5}s (${result.misses})`],
+      [t("Accuracy"), `${result.accuracy.toFixed(1)}%`],
+      [wt("Best time", "Thời gian tốt nhất"), newBest ? `${(newBest.sprintScoreTicks / 60).toFixed(2)}s` : "—"],
+      [t("Population"), String(result.population)],
+    ]);
+    paint();
   }
   function openOneDrop(): void {
     startGeneration++;
@@ -739,7 +1013,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     save = initializeTracking(value, installationId(), now());
     if (save.tracking.activeQuick?.progress) save = settleRun(save, save.tracking.activeQuick.progress);
     ensurePendingContext();
-    save = ensureMissions(save, now());
+    save = ensureWeeklyContracts(ensureMissions(save, now()), now(), liveOpsManifest);
     save = grantCosmetics(save,now());
     void options.ranked?.recover(save).catch(()=>{});
   }
@@ -758,8 +1032,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     } finally { recovering = false; }
   }
   function results(isReplay = false): void {
+    options.audio.setCombo?.(0);
     const activeMode = isReplay ? replay?.record.config.mode : run?.config.mode;
     if (activeMode === "one-drop") { oneDropResults(isReplay); return; }
+    if (activeMode === "perfect-rush") { perfectRushResults(isReplay); return; }
+    if (activeMode === "skyline-sprint") { skylineSprintResults(isReplay); return; }
     if (activeMode === "daily") { dailyResults(isReplay); return; }
     if (cityActive && !isReplay) { cityResults(); return; }
     const result = isReplay ? replay!.getResult() : run!.getResult();
@@ -796,6 +1073,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     renderer.updateEffects(delta);
     if (replay) replay.update(delta); else run?.update(delta);
     const s = current();
+    if (!muted) options.audio.setCombo?.(s.phase === "ended" ? 0 : s.comboLevel);
     if (s.feedbackId !== lastFeedback) {
       lastFeedback = s.feedbackId;
       checkpointCity();
@@ -803,7 +1081,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
     paint(s);
     if (s.phase === "ended") {
-      celebrating = !!s.targetFloors && !run?.config.oneDrop && !replay?.record.config.oneDrop && renderer.hasPopulationEffect();
+      celebrating = !!s.targetFloors && !run?.config.oneDrop && !replay?.record.config.oneDrop && !run?.config.skylineSprint && !replay?.record.config.skylineSprint && renderer.hasPopulationEffect();
       if (celebrating) schedule(); else results(!!replay);
     } else schedule();
   }
@@ -1115,18 +1393,19 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       const value=element.getAttribute(attr);if(value)element.setAttribute(attr,translate(value));
     }
     vi=next;root.lang=vi?"vi":"en";renderer.setLocale(locale);
-    save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } }; persist();
+    save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } };
     // Pause and Paused share a Vietnamese translation; restore controls from state, not reverse text.
     pauseButton.textContent=userPaused?t("Resume"):t("Pause");
     el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
     el("[data-motion]").textContent=t("Reduced motion");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       if(rankedId&&run?.config.mode==="daily"&&run.getPhase()==="ended"&&!replay){dailyResults();return;}
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
     }else if(run||replay){if(replay)buildReplayControls();paint();}else if(panel.classList.contains("cb-city-panel"))cityMap();
     if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
+    persist();
     syncScoreUi();
   }
   const languageButton=root.querySelector("[data-language]");
@@ -1155,7 +1434,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     startGeneration++;
     if(!ready||disposed)return;
     const show=()=>{
-      if(screen==="city")cityMap();else if(screen==="daily")openDaily();else if(screen==="one-drop")openOneDrop();
+      if(screen==="city")cityMap();else if(screen==="daily")openDaily();else if(screen==="one-drop")openOneDrop();else if(screen==="perfect-rush")openPerfectRush();else if(screen==="skyline-sprint")openSkylineSprint();
       else if(screen==="statistics"||screen==="history"){
         if(options.presentation==="content"){if(screen==="statistics")dataScreens.statistics();else dataScreens.history();}
         else openData(screen==="history");
@@ -1192,7 +1471,17 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       home();
     }
   }
-  return { ready: readyPromise, setLocale, setFeatureFlags, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
+  function setLiveOpsManifest(manifest: LiveOpsManifest): void {
+    liveOpsManifest = manifest;
+    save = ensureWeeklyContracts(save, now(), liveOpsManifest);
+    persist();
+    if (ready && !disposed) {
+      if (progressionScreens.isOpen()) progressionScreens.refresh();
+      else if (bookScreens.isOpen()) bookScreens.refresh();
+      else if (!run && !replay && !mapView && !dailyScreens.isOpen() && !dataScreens.isOpen() && guidePage < 0) home();
+    }
+  }
+  return { ready: readyPromise, setLocale, setFeatureFlags, setLiveOpsManifest, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();

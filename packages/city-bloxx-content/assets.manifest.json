@@ -565,6 +565,83 @@
         "web",
         "playable"
       ]
+    },
+    {
+      "path": "rig/winter/crane_rig_winter_sprite.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 178810,
+      "sha256": "b1a8f77848b73aea1d883c7cf3029413581c2d472c0cf15ff80b130d3910db9d",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "rig/winter/crane_hook_winter_sprite.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 7672,
+      "sha256": "9f9f44e2472a2f606c720f5c867f6a0685779be9dbc617b501c529f603454544",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "stack/winter/bldg_residential_winter_roof.png",
+      "width": 512,
+      "height": 256,
+      "bytes": 23480,
+      "sha256": "4d46b83f953dcaa61f54032780c51909db035c9695a5c2d0db960a609dc10380",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "ui/winter/event-badge.svg",
+      "width": 256,
+      "height": 256,
+      "bytes": 491,
+      "sha256": "8b164fc21fbb2777a4ee79d2b823083b1bf098b51399f6031cfe6d63794ab396",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "rig/season/crane_rig_season_sprite.png",
+      "width": 1024,
+      "height": 512,
+      "bytes": 178282,
+      "sha256": "d3fb07c12854c92d68aa736dbea9d501dfeae04dfe429cef6b44df7cd26cea8a",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "rig/season/crane_hook_season_sprite.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 7732,
+      "sha256": "5f9c8416913f8565760123fd3a9cb4d9c1193376ad339bd30247979b0eb7538b",
+      "targets": [
+        "web",
+        "playable"
+      ]
+    },
+    {
+      "path": "ui/season/season-badge.svg",
+      "width": 256,
+      "height": 256,
+      "bytes": 339,
+      "sha256": "c03ad898753cc63d6ade20bcdae4fd56b1f842c8a466c3fb06da07cb8b528e31",
+      "targets": [
+        "web",
+        "playable"
+      ]
     }
   ]
 }
