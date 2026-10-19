@@ -18,6 +18,11 @@ export function sessionScreen(value: string | null): SessionScreen {
   return ["quick","city","daily","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
 }
 
+export interface SessionFeatureFlags {
+  daily?: boolean;
+  meta?: boolean;
+  cosmetics?: boolean;
+}
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
   audio: AudioPort; seed: () => number; locale?: string; onLocaleChange?: (locale:string) => void;
@@ -26,9 +31,11 @@ export interface SessionOptions {
   initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
   ranked?: RankedPort;
+  featureFlags?: SessionFeatureFlags;
 }
-export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():Promise<boolean>; whenSaved():Promise<void>; dispose(): void }
+export interface TowerSession { ready: Promise<void>; setLocale(locale:string): void; setFeatureFlags(flags:SessionFeatureFlags): void; navigate(screen:SessionScreen,replayId?:string):void; checkpointAndPause():Promise<boolean>; whenSaved():Promise<void>; dispose(): void }
 export function mountQuickTower(root: HTMLElement, options: SessionOptions): TowerSession {
+  let featureFlags: SessionFeatureFlags = { daily: true, meta: true, cosmetics: true, ...options.featureFlags };
   let vi = !!options.locale?.startsWith("vi");
   const translations = new Map<string,string>(Object.entries(SESSION_TEXT));
   const t = (en: SessionTextKey) => vi ? SESSION_TEXT[en] : en;
@@ -229,11 +236,21 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (history) dataScreens.history(); else dataScreens.statistics();
   }
   function openProgression(): void {
+    if (featureFlags.meta === false) {
+      message(wt("Progression is temporarily paused for maintenance. Saved XP and unlocks are preserved.","Tiến trình đang tạm dừng bảo trì. XP và mở khoá đã lưu vẫn được giữ nguyên."));
+      home();
+      return;
+    }
     checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
     cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); paint();
     save = ensureMissions(save, now()); persist(); progressionScreens.menu();
   }
   function openBook(): void {
+    if (featureFlags.cosmetics === false) {
+      message(wt("Architecture Book is temporarily paused for maintenance. Owned cosmetics remain saved.","Sổ kiến trúc đang tạm dừng bảo trì. Vật phẩm đã sở hữu vẫn được giữ nguyên."));
+      home();
+      return;
+    }
     checkpointCity();abandonQuick();cityActive=false;mapView=false;cancelFrame();run=null;replay=null;userPaused=false;celebrating=false;renderer.resetEffects();paint();bookScreens.book();
   }
   async function loadRunArtwork(id:BuildingId,equipment:RunEquipment):Promise<void> {
@@ -242,6 +259,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     renderer.setEquipment(equipment);
   }
   function rewardButton(back: () => void): HTMLButtonElement | null {
+    if (featureFlags.meta === false) return null;
     const summary = save.history.find(h => h.identity.id === runContext?.identity.id);
     return summary ? button(progressionResultLabel(), () => progressionScreens.result(summary, back)) : null;
   }
@@ -358,13 +376,18 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = null; replay = null; userPaused = false; paint();
     rankedId=null;
     celebrating=false; renderer.resetEffects();
-    const actions = [button(t("Play Standard"), () => start()), button(t("Play Assist"), () => start(true)), button(t("Build City"), cityMap), button(t("Daily Tower"), openDaily)];
-    if(options.ranked)actions.splice(1,0,button(wt("Ranked Quick","Quick xếp hạng"),()=>{void startOnline("quick");}),button(wt("Ranked Daily","Daily xếp hạng"),()=>{void startOnline("daily");}));
+    const actions = [button(t("Play Standard"), () => start()), button(t("Play Assist"), () => start(true)), button(t("Build City"), cityMap)];
+    if (featureFlags.daily !== false || save.daily.pending) actions.push(button(t("Daily Tower"), openDaily));
+    if(options.ranked){
+      const onlineButtons = [button(wt("Ranked Quick","Quick xếp hạng"),()=>{void startOnline("quick");})];
+      if (featureFlags.daily !== false || save.daily.pending) onlineButtons.push(button(wt("Ranked Daily","Daily xếp hạng"),()=>{void startOnline("daily");}));
+      actions.splice(1,0,...onlineButtons);
+    }
     if (save.lastReplay) actions.push(button(t("Last replay"), () => startReplay(save.lastReplay!)));
     actions.push(button(t("Build City guide"), () => showGuide(0,home)));
     actions.push(button(t("Statistics"), () => openData()), button(t("History"), () => openData(true)));
-    actions.push(button(progressionLabel(), openProgression));
-    actions.push(button(bookLabel(),openBook));
+    if (featureFlags.meta !== false) actions.push(button(progressionLabel(), openProgression));
+    if (featureFlags.cosmetics !== false) actions.push(button(bookLabel(),openBook));
     if (!storageWritable) actions.push(button(t("Recover saved progress"), confirmRecovery));
     showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."), actions);
   }
@@ -375,9 +398,15 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   async function startOnline(mode:"quick"|"daily"):Promise<void> {
     if(!options.ranked||rankedStarting||!storageWritable)return;
+    if(mode==="daily"&&featureFlags.daily===false&&!save.daily.pending){
+      message(wt("Daily Tower is temporarily paused for maintenance. Existing progress is kept.","Daily Tower đang tạm dừng bảo trì. Tiến trình hiện có vẫn được giữ nguyên."));
+      return;
+    }
     if(mode==="daily"&&save.daily.pending){
       showPanel(t("Replace pending Daily?"),wt("Resume keeps the original run and its online eligibility.","Tiếp tục giữ lượt cũ và trạng thái online ban đầu."),[
-        button(t("Resume Daily"),()=>{void resumeDaily();}),button(t("Discard and play today"),()=>{discardDaily();void startOnline("daily");}),button(t("Keep pending Daily"),openDaily)]);return;
+        button(t("Resume Daily"),()=>{void resumeDaily();}),
+        ...(featureFlags.daily !== false ? [button(t("Discard and play today"),()=>{discardDaily();void startOnline("daily");})] : []),
+        button(t("Keep pending Daily"),openDaily)]);return;
     }
     rankedStarting=true;
     try{if(mode==="quick")await start(false,true);else await startDaily(undefined,true);}
@@ -503,6 +532,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
   }
   function openDaily(): void {
+    if (featureFlags.daily === false && !save.daily.pending) {
+      message(wt("Daily Tower is temporarily paused for maintenance. Existing progress is kept.","Daily Tower đang tạm dừng bảo trì. Tiến trình hiện có vẫn được giữ nguyên."));
+      home();
+      return;
+    }
     startGeneration++;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; runContext = null; cityActive = false; mapView = false;
     rankedId=null;
@@ -520,6 +554,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   async function startDaily(dateUTC = utcDate(now()), ranked = false): Promise<void> {
     if(options.presentation === "content" && options.onNavigate){options.onNavigate("daily");return;}
+    if (featureFlags.daily === false) {
+      message(wt("Daily Tower is temporarily paused for maintenance. Existing progress is kept.","Daily Tower đang tạm dừng bảo trì. Tiến trình hiện có vẫn được giữ nguyên."));
+      return;
+    }
     if (loadingDaily || save.daily.pending) return;
     const definition = resolveDaily(dateUTC);
     const generation=++startGeneration;
@@ -771,7 +809,13 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     ready = true; renderer.resize(arena.clientWidth, arena.clientHeight);
     if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();persist();
   })();
-  return { ready: readyPromise, setLocale, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
+  function setFeatureFlags(nextFlags: SessionFeatureFlags): void {
+    featureFlags = { ...featureFlags, ...nextFlags };
+    if (ready && !disposed && !run && !replay && !mapView && !dailyScreens.isOpen() && !progressionScreens.isOpen() && !bookScreens.isOpen() && !dataScreens.isOpen() && guidePage < 0) {
+      home();
+    }
+  }
+  return { ready: readyPromise, setLocale, setFeatureFlags, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();

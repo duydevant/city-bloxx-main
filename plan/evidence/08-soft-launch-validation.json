@@ -1,0 +1,93 @@
+{
+  "phase": "08-soft-launch",
+  "title": "Soft Launch Gate — Multi-Platform Acceptance (Web, Playable, Portal Embed)",
+  "status": "Implemented & Automated Acceptance Verified (External Production Domain/TLS/SMTP, YouTube Developer Portal Approval, and Physical Phone Hardware Sign-off Tracked Separately)",
+  "verifiedAt": "2026-10-19T04:15:22.937Z",
+  "gates": {
+    "sharedFeatureGate": {
+      "status": "Passed",
+      "unitTestsPassed": 297,
+      "testFilesPassed": 24,
+      "saveMigration1To4Verified": true,
+      "dailyTowerUtcVerified": true,
+      "progressionMissionsAchievementsVerified": true,
+      "classicBrickCosmeticsAndBookVerified": true,
+      "bilingualEnViLiveSwitchVerified": true,
+      "reducedMotionAndSkipVerified": true,
+      "noAdsOrPaidShopOrEnergy": true,
+      "noOuterScrollInPlayAndEmbed": true
+    },
+    "featureFlagsAndRollbackSafety": {
+      "status": "Passed",
+      "flagsSupported": [
+        "daily",
+        "meta",
+        "cosmetics"
+      ],
+      "envVarsSupported": [
+        "NEXT_PUBLIC_FEATURE_DAILY",
+        "NEXT_PUBLIC_FEATURE_META",
+        "NEXT_PUBLIC_FEATURE_COSMETICS"
+      ],
+      "verification": {
+        "hasDailyWhenNoPending": false,
+        "hasProgression": false,
+        "hasBook": false,
+        "enabledHasDaily": true,
+        "modeBeforeDisable": "2026-10-19 UTC",
+        "modeAfterDisable": "2026-10-19 UTC",
+        "preservedXP": 450,
+        "preservedOwnedBrick": true,
+        "preservedPendingDaily": true,
+        "portalSdkLoaded": true
+      }
+    },
+    "webAndPortalEmbedGate": {
+      "status": "Passed (Local/Staging Docker & Chrome E2E)",
+      "w0RoutesAndSeoStatus": "Implemented",
+      "w1BackendStatus": "Implemented",
+      "w19ConsolidatedFlows": {
+        "chromeAuthFlows": 6,
+        "chromeCloudFlows": 9,
+        "chromeRankedFlows": 10
+      },
+      "portalEmbedRoute": "/embed",
+      "portalClientSdk": "/sdk/city-bloxx-portal-sdk.js"
+    },
+    "playableGate": {
+      "status": "Passed (Automated Actual-Host SDK Harness & Package Budgets)",
+      "buildId": "city-bloxx-playable-0125875-2b2d06c9feb3",
+      "zipSha256": "2b2d06c9feb35d9d8fda8fecee8c0f1fad8bdd0799d4bc629fb2d6bfbf036524",
+      "initialPayloadMiB": 1.54,
+      "totalBundleMiB": 13.76,
+      "zipArchiveMiB": 13.25,
+      "portalSubmissionStatus": "Blocked: portal access"
+    },
+    "performanceAndStability": {
+      "status": "Passed (Headless Chrome Representative Profile)",
+      "webHeapGrowthBytes30Retries": 385300,
+      "playableHeapGrowthBytes30Retries": 241152,
+      "realFrameSmoke": {
+        "rafCpuMs": {
+          "count": 271,
+          "p50": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "max": 20.399999976158142
+        },
+        "rafIntervalMs": {
+          "count": 270,
+          "p50": 16.699999999999818,
+          "p95": 16.799999999999727,
+          "max": 16.800000000000182
+        },
+        "longTasksMs": [],
+        "imageDraws": 0,
+        "cachedCanvasDraws": 1250,
+        "floors": "1",
+        "caveat": "Chrome headless, GPU disabled; not real device/display FPS. Warm 4.5s swing/fall, DPR 2."
+      },
+      "warmCacheZeroHtmlImageDraws": true,
+      "physicalDevicePlaytestStatus": "Blocked: physical Android/iOS device & 5-player human playtest"
+    }
+  }
+}

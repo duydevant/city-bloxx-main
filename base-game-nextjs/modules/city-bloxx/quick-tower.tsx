@@ -116,6 +116,11 @@ export function QuickTower({
       locale: localeRef.current,
       showLanguageSwitch: embed ? portalQuery.current.showLanguageSwitch : false,
       showSoundControl: embed ? portalQuery.current.showSoundControl : true,
+      featureFlags: {
+        daily: process.env.NEXT_PUBLIC_FEATURE_DAILY !== "0",
+        meta: process.env.NEXT_PUBLIC_FEATURE_META !== "0",
+        cosmetics: process.env.NEXT_PUBLIC_FEATURE_COSMETICS !== "0",
+      },
       initialScreen: initial.current.screen,
       initialReplayId: initial.current.replay,
       presentation: content ? "content" : "game",

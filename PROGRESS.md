@@ -4,6 +4,13 @@ Cập nhật 19/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## 08 — hoàn thành nghiệm thu Soft Launch & `/embed` Portal SDK (19/10/2026)
+
+Tiếp tục từ Y0–Y2 `edc86c9` và `/embed` `b98edde` theo [08](plan/08-soft-launch-checklist.md):
+- **Route nhúng `/embed` & `PortalHost` SDK**: Thêm route độc lập `/embed` không có Header/Footer của web riêng, hỗ trợ `Content-Security-Policy: frame-ancestors` và cầu nối hai chiều `postMessage` (`city-bloxx:portal` v1) cùng SDK client (`lib/portal/client.ts` và `/sdk/city-bloxx-portal-sdk.js`) để nhúng vào bất kỳ Web Portal nhiều game nào kèm đồng bộ Auth (`adoptPortalSession`/`adoptPortalGuest`), Audio (`mute`/`unmute`), Lifecycle (`pause`/`resume`), Ngôn ngữ (`en`/`vi`), Điểm số (`score`) và `checkpoint()`.
+- **Feature Flags & Rollback an toàn**: Hỗ trợ `featureFlags: { daily, meta, cosmetics }` (`NEXT_PUBLIC_FEATURE_DAILY`, `NEXT_PUBLIC_FEATURE_META`, `NEXT_PUBLIC_FEATURE_COSMETICS`) và `session.setFeatureFlags(...)` cho phép tắt mở mới Daily/Progression/Architecture Book khi bảo trì mà vẫn giữ nguyên `save.progression`, `save.inventory`, lượt Daily đang dở (`save.daily.pending`) và không đổi definition của lượt đang chơi.
+- **Nghiệm thu tổng hợp Soft Launch**: Qua **297/297 unit tests (24 files)**, `npm run lint`, `npm run build`, `npm run evidence:playable` và `npm run evidence:soft-launch` ([Evidence 08](plan/evidence/08-soft-launch-validation.json)).
+
 ## Y0–Y2 — hoàn thành triển khai Playable SDK, hardening, certification và release (19/10/2026)
 
 Tiếp tục từ W1.9 `0125875` theo [07](plan/07-Y0-Y2-playable-integration-release.md):

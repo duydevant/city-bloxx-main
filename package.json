@@ -17,6 +17,7 @@
     "evidence:ranked": "node scripts/w1-infrastructure-evidence.cjs --ranked-browser",
     "evidence:w1:full": "node scripts/w1-infrastructure-evidence.cjs --all-browser",
     "evidence:playable": "node scripts/playable-y0-y2-evidence.cjs",
+    "evidence:soft-launch": "node scripts/soft-launch-evidence.cjs",
     "test:save": "node scripts/c4-save-evidence.cjs",
     "test:daily": "node scripts/daily-evidence.cjs",
     "test:progression": "node scripts/progression-evidence.cjs",
