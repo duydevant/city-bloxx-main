@@ -1,0 +1,91 @@
+{
+  "phase": "W1.8",
+  "status": "Implemented",
+  "checkedAt": "2026-10-19T01:44:33.605Z",
+  "sourceBaseCommit": "46b9080a9be9e2d629c9334d17b2b35a80ba7736",
+  "implementation": "feat(w1.8): add game moderation telemetry and operations",
+  "environment": "Windows/Docker Desktop Linux/Node22; Nest11/TypeORM0.3/PostgreSQL16/Redis7/Mailpit/Nginx; postgresql16-client pg_dump/pg_restore; guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:b935d0bcf28edaf3009fd6207feed06f8c974ff82975a33dc694537962c68694",
+    "backendRuntime": "sha256:95e3d49f86da179a920b37367bc9ded8b7b1a1ee29b4e33cc5d009af603e0964"
+  },
+  "checks": {
+    "webCoreUnits": {
+      "tests": 287,
+      "files": 22,
+      "status": "passed"
+    },
+    "webLint": "passed without warnings",
+    "webProductionBuild": "passed, 21 static outputs including /leaderboards",
+    "playablePackage": "passed typecheck, build, dependency graph/network allowlist, budget and zip; no backend/analytics imports",
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "backendUnit": {
+      "tests": 49,
+      "files": 13,
+      "status": "passed"
+    },
+    "nestE2e": {
+      "tests": 3,
+      "status": "passed"
+    },
+    "moderationTelemetryOperations": {
+      "scenarios": 6,
+      "status": "passed",
+      "coverage": [
+        "Swagger documents /api/v1/admin/city-bloxx/runs*, /api/v1/city-bloxx/catalog, /api/v1/city-bloxx/analytics/events and /guest-events; RBAC permissions city_bloxx_moderation:read/update enforced and no arbitrary score edit route exists",
+        "quarantine hides run from public/private boards, automatically restores owner's next-best remaining run, extends raw input retention to 90 days, and release re-runs deterministic worker resimulation before restoring board standing",
+        "server emits verification_reject telemetry on invalid run settlement; client cannot forge verification_reject; rejected or input-expired runs fail release with 409 conflict",
+        "public catalog returns cacheable versioned classes/cosmetics/rulesets; authenticated and guest analytics enforce 13-event allowlist, UUID idempotency dedupe, origin check, recursive PII/secret key rejection, unverifiedTelemetry labeling, and 30/min Redis rate limits with Retry-After and 503 fail-closed on Redis outage",
+        "distributed-locked idempotent retention sweep purges 30-day visible run inputs while protecting <90-day quarantined inputs, preserves computed receipts/metrics/boards, and purges 90d+ quarantined inputs across CLI maintain retries",
+        "daily pg_dump backup with 14-day retention pruning and separate-DB pg_restore rehearsal preserve all 15 auth+game tables, verify cloud save SHA-256 hashes, and boot compiled Nest app (/health/ready, /leaderboards/quick, /catalog)"
+      ]
+    },
+    "gameSchema": {
+      "scenarios": 15,
+      "status": "passed"
+    },
+    "cloudApi": {
+      "scenarios": 21,
+      "status": "passed"
+    },
+    "runTickets": {
+      "scenarios": 14,
+      "status": "passed"
+    },
+    "verificationBoards": {
+      "scenarios": 14,
+      "status": "passed"
+    },
+    "adminSeed": {
+      "scenarios": 9,
+      "status": "passed"
+    },
+    "security": {
+      "scenarios": 23,
+      "status": "passed; all 51 existing routes + 7 W1.8 routes documented in Swagger"
+    },
+    "gateway": "passed actual production Web routing, auth/cookie/origin/redaction/parser limits",
+    "runtimeArtifacts": "passed compiled Quick/Daily core and save workers"
+  },
+  "artifacts": {
+    "infrastructure": "tmp/w1-infrastructure-479cc18714cd/result.json",
+    "guide": "backend/docs/city-bloxx-operations.md",
+    "backupRestoreScript": "backend/scripts/backup-restore.cjs",
+    "note": "Runner reports and temporary backup dumps are local disposable artifacts; this tracked summary records successful results."
+  },
+  "isolation": {
+    "testContainersDatabasesAndTemporaryEnvironmentRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveKeysChanged": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "Moderation release requires retained raw inputs (<=90 days while quarantined); once purged by retention sweep, release returns 409 GAME_MODERATION_INPUTS_EXPIRED rather than trusting unverified stored scores.",
+    "Client and guest analytics events are always tagged unverifiedTelemetry=true; only server verification settlement can emit source=server verification_reject events.",
+    "Backup and restore rehearsal verified against disposable PostgreSQL 16 databases in Docker local/staging; production TLS/SMTP/cron scheduling and full W1 end-to-end acceptance remain W1.9 and deployment gates."
+  ],
+  "next": "W1.9 full game/security/frontend/package acceptance and versioned W1-nest-validation.json evidence"
+}

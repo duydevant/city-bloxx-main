@@ -1,4 +1,5 @@
 import { COSMETIC_CATALOG, type CosmeticCategory, type CosmeticItem } from "../../city-bloxx-content/cosmetics";
+export { COSMETIC_CATALOG, type CosmeticCategory, type CosmeticItem };
 import { BUILDING_IDS, type BuildingId } from "./buildings";
 import type { GameSave } from "./save-state";
 export interface RunEquipment { building: string; roof: string; crane: string }

@@ -1,4 +1,4 @@
-﻿export type AuthIssue =
+export type AuthIssue =
   | "network"
   | "invalid"
   | "forbidden"
@@ -21,7 +21,7 @@ export class ApiError extends Error {
 }
 // Credentials only go to the same-origin gateway, never an absolute API env.
 export async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (!/^\/(auth|users\/me)(\/|$)/.test(path) && !/^\/city-bloxx\/(save(?:\/resolve)?|profile|daily\/today|runs\/(?:start|finish|[a-f0-9-]{36})|leaderboards\/(?:quick|daily)(?:\/me)?)(?:\?[A-Za-z0-9_.%=&-]*)?$/i.test(path))
+  if (!/^\/(auth|users\/me)(\/|$)/.test(path) && !/^\/city-bloxx\/(save(?:\/resolve)?|profile|catalog|daily\/today|runs\/(?:start|finish|[a-f0-9-]{36})|leaderboards\/(?:quick|daily)(?:\/me)?|analytics\/(?:events|guest-events))(?:\?[A-Za-z0-9_.%=&-]*)?$/i.test(path))
     throw new ApiError("invalid")
   const controller = new AbortController(),
     timer = setTimeout(() => controller.abort(), 10000)

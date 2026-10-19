@@ -35,10 +35,8 @@ export class AllExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request?.url ?? '',
     };
-    if (
-      /^\/api\/v1\/city-bloxx\//.test(request?.url ?? '') &&
-      [429, 503].includes(httpStatus)
-    ) {
+    const isGamePath = /^\/api\/v1\/(?:admin\/)?city-bloxx\//.test(request?.url ?? '');
+    if (isGamePath && [429, 503].includes(httpStatus)) {
       httpAdapter.setHeader(
         ctx.getResponse(),
         'Retry-After',
@@ -67,7 +65,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
 
     const isProductionEnv = this.configService.get<boolean>('app.isProductionEnv');
-    if (/^\/api\/v1\/city-bloxx\//.test(request?.url ?? '') && !errorData.errorCode) {
+    if (isGamePath && !errorData.errorCode) {
       errorData.errorCode = `GAME_HTTP_${httpStatus}`;
     }
     if (isProductionEnv) delete errorData.details;

@@ -55,7 +55,7 @@ async function main(){
   let custom,secondRole,customPermission;
   await test('all 51 specification routes documented in Swagger',async()=>{
     const swagger=await(await fetch(base.replace('/api/v1','/swagger-json'))).json();
-    const routes=Object.entries(swagger.paths).filter(([p])=>p.includes('/auth/')||p.includes('/users/me')||p.includes('/admin/')).reduce((n,[,v])=>n+Object.keys(v).filter(k=>['get','post','put','patch','delete'].includes(k)).length,0);
+    const routes=Object.entries(swagger.paths).filter(([p])=>!p.includes('/city-bloxx')&&(p.includes('/auth/')||p.includes('/users/me')||p.includes('/admin/'))).reduce((n,[,v])=>n+Object.keys(v).filter(k=>['get','post','put','patch','delete'].includes(k)).length,0);
     assert.equal(routes,51);
   });
   await test('strict registration rejects privilege fields; case-insensitive uniqueness',async()=>{

@@ -13,11 +13,13 @@ export function configureApplication(app: INestApplication) {
   express.set('trust proxy', trustProxy);
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (
-      /^\/api\/v1\/city-bloxx\/(profile|save|runs|daily|leaderboards)(\/|\?|$)/.test(
+      /^\/api\/v1\/(?:city-bloxx\/(profile|save|runs|daily|leaderboards|analytics)|admin\/city-bloxx)(\/|\?|$)/.test(
         req.url,
       )
     )
       res.setHeader('Cache-Control', 'no-store');
+    else if (/^\/api\/v1\/city-bloxx\/catalog(\/|\?|$)/.test(req.url))
+      res.setHeader('Cache-Control', 'public, max-age=300');
     next();
   });
   app.use(boundedJson());

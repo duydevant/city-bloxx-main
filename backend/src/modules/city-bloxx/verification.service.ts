@@ -1,4 +1,5 @@
 import { HttpException, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { BoardsService } from './boards.service';
 import { GameStore } from './common/game-store.service';
 import { gameError, GameWorkerService } from './common/game-worker.service';
@@ -168,6 +169,38 @@ export class VerificationService implements OnModuleInit, OnModuleDestroy {
             verified.perfectBody,
             verified.bodyPlacements,
           );
+        if (reject) {
+          const classId =
+            typeof (current.config as { classId?: unknown })?.classId === 'string' &&
+            ['residential', 'industrial', 'office', 'highrise'].includes(
+              (current.config as { classId: string }).classId,
+            )
+              ? (current.config as { classId: string }).classId
+              : null;
+          await tx.query(
+            `INSERT INTO city_bloxx_analytics_events
+            (event_id,user_id,anonymous_session_hash,source,type,version,mode,class_id,properties)
+            VALUES($1,$2,NULL,'server','verification_reject',$3,$4,$5,$6::jsonb)`,
+            [
+              randomUUID(),
+              t.user_id,
+              current.ruleset_version,
+              current.mode,
+              classId,
+              JSON.stringify({
+                runId: t.run_id,
+                errorCode: reject,
+                physicsVersion: current.physics_version,
+                rulesetVersion: current.ruleset_version,
+                endTick: submission.end_tick,
+                inputCount: Array.isArray(submission.inputs)
+                  ? submission.inputs.length
+                  : 0,
+                unverifiedTelemetry: false,
+              }),
+            ],
+          );
+        }
         await this.security.audit(
           tx,
           actor,

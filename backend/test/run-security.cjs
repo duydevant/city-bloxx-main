@@ -53,6 +53,7 @@ async function main() {
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/cloud.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Cloud integration suite failed');
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/runs.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Run tickets integration suite failed');
     if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/verification.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Verification/boards integration suite failed');
+    if(spawnSync(process.execPath,['-r','tsconfig-paths/register','test/moderation-ops.integration.cjs'],{env,stdio:'inherit'}).status!==0)throw new Error('Moderation/telemetry/operations integration suite failed');
     for(const args of [['node_modules/jest/bin/jest.js','--runInBand'],['node_modules/jest/bin/jest.js','--config','test/jest-e2e.json','--runInBand']]) {
       if(spawnSync(process.execPath,args,{env,stdio:'inherit'}).status!==0)throw new Error('Jest suite failed');
     }

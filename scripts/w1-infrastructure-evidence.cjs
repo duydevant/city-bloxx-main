@@ -16,7 +16,13 @@ const names = { suite: `city-bloxx-w1-suite-${id}`, web: `city-bloxx-w1-web-${id
 const docker = (args) => execFileSync('docker', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 async function main() {
   mkdirSync(directory, { recursive: true });
-  const [template] = JSON.parse(docker(['inspect', process.env.W1_ENV_CONTAINER || 'base-nest-bo-minh-auth-api-1']));
+  const templateName = process.env.W1_ENV_CONTAINER || (() => {
+    for (const candidate of ['base-nest-bo-minh-auth-api-1', 'backend-slice-master-api']) {
+      try { docker(['inspect', candidate]); return candidate; } catch {}
+    }
+    return 'base-nest-bo-minh-auth-api-1';
+  })();
+  const [template] = JSON.parse(docker(['inspect', templateName]));
   const network = Object.keys(template.NetworkSettings.Networks)[0];
   if (!network) throw new Error('Backend template container has no network');
   const envFile = join(directory, 'test.env');
@@ -78,8 +84,8 @@ async function main() {
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
       ...(browserReport?{[rankedAcceptance?'browserRanked':cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
-      checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', runTicketsAndPersistentLeases: 'passed', verificationSettlementAndBoards: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
-      isolation: { database: 'disposable auth_test_* and city_bloxx_test_*', existingVolumesPreserved: true, deployment: false },
+      checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', runTicketsAndPersistentLeases: 'passed', verificationSettlementAndBoards: 'passed', moderationTelemetryAndOperations: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
+      isolation: { database: 'disposable auth_test_* and city_bloxx_test_* and city_bloxx_restore_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');
     console.log('PASS gateway serves production Web /play; existing containers/volumes preserved');
   } finally {

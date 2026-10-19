@@ -8,12 +8,14 @@ COPY backend/package.json backend/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 FROM base AS builder
+RUN apk add --no-cache postgresql16-client
 COPY --from=deps /app/node_modules ./node_modules
 COPY backend .
 COPY packages /packages
 RUN yarn build
 
 FROM base AS runner
+RUN apk add --no-cache postgresql16-client
 ENV NODE_ENV=production
 ENV TS_NODE_BASEURL=dist
 COPY --from=deps /app/node_modules ./node_modules

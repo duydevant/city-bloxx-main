@@ -4,6 +4,8 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { typeormOptions } from './config/typeorm-options';
 import { seedAuthRbac, SeedConfigurationError } from './database/seed';
+import { MaintenanceService } from './modules/city-bloxx/maintenance.service';
+import { InfrastructureService } from './modules/security/infrastructure.service';
 import { SecurityService } from './modules/security/security.service';
 import { RoleRow, rows, UserRow } from './modules/security/types';
 
@@ -20,6 +22,17 @@ async function main() {
         );
       const result = await seedAuthRbac(db);
       console.log(`Admin account seed: ${result.admin}`);
+    } else if (command === 'maintain') {
+      const sec = new SecurityService(db);
+      const infra = new InfrastructureService(db);
+      await infra.redis.connect();
+      try {
+        const maintenance = new MaintenanceService(db, sec, infra);
+        const result = await maintenance.sweep(true);
+        console.log(`Maintenance sweep: ${JSON.stringify(result)}`);
+      } finally {
+        await infra.onModuleDestroy();
+      }
     } else if (command === 'bootstrap-super-admin') {
       let input = '';
       for await (const chunk of process.stdin) {
@@ -69,7 +82,7 @@ async function main() {
       });
     } else
       throw new Error(
-        'Usage: cli migrate|seed|seed-admin|bootstrap-super-admin (bootstrap credentials JSON on stdin)',
+        'Usage: cli migrate|seed|seed-admin|maintain|bootstrap-super-admin (bootstrap credentials JSON on stdin)',
       );
     console.log(`Completed ${command}`);
   } finally {
