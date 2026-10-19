@@ -1,7 +1,7 @@
 import { sdk, inPlayablesEnv } from "./ytgame.js";
 import { logError } from "./health.js";
 import { flushSave } from "./save.js";
-import { flushScore } from "./engagement.js";
+import { flushScore, retryPendingScore } from "./engagement.js";
 import { suspend as suspendAudio, resume as resumeAudio } from "./sfx.js";
 import type { ViewportSize } from "./types.js";
 
@@ -21,6 +21,7 @@ let paused = false;
 let wired = false;
 
 export function isPaused(): boolean {
+  wire();
   return paused;
 }
 
@@ -44,6 +45,7 @@ function leavePause(): void {
   if (!paused) return;
   paused = false;
   resumeAudio();
+  void retryPendingScore().catch((e) => logError("retryPendingScore on resume failed", e));
   resumeCbs.forEach((fn) => {
     try {
       fn();

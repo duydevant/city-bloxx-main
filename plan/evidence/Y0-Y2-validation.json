@@ -1,0 +1,166 @@
+{
+  "phase": "Y0-Y2",
+  "title": "Playable SDK, Hardening, Certification and Release",
+  "status": "Implemented (Code & Automated Certification Complete; External Portal Upload & Physical Device Sign-off Blocked on Portal/Hardware Access)",
+  "verifiedAt": "2026-10-19T03:42:29.846Z",
+  "buildManifest": {
+    "buildId": "city-bloxx-playable-0125875-2b2d06c9feb3",
+    "gitCommit": "0125875",
+    "versions": {
+      "physicsVersion": "quick-tower-physics-v13",
+      "rulesetVersion": "quick-tower-v2",
+      "assistRulesetVersion": "quick-tower-assist-v2",
+      "cityRulesetVersion": "build-city-v7",
+      "dailyRulesetVersion": "daily-tower-v1",
+      "ratingVersion": "quick-rating-v2",
+      "cityRatingVersion": "city-rating-v1",
+      "saveSchema": 4,
+      "saveEnvelopeVersion": 1,
+      "cosmeticCatalogVersion": 1
+    },
+    "budgets": {
+      "initialPayloadBytes": 1613147,
+      "initialPayloadLimitBytes": 8388608,
+      "totalUncompressedBytes": 14428752,
+      "totalUncompressedLimitBytes": 20971520,
+      "zipArchiveBytes": 13891336,
+      "zipArchiveLimitBytes": 20971520,
+      "maxSingleFileBytes": 1838848,
+      "maxSingleFileLimitBytes": 2097152,
+      "saveBudgetBytes": 262144,
+      "hostMaxBytes": 31457280
+    },
+    "archive": {
+      "path": "base-playable-main/dist.zip",
+      "sizeBytes": 13891336,
+      "sha256": "2b2d06c9feb35d9d8fda8fecee8c0f1fad8bdd0799d4bc629fb2d6bfbf036524",
+      "fileCount": 51
+    }
+  },
+  "y0ReadinessLifecycleAudio": {
+    "status": "Verified",
+    "readinessOrder": {
+      "events": [
+        "loadData",
+        "saveData",
+        "firstFrameReady",
+        "gameReady"
+      ],
+      "firstFrameCalls": 1,
+      "gameReadyCalls": 1,
+      "loadingVisibleAtFirstFrame": true,
+      "loadingVisibleAtGameReady": false,
+      "interactiveAtGameReady": true,
+      "soundButtonHiddenInPlayables": true
+    },
+    "bootFaultInjection": {
+      "bootErrorVisible": true,
+      "retryButtonVisible": true,
+      "loadingHidden": true,
+      "firstFrameCalls": 1,
+      "gameReadyCalls": 0
+    },
+    "hostAudioAuthority": {
+      "inPlayablesGlobalMuteHidden": true,
+      "previewSoundToggleVisible": true,
+      "hostMuteSuspendsWebAudio": true
+    },
+    "hostPauseResumeAuthority": {
+      "visibilityIgnoredInActualPlayables": true,
+      "sdkPauseStopsRaf": true,
+      "resumeDeltaClampedNoTimeJump": true
+    },
+    "extremeAspectRatios": [
+      {
+        "viewport": "320x568",
+        "floors": "1",
+        "scrollWidth": 320,
+        "scrollHeight": 568,
+        "arenaHeight": 345.921875
+      },
+      {
+        "viewport": "390x844",
+        "floors": "1",
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "arenaHeight": 599.21875
+      },
+      {
+        "viewport": "900x430",
+        "floors": "1",
+        "scrollWidth": 900,
+        "scrollHeight": 430,
+        "arenaHeight": 237
+      },
+      {
+        "viewport": "280x800",
+        "floors": "1",
+        "scrollWidth": 280,
+        "scrollHeight": 800,
+        "arenaHeight": 543.046875
+      },
+      {
+        "viewport": "1200x360",
+        "floors": "1",
+        "scrollWidth": 1200,
+        "scrollHeight": 360,
+        "arenaHeight": 167
+      }
+    ]
+  },
+  "y1SaveScoreContentHardening": {
+    "status": "Verified",
+    "envelopeStability": {
+      "envelopeVersion": 1,
+      "gameSaveSchema": 4,
+      "failedLoadPreservesRawCloudData": true,
+      "recoveryMigratesAndReconcilesScore": true
+    },
+    "scoreSyncAndRetry": {
+      "channel": "Quick Standard PB population only",
+      "backoffSeconds": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        30
+      ],
+      "pendingUiBadgeAndNoticeVerified": true,
+      "resumeRetryTransitionToSyncedVerified": true,
+      "scoreCalls": [
+        50,
+        88,
+        88
+      ]
+    },
+    "budgets": {
+      "initialPayloadMiB": 1.54,
+      "initialPayloadLimitMiB": 8,
+      "totalBundleMiB": 13.76,
+      "totalBundleLimitMiB": 20,
+      "zipArchiveMiB": 13.25,
+      "maxSingleFileMiB": 1.75,
+      "maxSingleFileLimitMiB": 2,
+      "saveBudgetKiB": 256,
+      "zeroBrickRequestsAtBoot": true,
+      "zeroExternalUrlsExceptSdk": true,
+      "zeroWebBackendAuthLeaks": true
+    }
+  },
+  "y2CertificationAndRelease": {
+    "automatedSuiteStatus": "Passed",
+    "highLoadVerification": {
+      "quick50Floors": 52,
+      "quick50Population": 1678,
+      "highriseFloors": 40,
+      "highriseRoofPlaced": true,
+      "highriseRating": "S",
+      "dailyCompletePopulation": 1305
+    },
+    "externalDependencies": {
+      "youtubeDeveloperPortalSubmission": "Blocked: portal access",
+      "physicalPhoneDeviceSignOff": "Blocked: physical Android/iOS device access"
+    }
+  }
+}

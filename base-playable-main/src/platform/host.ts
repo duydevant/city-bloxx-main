@@ -6,11 +6,25 @@ import {
   isGameReady,
   setLoadingVisibleCheck,
 } from "./lifecycle.js";
-import { loadSave, persistSave, clearSave, scheduleSave } from "./save.js";
-import { sendScore, flushScore, getLastSentScore } from "./engagement.js";
+import {
+  loadSave,
+  persistSave,
+  clearSave,
+  scheduleSave,
+  markSaveLoadFailed,
+} from "./save.js";
+import {
+  sendScore,
+  flushScore,
+  reconcileSavedScore,
+  getScoreState,
+  onScoreStateChange,
+  disposeScore,
+  getLastSentScore,
+} from "./engagement.js";
 import { showInterstitial, showRewarded, canShowInterstitial, interstitialThen } from "./ads.js";
 import { isAudioEnabled, onAudioEnabled } from "./audio.js";
-import { playBeep } from "./sfx.js";
+import { playBeep, suspend as suspendSfx, dispose as disposeSfx } from "./sfx.js";
 import { t as translate, currentLocale } from "./i18n.js";
 import {
   onPause,
@@ -56,12 +70,17 @@ export function createHost(opts: { mount?: HTMLElement } = {}): PlayableHost {
     isReady: () => isGameReady(),
 
     load: <T>(fallback: T) => loadSave<T>(fallback),
+    markLoadFailed: () => markSaveLoadFailed(),
     save: <T>(data: T) => persistSave<T>(data),
     saveLater: <T>(data: T, delayMs?: number) => scheduleSave<T>(data, delayMs),
     clearSave: () => clearSave(),
 
     sendScore: (v) => sendScore(v),
     flushScore: (v) => flushScore(v),
+    reconcileScore: (v) => reconcileSavedScore(v),
+    getScoreState: () => getScoreState(),
+    onScoreState: (cb) => onScoreStateChange(cb),
+    disposeScore: () => disposeScore(),
     getLastSentScore: () => getLastSentScore(),
 
     showInterstitial: () => showInterstitial(),
@@ -72,6 +91,8 @@ export function createHost(opts: { mount?: HTMLElement } = {}): PlayableHost {
     isAudioEnabled: () => isAudioEnabled(),
     onAudioEnabled: (cb) => onAudioEnabled(cb),
     beep: (name) => playBeep(name),
+    suspendAudio: () => suspendSfx(),
+    disposeAudio: () => disposeSfx(),
 
     get locale() {
       return currentLocale();

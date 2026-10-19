@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Kiem tra dist/ co thoa cac MUST cua YouTube Playables Test Suite khong.
+ * Kiem tra dist/ co thoa cac MUST cua YouTube Playables Test Suite + Y1/Y2 internal gates khong.
  * Chay tu dong trong `npm run package` va trong Docker build.
  *
  * Kiem tra:
@@ -10,7 +10,11 @@
  *     script type="module" cua game
  *  4. Khong co <meta http-equiv="Content-Security-Policy"> (chan iframe Test Suite)
  *  5. Khong co request nao ra ben ngoai ngoai SDK
- *  6. Tong bundle < 30 MiB
+ *  6. Khong ro ri module/asset Web auth/account/avatar/backend vao Playable bundle
+ *  7. Budgets Y1/Y2:
+ *     - Moi file <= 2 MiB (internal gate)
+ *     - Initial payload <= 8 MiB (internal gate; host MUST < 30 MiB)
+ *     - Total bundle <= 20 MiB (internal gate; host MUST < 30 MiB)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -18,7 +22,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
-const LIMIT_MIB = 30;
+const HOST_LIMIT_MIB = 30;
+const INTERNAL_TOTAL_LIMIT_MIB = 20;
+const INTERNAL_INITIAL_LIMIT_MIB = 8;
+const INTERNAL_MAX_FILE_MIB = 2;
 const SDK_URL = "https://www.youtube.com/game_api/v1";
 
 /** Cac URL xuat hien trong code nhung KHONG tao request mang. */
@@ -88,11 +95,21 @@ if (/X-Frame-Options/i.test(html)) {
   fail("index.html chua X-Frame-Options — phai xoa");
 }
 
-// ---- 4. URL ra ben ngoai ----
+// ---- 4. URL ra ben ngoai & boundary check ----
 const TEXT_EXT = /\.(?:html|css|js|mjs|json|svg|txt|webmanifest)$/i;
 const urlRe = /https?:\/\/[^\s"'`<>()]+/g;
 const found = new Map();
+const forbiddenLeaks = [];
+const FORBIDDEN_PATTERNS = [
+  { re: /\/api\/v1\//, label: "backend API route (/api/v1/)" },
+  { re: /base-game-nextjs/, label: "Web Next.js module reference" },
+  { re: /oauthStart|linkProvider|unlinkProvider/, label: "Web OAuth account flow" },
+];
 for (const f of files) {
+  const r = rel(f);
+  if (/(?:^|\/)avatars?(?:\/|$)/i.test(r)) {
+    forbiddenLeaks.push(`Web avatar asset leaked into dist: ${r}`);
+  }
   if (!TEXT_EXT.test(f)) continue;
   if (f.endsWith(".map")) continue;
   const text = fs.readFileSync(f, "utf8");
@@ -101,32 +118,63 @@ for (const f of files) {
     if (u === SDK_URL) continue;
     if (u.includes("sourceMappingURL")) continue;
     if (INERT_URLS.some((re) => re.test(u))) continue;
-    if (!found.has(u)) found.set(u, rel(f));
+    if (!found.has(u)) found.set(u, r);
+  }
+  for (const pat of FORBIDDEN_PATTERNS) {
+    if (pat.re.test(text)) {
+      forbiddenLeaks.push(`${pat.label} in ${r}`);
+    }
   }
 }
 if (found.size === 0) ok(`khong co request ra ben ngoai (chi co ${SDK_URL})`);
 else for (const [u, where] of found) fail(`URL ngoai khong duoc phep: ${u}  (trong ${where})`);
 
-// ---- 5. kich thuoc ----
+if (forbiddenLeaks.length === 0) ok("khong co Web auth/account/avatar/backend ro ri vao Playable");
+else for (const leak of forbiddenLeaks) fail(leak);
+
+// ---- 5. kich thuoc & budgets Y1/Y2 ----
 let total = 0;
 let initial = 0;
+let maxFileBytes = 0;
+let maxFileName = "";
 const startupImages = new Set([
   "game/bg/default/bg_stack_default_sky.png",
   "game/stack/default/bldg_residential_default_mid.png",
   "game/stack/default/crane_rig_default_sprite.png",
   "game/stack/default/crane_hook_default_sprite.png",
 ]);
+const mib = (n) => n / (1024 * 1024);
+
 for (const f of files) {
+  const r = rel(f);
   const s = fs.statSync(f).size;
   total += s;
-  if ((/\.(?:html|css|js)$/i.test(f) && !f.endsWith(".map")) || startupImages.has(rel(f))) initial += s;
+  if (s > maxFileBytes) {
+    maxFileBytes = s;
+    maxFileName = r;
+  }
+  if (mib(s) > INTERNAL_MAX_FILE_MIB) {
+    fail(`file "${r}" (${mib(s).toFixed(2)} MiB) vuot gioi han ${INTERNAL_MAX_FILE_MIB} MiB/file`);
+  }
+  if ((/\.(?:html|css|js)$/i.test(f) && !f.endsWith(".map")) || startupImages.has(r)) {
+    initial += s;
+  }
 }
-const mib = (n) => n / (1024 * 1024);
 console.log(
-  `       kich thuoc: initial ${mib(initial).toFixed(2)} MiB / total ${mib(total).toFixed(2)} MiB (gioi han ${LIMIT_MIB} MiB)`
+  `       kich thuoc: initial ${mib(initial).toFixed(2)} MiB (gate <= ${INTERNAL_INITIAL_LIMIT_MIB} MiB) / total ${mib(total).toFixed(2)} MiB (gate <= ${INTERNAL_TOTAL_LIMIT_MIB} MiB, host < ${HOST_LIMIT_MIB} MiB) / max file ${mib(maxFileBytes).toFixed(2)} MiB (${maxFileName})`
 );
-if (mib(total) > LIMIT_MIB) fail(`tong bundle ${mib(total).toFixed(2)} MiB vuot gioi han ${LIMIT_MIB} MiB`);
-else ok(`bundle nam trong gioi han ${LIMIT_MIB} MiB`);
+if (mib(initial) > INTERNAL_INITIAL_LIMIT_MIB) {
+  fail(`initial payload ${mib(initial).toFixed(2)} MiB vuot gioi han noi bo ${INTERNAL_INITIAL_LIMIT_MIB} MiB`);
+} else {
+  ok(`initial payload nam trong gioi han ${INTERNAL_INITIAL_LIMIT_MIB} MiB`);
+}
+if (mib(total) > INTERNAL_TOTAL_LIMIT_MIB) {
+  fail(`tong bundle ${mib(total).toFixed(2)} MiB vuot gioi han noi bo ${INTERNAL_TOTAL_LIMIT_MIB} MiB`);
+} else if (mib(total) > HOST_LIMIT_MIB) {
+  fail(`tong bundle ${mib(total).toFixed(2)} MiB vuot gioi han host ${HOST_LIMIT_MIB} MiB`);
+} else {
+  ok(`bundle nam trong gioi han ${INTERNAL_TOTAL_LIMIT_MIB} MiB (host < ${HOST_LIMIT_MIB} MiB)`);
+}
 
 console.log("");
 if (errors) {

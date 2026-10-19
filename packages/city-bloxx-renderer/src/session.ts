@@ -1,5 +1,5 @@
 import { SESSION_TEXT, type SessionTextKey } from "../../city-bloxx-content/session-locales";
-import { allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type TrackingPort } from "../../city-bloxx-core/src/index";
+import { allocateRun, beginCityTower, BUILDING_IDS, BUILDINGS, cancelCityTower, cityPopulation, demolishCityBuilding, emptySave, initializeTracking, isSettled, makeSummary, pinReplay, placementStatus, prepareSave, QuickTowerGame, QuickTowerReplay, restoreTower, settleRun, updateCityCheckpoint, type AudioPort, type BuildingId, type Capabilities, type GameSave, type LifecyclePort, type RunContext, type RunRecord, type SavePort, type ScorePort, type ScoreSyncState, type TrackingPort } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
 import { createDataScreens } from "./data-screens";
@@ -21,7 +21,7 @@ export function sessionScreen(value: string | null): SessionScreen {
 export interface SessionOptions {
   assets: string; save: SavePort; score?: ScorePort; lifecycle?: LifecyclePort;
   audio: AudioPort; seed: () => number; locale?: string; onLocaleChange?: (locale:string) => void;
-  showLanguageSwitch?: boolean;
+  showLanguageSwitch?: boolean; showSoundControl?: boolean;
   capabilities?: Capabilities; tracking?: TrackingPort;
   initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
@@ -77,7 +77,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     <div class="cb-toolbar"><div class="cb-toolbar-title"><strong>${quickName()}</strong><span data-mode></span></div>
       <div class="cb-toolbar-controls">
       <button data-pause>${t("Pause")}</button>
-      <button data-sound aria-pressed="false">${t("Sound on")}</button>
+      <button data-sound aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${t("Sound on")}</button>
       <button data-motion aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}">${t("Reduced motion")}</button>
       ${options.showLanguageSwitch === false ? "" : `<button data-language aria-label="${t("Language")}">${vi?"EN":"VI"}</button>`}
     </div></div>
@@ -152,6 +152,32 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
     panel.querySelector(".cb-actions")!.before(grid);
   }
+  let scoreState: ScoreSyncState | null = options.score?.getState?.() ?? null;
+  function scoreBadgeText(state: ScoreSyncState): string {
+    if (state.status === "synced") return wt("Score synced", "Đã đồng bộ điểm");
+    if (state.status === "error" || (state.status === "pending" && (state.retryAttempt ?? 0) > 0)) return wt("Score pending retry", "Điểm chờ gửi lại");
+    return wt("Score pending sync", "Điểm chờ đồng bộ");
+  }
+  function syncScoreUi(): void {
+    if (disposed || !scoreState) return;
+    notice.dataset.scoreStatus = scoreState.status;
+    const badge = panel.querySelector<HTMLElement>("[data-score-status]");
+    if (badge) {
+      badge.dataset.scoreStatus = scoreState.status;
+      badge.textContent = scoreState.status === "idle" ? "" : ` · ${scoreBadgeText(scoreState)}`;
+    }
+    const retrying = scoreState.status === "error" || (scoreState.status === "pending" && (scoreState.retryAttempt ?? 0) > 0);
+    if (retrying && storageWritable && rewardSaveStatus !== "error") {
+      notice.dataset.scoreNotice = "true";
+      message(wt("Score pending sync — saved locally and retrying automatically.", "Điểm đang chờ đồng bộ — đã lưu cục bộ và tự thử lại."));
+    } else if (notice.dataset.scoreNotice === "true" && !retrying) {
+      delete notice.dataset.scoreNotice;
+      if (storageWritable && rewardSaveStatus !== "error") message("");
+    }
+  }
+  if (options.score?.onStateChange) {
+    cleanups.push(options.score.onStateChange(state => { scoreState = state; syncScoreUi(); }));
+  }
   function persist(): void {
     if (!storageWritable) { rewardSaveStatus = "error"; return; }
     if (!ready || saveTimer) return;
@@ -166,12 +192,12 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     rewardSaveStatus = "pending";
     let value: GameSave;
     try { value = prepareSave(save); save = { ...value }; }
-    catch { rewardSaveStatus = "error"; message(t("Save exceeds its budget. Your previous saved progress is preserved.")); return; }
+    catch { rewardSaveStatus = "error"; delete notice.dataset.scoreNotice; message(t("Save exceeds its budget. Your previous saved progress is preserved.")); return; }
     void saveController.write(value).then(success => {
       if (generation !== saveGeneration) return;
       rewardSaveStatus = success ? "saved" : "error";
-      if (!success) message(t("Save failed. Your result is kept for this session; retry saving."));
-      else message("");
+      if (!success) { delete notice.dataset.scoreNotice; message(t("Save failed. Your result is kept for this session; retry saving.")); }
+      else if (notice.dataset.scoreNotice !== "true") message("");
       if (success && (userPaused || !run || run.getPhase() === "ended")) void options.save.flush?.();
     });
   }
@@ -363,7 +389,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     ]);
   }
   function applySettings(): void {
-    muted = save.settings.muted; reducedMotion = save.settings.reducedMotion ?? motionQuery.matches;
+    muted = options.showSoundControl === false ? false : save.settings.muted; reducedMotion = save.settings.reducedMotion ?? motionQuery.matches;
     if (muted) options.audio.suspend();
     el("[data-sound]").textContent = muted ? t("Sound off") : t("Sound on");
     el("[data-sound]").setAttribute("aria-pressed", String(muted));
@@ -409,6 +435,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const rewards = !isReplay ? rewardButton(() => results()) : null; if (rewards) actions.push(rewards);
     const body = result.ranked ? t("Standard") : t("Assist · unranked");
     showPanel(`${isReplay ? t("Replay complete") : t("Tower complete")} · ${result.rating}`, body, actions);
+    if (!isReplay && result.ranked && options.capabilities?.standardScore !== false && options.score?.getState) {
+      scoreState = options.score.getState();
+      const badge = document.createElement("span");
+      badge.dataset.scoreStatus = scoreState.status;
+      badge.textContent = scoreState.status === "idle" ? "" : ` · ${scoreBadgeText(scoreState)}`;
+      panel.querySelector("p")?.append(badge);
+      syncScoreUi();
+    }
     showStats([[t("Population"),String(result.population)],[t("Floors"),String(result.height)],
       [t("Accuracy"),`${result.accuracy.toFixed(1)}%`],[t("Perfect"),String(result.perfectCount)],
       [t("Best streak"),String(result.bestStreak)],[t("Duration"),`${(result.durationTicks/60).toFixed(1)}s`]]);
@@ -418,7 +452,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function frame(time: number): void {
     raf = 0;
     if (disposed || hostPaused || userPaused) return;
-    const delta = lastTime ? (time - lastTime) / 1000 : 0; lastTime = time;
+    const delta = lastTime > 0 ? Math.max(0, Math.min(.1, (time - lastTime) / 1000)) : 0; lastTime = time;
     renderer.updateEffects(delta);
     if (replay) replay.update(delta); else run?.update(delta);
     const s = current();
@@ -678,6 +712,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
     }else if(run||replay)paint();else if(panel.classList.contains("cb-city-panel"))cityMap();
     if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
+    syncScoreUi();
   }
   const languageButton=root.querySelector("[data-language]");
   if(languageButton)listen(languageButton,"click",()=>{const locale=vi?"en":"vi";setLocale(locale);options.onLocaleChange?.(locale);});
@@ -741,6 +776,6 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     progressionScreens.clear();
     bookScreens.clear();
     disposed = true;startGeneration++; saveController.dispose(); cancelFrame(); abort.abort(); cleanups.forEach(fn => fn());
-    options.audio.dispose(); root.replaceChildren();
+    renderer.dispose(); options.audio.dispose(); root.replaceChildren();
   } };
 }

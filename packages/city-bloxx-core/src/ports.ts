@@ -8,8 +8,10 @@ export interface RankedPort {
   abandon(localId: string): Promise<void>;
   recover(save: GameSave): Promise<void>;
 }
+export type ScoreSyncStatus = "idle" | "pending" | "synced" | "error";
+export interface ScoreSyncState { status: ScoreSyncStatus; pendingScore: number; ackedScore: number; retryAttempt?: number }
 export interface SavePort { load(): Promise<GameSave>; save(value: GameSave): Promise<boolean>; flush?(): Promise<void> }
-export interface ScorePort { submitStandardQuick(population: number): Promise<void> }
+export interface ScorePort { submitStandardQuick(population: number): Promise<void>; getState?(): ScoreSyncState; onStateChange?(cb: (state: ScoreSyncState) => void): () => void }
 export interface LifecyclePort { isPaused(): boolean; onPause(cb: () => void): () => void; onResume(cb: () => void): () => void }
 export interface AudioPort { play(quality: string): void; suspend(): void; dispose(): void }
 export interface ClockPort { seed(): number }

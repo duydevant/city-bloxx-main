@@ -93,6 +93,10 @@ export class QuickTowerRenderer {
   }
   setLocale(locale: string): void { this.vi = locale.startsWith("vi"); }
   resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
+  dispose(): void {
+    this.sprites.clear(); this.populationImages.clear(); this.populationLoads.clear(); this.buildingImages.clear();
+    this.background = null; this.images = null; this.brickCrane = null; this.populationFx = null;
+  }
   async loadPopulation(id: BuildingId): Promise<void> {
     if (this.populationLoads.has(id)) return this.populationLoads.get(id);
     const promise = Promise.all([

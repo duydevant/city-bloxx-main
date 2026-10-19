@@ -1,4 +1,4 @@
-import { isAudioEnabled } from "./audio.js";
+import { isAudioEnabled, onAudioEnabled } from "./audio.js";
 import type { BeepName } from "./types.js";
 
 /**
@@ -84,6 +84,9 @@ function autoUnlock(): void {
 }
 
 autoUnlock();
+onAudioEnabled((enabled) => {
+  if (!enabled) suspend();
+});
 
 export function playBeep(name: BeepName): void {
   if (!isAudioEnabled()) return;
@@ -120,4 +123,12 @@ export function suspend(): void {
 }
 export function resume(): void {
   if (ctx && ctx.state === "suspended" && isAudioEnabled()) void ctx.resume().catch(() => {});
+}
+export function dispose(): void {
+  const c = ctx;
+  ctx = null;
+  unlocked = false;
+  if (c && c.state !== "closed") {
+    void c.close().catch(() => {});
+  }
 }

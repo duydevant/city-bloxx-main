@@ -1,5 +1,6 @@
 import type { SdkErrorType } from "./ytgame.js";
 import type { AppConfig } from "./config.js";
+import type { ScoreSyncState } from "./engagement.js";
 
 export type AdResult =
   | { ok: true }
@@ -37,6 +38,8 @@ export interface PlayableHost {
   // ---- Luu tru ----
   /** Doc save; tra ve fallback neu chua co hoac du lieu hong. */
   load<T>(fallback: T): Promise<T>;
+  /** Danh dau load save that bai (vd migrateSave nem loi) de chan ghi de save cu. */
+  markLoadFailed(): void;
   /** Ghi save. Tu dong validate well-formed + gioi han 3 MiB. */
   save<T>(data: T): Promise<boolean>;
   /**
@@ -52,6 +55,11 @@ export interface PlayableHost {
   sendScore(value: number): Promise<void>;
   /** Gui ngay lap tuc (game over / pause). */
   flushScore(value: number): Promise<void>;
+  /** Dong bo diem best da luu voi pending/ack state sau khi load save thanh cong. */
+  reconcileScore(savedBest: number): Promise<void>;
+  getScoreState(): ScoreSyncState;
+  onScoreState(cb: (state: ScoreSyncState) => void): () => void;
+  disposeScore(): void;
   getLastSentScore(): number;
 
   // ---- Quang cao ----
@@ -72,6 +80,8 @@ export interface PlayableHost {
    * Tu dong tat khi YouTube bao nguoi dung tat tieng.
    */
   beep(name: BeepName): void;
+  suspendAudio(): void;
+  disposeAudio(): void;
 
   // ---- Da ngon ngu ----
   /** Locale hien tai (BCP-47 do SDK tra ve, vd "en-US", "vi-VN"). */
