@@ -1,0 +1,211 @@
+{
+  "phase": "W1",
+  "milestone": "W1.9",
+  "status": "Implemented",
+  "verificationGates": {
+    "localStagingDocker": "Verified",
+    "productionTlsSmtp": "Planned — requires real public domain, TLS certificates, and production SMTP credentials",
+    "released": "Planned — requires production rollout and 7-day monitoring"
+  },
+  "checkedAt": "2026-10-19T02:35:06.270Z",
+  "sourceBaseCommit": "680ea142275b79219af88ecd7ef0b93a4ed8e704",
+  "implementation": "test(w1.9): complete City Bloxx backend acceptance",
+  "environment": {
+    "os": "Windows / Docker Desktop Linux containers",
+    "runtime": "Node.js 22, NestJS 11, TypeORM 0.3, PostgreSQL 16 (postgresql16-client), Redis 7, Mailpit SMTP, Nginx 1.28-alpine, Next.js 16.3.6 standalone, Vite 6.4.3 Playable, Headless Chrome",
+    "databaseIsolation": "Guarded disposable databases (auth_test_*, city_bloxx_test_*, city_bloxx_restore_*); live application containers and volumes preserved untouched"
+  },
+  "versions": {
+    "physicsVersion": "physics-0.13.0",
+    "quickRulesetVersion": "0.13.0",
+    "dailyScheduleVersion": "daily-v1",
+    "dailyRulesetVersion": "daily-tower-1",
+    "cityRulesetVersion": "build-city-7",
+    "saveSchema": 4
+  },
+  "images": {
+    "backendTest": "sha256:b935d0bcf28edaf3009fd6207feed06f8c974ff82975a33dc694537962c68694",
+    "backendRuntime": "sha256:95e3d49f86da179a920b37367bc9ded8b7b1a1ee29b4e33cc5d009af603e0964",
+    "web": "sha256:928bde74d430be7d713899fc3a44d527dd3fe0c367969a1b018299541e82db24"
+  },
+  "migrationsAndPermissions": {
+    "migrations": [
+      "AuthRbac1760000000000",
+      "CityBloxxSchema1760500000000"
+    ],
+    "gameTables": [
+      "city_bloxx_profiles",
+      "city_bloxx_saves",
+      "city_bloxx_save_mutations",
+      "city_bloxx_save_backups",
+      "city_bloxx_run_tickets",
+      "city_bloxx_run_submissions",
+      "city_bloxx_leaderboard_entries",
+      "city_bloxx_analytics_events"
+    ],
+    "gamePermissions": [
+      "city_bloxx_profile:read",
+      "city_bloxx_profile:update",
+      "city_bloxx_save:read",
+      "city_bloxx_save:write",
+      "city_bloxx_runs:start",
+      "city_bloxx_runs:finish",
+      "city_bloxx_runs:read",
+      "city_bloxx_moderation:read",
+      "city_bloxx_moderation:update"
+    ],
+    "verification": "Fresh migrate/seedtwice, full migration:revert down to zero, recover migrate/seedtwice, and preexisting user/session/audit upgrade verified in disposable PostgreSQL 16 without re-granting operator-revoked permissions"
+  },
+  "coreGoldenAndWorkers": {
+    "status": "passed",
+    "pool": "2 worker threads, max 20 queued jobs, 5000ms hard deadline with worker termination/replacement on timeout",
+    "goldens": "Quick Standard v13 and Daily v1 (complete, roofMiss, failed) reproduce exact deterministic results and metrics in compiled runtime worker"
+  },
+  "suites": {
+    "webCoreUnits": {
+      "tests": 287,
+      "files": 22,
+      "status": "passed"
+    },
+    "webLint": "passed without warnings",
+    "webProductionBuild": "passed, 21 static routes prerendered",
+    "playablePackage": {
+      "status": "passed",
+      "files": 51,
+      "zipKiB": 13563.7,
+      "initialMiB": 1.53,
+      "totalMiB": 13.75,
+      "budgetMiB": 30,
+      "boundary": "Shared core has no DOM/network/clock; Playable excludes Web/backend/analytics modules and external network requests"
+    },
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "backendUnit": {
+      "tests": 49,
+      "suites": 13,
+      "status": "passed"
+    },
+    "nestE2e": {
+      "tests": 3,
+      "suites": 1,
+      "status": "passed"
+    },
+    "gameSchema": {
+      "scenarios": 15,
+      "status": "passed"
+    },
+    "adminSeed": {
+      "scenarios": 9,
+      "status": "passed"
+    },
+    "cloudApi": {
+      "scenarios": 21,
+      "status": "passed"
+    },
+    "runTickets": {
+      "scenarios": 14,
+      "status": "passed"
+    },
+    "verificationBoards": {
+      "scenarios": 14,
+      "status": "passed"
+    },
+    "moderationTelemetryOperations": {
+      "scenarios": 6,
+      "status": "passed"
+    },
+    "security": {
+      "scenarios": 23,
+      "swaggerDocumentedRoutes": 58,
+      "status": "passed"
+    },
+    "gateway": {
+      "status": "passed",
+      "coverage": "Same-origin /api/v1 proxy and production Web /play, cookie path preservation, Origin/CSRF enforcement, route-specific body budgets (16KiB/32KiB/256KiB/272KiB), query token and Bearer log redaction"
+    },
+    "browserAuth": {
+      "flows": 6,
+      "locales": ["en", "vi"],
+      "sizes": [[320, 568], [390, 844], [900, 430]],
+      "status": "passed"
+    },
+    "browserCloud": {
+      "flows": 9,
+      "locales": ["en", "vi"],
+      "sizes": [[320, 568], [390, 844], [900, 430]],
+      "status": "passed"
+    },
+    "browserRanked": {
+      "flows": 10,
+      "locales": ["en", "vi"],
+      "sizes": [[320, 568], [390, 844], [900, 430]],
+      "status": "passed"
+    },
+    "browserSharedWebAndPlayable": {
+      "platforms": ["web", "playable"],
+      "locales": ["en", "vi"],
+      "sizes": [[320, 568], [390, 844], [900, 430]],
+      "status": "passed; C0-C4.3 and W0 routes, Quick/City/Daily/progression/cosmetics, recovery, no-scroll /play, heap growth < 4MiB over 30 runs"
+    }
+  },
+  "backupAndRestoreRehearsal": {
+    "status": "passed",
+    "tool": "backend/scripts/backup-restore.cjs (pg_dump custom format + 14-day retention pruning + pg_restore into disposable city_bloxx_restore_* database)",
+    "verifiedTables": 15,
+    "cloudSaveHashIntegrity": "verified SHA-256 payload_hash match after restore",
+    "restoredAppBoot": {
+      "readyStatus": 200,
+      "quickBoardStatus": 200,
+      "catalogStatus": 200
+    },
+    "redaction": "Manifest contains only table counts, timestamps, and SHA-256 digest; verified zero credentials, tokens, or email PII"
+  },
+  "milestoneCommits": {
+    "W1.0": "feat(w1.0): integrate existing Nest backend with game infrastructure",
+    "W1.1": "feat(w1.1): add City Bloxx schema and permissions",
+    "W1.2": "feat(w1.2): connect Web to existing user authentication",
+    "W1.3": "feat(w1.3): implement game profile and revisioned cloud API",
+    "W1.4": "feat(w1.4): connect cloud saves and guest migration",
+    "W1.5": "feat(w1.5): issue server-authoritative game tickets",
+    "W1.6": "feat(w1.6): verify game inputs and settle leaderboards",
+    "W1.7": "feat(w1.7): connect ranked Web play and boards",
+    "W1.8": "feat(w1.8): add game moderation telemetry and operations"
+  },
+  "reproductionCommands": [
+    "npm run check",
+    "npm run evidence:w1:full",
+    "npm run test:browser"
+  ],
+  "artifacts": {
+    "unifiedInfrastructureAndBrowsers": "tmp/w1-infrastructure-f1b950cdbf34/result.json",
+    "rankedBrowserReport": "tmp/w1-infrastructure-f1b950cdbf34/ranked-browser.json",
+    "cloudBrowserReport": "tmp/w1-infrastructure-f1b950cdbf34/cloud-browser.json",
+    "sharedBrowserReport": "tmp/c0-c2-qa/browser-report.json",
+    "w0RoutesReport": "tmp/c0-c2-qa/w0-browser-report.json",
+    "milestoneEvidence": [
+      "plan/evidence/W1.0-validation.json",
+      "plan/evidence/W1.1-validation.json",
+      "plan/evidence/W1.2-validation.json",
+      "plan/evidence/W1.3-validation.json",
+      "plan/evidence/W1.4-validation.json",
+      "plan/evidence/W1.5-validation.json",
+      "plan/evidence/W1.6-validation.json",
+      "plan/evidence/W1.7-validation.json",
+      "plan/evidence/W1.8-validation.json",
+      "plan/evidence/W1.9-validation.json"
+    ]
+  },
+  "isolation": {
+    "testContainersDatabasesAndTemporaryEnvironmentRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveKeysChanged": false,
+    "deploymentPerformed": false
+  },
+  "limits": [
+    "Verified in local/staging Docker with real NestJS 11, PostgreSQL 16, Redis 7, Mailpit SMTP, Nginx 1.28, Next.js standalone Web, and real headless Chrome.",
+    "Browser animation frames in automated suites use controlled RAF stepping; real-device GPU/60Hz frame presentation, physical phone safe-area QA, and 5-person playtest remain soft-launch device gates (plan/08-soft-launch-checklist.md).",
+    "Production domain, HTTPS/TLS certificates, Secure cookie enforcement on public HTTPS, external SMTP provider credentials, and production DB migration/rollout remain production deployment gates."
+  ]
+}

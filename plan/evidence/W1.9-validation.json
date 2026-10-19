@@ -1,0 +1,50 @@
+{
+  "phase": "W1.9",
+  "status": "Implemented",
+  "verificationGates": {
+    "localStagingDocker": "Verified",
+    "productionTlsSmtp": "Planned — requires real public domain, TLS certificates, and production SMTP credentials",
+    "released": "Planned — requires production rollout and 7-day monitoring"
+  },
+  "checkedAt": "2026-10-19T02:35:06.270Z",
+  "sourceBaseCommit": "680ea142275b79219af88ecd7ef0b93a4ed8e704",
+  "implementation": "test(w1.9): complete City Bloxx backend acceptance",
+  "canonicalEvidence": "plan/evidence/W1-nest-validation.json",
+  "environment": "Windows/Docker Desktop Linux/Node22; Nest11/TypeORM0.3/PostgreSQL16/Redis7/Mailpit/Nginx/Next.js standalone/Vite Playable/Chrome; guarded disposable databases",
+  "images": {
+    "backendTest": "sha256:b935d0bcf28edaf3009fd6207feed06f8c974ff82975a33dc694537962c68694",
+    "backendRuntime": "sha256:95e3d49f86da179a920b37367bc9ded8b7b1a1ee29b4e33cc5d009af603e0964",
+    "web": "sha256:928bde74d430be7d713899fc3a44d527dd3fe0c367969a1b018299541e82db24"
+  },
+  "checks": {
+    "webCoreUnits": { "tests": 287, "files": 22, "status": "passed" },
+    "webLint": "passed without warnings",
+    "webProductionBuild": "passed, 21 static routes",
+    "playablePackage": "passed typecheck, build, boundary/allowlist check, 13.75 MiB < 30 MiB budget, dist.zip",
+    "backendTypecheck": "passed in builder container",
+    "backendLint": "passed without warnings in builder container",
+    "backendUnit": { "tests": 49, "suites": 13, "status": "passed" },
+    "nestE2e": { "tests": 3, "suites": 1, "status": "passed" },
+    "gameSchema": { "scenarios": 15, "status": "passed" },
+    "adminSeed": { "scenarios": 9, "status": "passed" },
+    "cloudApi": { "scenarios": 21, "status": "passed" },
+    "runTickets": { "scenarios": 14, "status": "passed" },
+    "verificationBoards": { "scenarios": 14, "status": "passed" },
+    "moderationTelemetryOperations": { "scenarios": 6, "status": "passed" },
+    "security": { "scenarios": 23, "swaggerRoutes": 58, "status": "passed" },
+    "gateway": "passed production Web /play, /api/v1 proxy, cookie/Origin/body limits, token redaction",
+    "browserAuth": { "flows": 6, "status": "passed" },
+    "browserCloud": { "flows": 9, "status": "passed" },
+    "browserRanked": { "flows": 10, "status": "passed" },
+    "browserSharedWebAndPlayable": { "platforms": 2, "status": "passed" }
+  },
+  "isolation": {
+    "testContainersDatabasesAndTemporaryEnvironmentRemoved": true,
+    "existingApplicationDataAndVolumesPreserved": true,
+    "redisFlushed": false,
+    "liveDatabaseMigrated": false,
+    "liveKeysChanged": false,
+    "deploymentPerformed": false
+  },
+  "next": "Y0-Y2 Playable SDK/host certification and Soft-Launch device/production gates (plan/07-Y0-Y2-playable-integration-release.md, plan/08-soft-launch-checklist.md)"
+}

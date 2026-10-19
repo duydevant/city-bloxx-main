@@ -1,8 +1,17 @@
 # City Bloxx — trạng thái hiện tại
 
-Cập nhật 12/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
+Cập nhật 19/10/2026. Tài liệu này bổ sung các thay đổi mới hơn checklist C0–C2.
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
+
+## W1 — hoàn thành triển khai W1.0–W1.9 (19/10/2026); Verified local/staging Docker
+
+Tiếp tục từ W0 `8dff07f` trên source `backend/` hiện có theo [06c](plan/06c-W1-city-bloxx-existing-backend-plan.md):
+- **W1.0–W1.1**: Gateway Nginx same-origin (`/api/v1` + Web `/play`), bounded JSON parsers (16KiB/32KiB/256KiB/272KiB), `/api/v1/health/ready` (DB + Redis + worker pool), đóng gói shared core CJS/declarations/worker, 8 bảng `city_bloxx_*` và 9 permissions `city_bloxx_*` (fresh/down-up/upgrade bảo toàn lịch sử auth và quyền đã revoke).
+- **W1.2–W1.4**: Web auth thật (đăng ký/đăng nhập/verify/reset/profile/password/logout EN/VI, JWT memory + HttpOnly refresh cookie, Web Locks + BroadcastChannel giữa nhiều tab), game profile + revisioned cloud save/resolve CAS + biên nhận idempotent + worker save validation, và Web cloud sync/IndexedDB/conflict/Guest import không trộn tài khoản.
+- **W1.5–W1.7**: Server-authoritative Daily UTC + run tickets 256-bit/24h (encrypted start receipt/key rotation), persistent submission queue/leases, pure resimulation trong worker pool (2 workers/20 queue/5s timeout), atomic settlement/best leaderboard entry, public/private keyset leaderboards và Web ranked Quick/Daily + `/leaderboards` EN/VI.
+- **W1.8–W1.9**: Admin moderation (`/api/v1/admin/city-bloxx/runs*`, RBAC `city_bloxx_moderation:read/update`, không sửa điểm tùy ý, quarantine ẩn khỏi board + khôi phục best kế tiếp + giữ inputs 90 ngày, release bắt buộc resimulate), public catalog + authenticated/guest analytics allowlist/dedupe/PII rejection/rate limit 30/phút + server `verification_reject`, CLI `maintain` có distributed lock xóa inputs quá hạn (30d/90d) giữ nguyên receipts/boards, và `backup-restore.cjs` (`pg_dump` + prune 14 ngày + `pg_restore` sang DB riêng kiểm đủ 15 bảng, SHA-256 cloud save và boot app).
+- **Nghiệm thu hợp nhất W1.9**: `npm run evidence:w1:full` (6 luồng Chrome auth + 9 luồng Chrome cloud + 10 luồng Chrome ranked EN/VI 320/390/900 + 102 kịch bản tích hợp BE/gateway + 49 BE unit + 3 e2e + restore rehearsal), `npm run check` (287 Web/core tests, lint, production Web/Playable builds/zip) và `npm run test:browser` (full Chrome smoke cả hai shell). Toàn bộ containers/volumes đang chạy được bảo toàn. [Evidence W1 tổng hợp](plan/evidence/W1-nest-validation.json), [W1.9](plan/evidence/W1.9-validation.json). Production domain/TLS/SMTP thật và rollout giữ gate riêng.
 
 ## W0 — hoàn thành triển khai 12/10/2026; dừng trước Backend
 

@@ -1,0 +1,12 @@
+{
+  "phase": "W1",
+  "status": "Implemented",
+  "verificationGates": {
+    "localStagingDocker": "Verified",
+    "productionTlsSmtp": "Planned — requires real public domain, TLS certificates, and production SMTP credentials",
+    "released": "Planned — requires production rollout and 7-day monitoring"
+  },
+  "checkedAt": "2026-10-19T02:35:06.270Z",
+  "sourceBaseCommit": "680ea142275b79219af88ecd7ef0b93a4ed8e704",
+  "canonicalEvidence": "plan/evidence/W1-nest-validation.json"
+}

@@ -5,9 +5,10 @@ const { resolve, join } = require('node:path');
 const { randomBytes } = require('node:crypto');
 
 const root = resolve(__dirname, '..');
+const allBrowserAcceptance = process.argv.includes('--all-browser');
 const cloudAcceptance = process.argv.includes('--cloud-browser');
-const rankedAcceptance = process.argv.includes('--ranked-browser');
-const browserAcceptance = process.argv.includes('--auth-browser') || cloudAcceptance || rankedAcceptance;
+const rankedAcceptance = process.argv.includes('--ranked-browser') || allBrowserAcceptance;
+const browserAcceptance = process.argv.includes('--auth-browser') || cloudAcceptance || rankedAcceptance || allBrowserAcceptance;
 const browserPort=Number(process.env.W1_BROWSER_PORT||56891);
 if(!Number.isInteger(browserPort)||browserPort<1024||browserPort>65535)throw new Error('Invalid browser acceptance port');
 const id = randomBytes(6).toString('hex');
@@ -62,7 +63,19 @@ async function main() {
       }
       const [gateway]=JSON.parse(docker(['inspect',names.gateway]));
       const port=gateway.NetworkSettings.Ports['8080/tcp'][0].HostPort;
-      try{browserReport=await require(rankedAcceptance?'./ranked-browser.cjs':cloudAcceptance?'./cloud-browser.cjs':'./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});}catch(error){browserFailure=error;}
+      try{
+        if (allBrowserAcceptance) {
+          process.env.W1_CHROME_PORT = '9236';
+          const browserAuth = await require('./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});
+          process.env.W1_CHROME_PORT = '9238';
+          const browserCloud = await require('./cloud-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});
+          process.env.W1_CHROME_PORT = '9240';
+          const browserRanked = await require('./ranked-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});
+          browserReport = { browserAuth, browserCloud, browserRanked };
+        } else {
+          browserReport=await require(rankedAcceptance?'./ranked-browser.cjs':cloudAcceptance?'./cloud-browser.cjs':'./auth-browser.cjs').run({base:`http://127.0.0.1:${port}`,container:names.suite,directory});
+        }
+      }catch(error){browserFailure=error;}
       finally{docker(['exec',names.suite,'node','-e',`require('node:fs').writeFileSync('/tmp/w1-browser-done',${JSON.stringify(browserReport?'passed':'failed')})`]);}
     }
     const exit = Number(await new Promise((resolve, reject) => {
@@ -83,7 +96,7 @@ async function main() {
       checkedAt: new Date().toISOString(),
       sourceBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
       backendTestImageId: JSON.parse(docker(['image', 'inspect', 'city-bloxx-w1-test:local']))[0].Id,
-      ...(browserReport?{[rankedAcceptance?'browserRanked':cloudAcceptance?'browserCloud':'browserAuth']:browserReport}:{}),
+      ...(browserReport?(allBrowserAcceptance?browserReport:{[rankedAcceptance?'browserRanked':cloudAcceptance?'browserCloud':'browserAuth']:browserReport}):{}),
       checks: { gameSchemaAndPermissions: 'passed', cloudApiAndIsolation: 'passed', runTicketsAndPersistentLeases: 'passed', verificationSettlementAndBoards: 'passed', moderationTelemetryAndOperations: 'passed', compiledCoreWorker: 'passed', authAdminSeed: 'passed', unit: 'passed', nestE2e: 'passed', authIntegration: 'passed', nginxAuthAndLimits: 'passed', nginxProductionWeb: 'passed' },
       isolation: { database: 'disposable auth_test_* and city_bloxx_test_* and city_bloxx_restore_*', existingVolumesPreserved: true, deployment: false },
     }, null, 2) + '\n');
