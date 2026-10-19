@@ -3,6 +3,7 @@ import { emptyQualities, type QualityCounts, type RunMetrics } from "./metrics";
 import type { QuickTowerGame, RunConfig, RunResult } from "./run";
 import { SETTLEMENT_REWARDS } from "../../city-bloxx-content/settlement";
 import { type DailyDefinition } from "./daily";
+import { type OneDropDefinition } from "./one-drop";
 import type { RunEquipment } from "./cosmetics";
 
 export type StatsGroup = "quick-standard" | "quick-assist" | "city" | "daily";
@@ -19,6 +20,7 @@ export interface RunSummary extends RunContext {
   unlockedAchievements?: string[]; progressionRewardVersion?: string;
   unlockedCosmetics?: string[];
   daily?: DailyDefinition;
+  oneDrop?: OneDropDefinition;
 }
 export interface StatTotals {
   attempts: number; abandoned: number; landedBody: number; scoredBody: number;
@@ -40,11 +42,17 @@ export function emptyStats(): LifetimeStats {
 export function makeSummary(game: QuickTowerGame, context: RunContext, endedAt: number, outcome: RunSummary["outcome"] = "ended"): RunSummary {
   const state = game.getSnapshot(), result = game.getResult();
   if (outcome === "ended" && state.phase !== "ended") throw new Error("Cannot settle an unfinished tower");
+  const complete =
+    outcome === "ended" &&
+    (game.config.mode === "one-drop"
+      ? result.height === game.config.oneDrop!.targetBodyFloors
+      : game.config.mode !== "quick" && result.height === state.targetFloors);
   return { ...context, mode: game.config.mode, building: state.building, assist: game.config.assist, seed: game.config.seed,
     physicsVersion: state.physicsVersion, rulesetVersion: state.rulesetVersion, endedAt: Math.max(context.startedAt, endedAt), endTick: state.tick,
     result, metrics: game.getMetrics(), outcome,
-    complete: outcome === "ended" && game.config.mode !== "quick" && result.height === state.targetFloors,
+    complete,
     ...(game.config.mode === "daily" ? { daily: game.config.daily } : {}),
+    ...(game.config.mode === "one-drop" ? { oneDrop: game.config.oneDrop } : {}),
     verification: "local", replayStatus: "not-recorded" };
 }
 export function applySummary(totals: StatTotals, summary: RunSummary): StatTotals {
@@ -66,9 +74,10 @@ export function perfectRate(totals: StatTotals): number | null {
   return totals.scoredBody ? Math.round(totals.quality.perfect / totals.scoredBody * 1000) / 10 : null;
 }
 export function runXP(summary: RunSummary): number {
-  if (!summary.metrics) return 0; // Never invent body rewards for legacy unknown data.
+  if (!summary.metrics || summary.mode === "one-drop") return 0; // Never invent body rewards for legacy unknown data or One Drop v1.
   const body = summary.metrics.body;
   return (body.perfect + body.great + body.good + body.risky) * SETTLEMENT_REWARDS.landedBody +
     body.perfect * SETTLEMENT_REWARDS.perfectBody + Number(summary.complete) * SETTLEMENT_REWARDS.finiteCompletion;
 }
 export const RUN_REWARD_VERSION = SETTLEMENT_REWARDS.version;
+

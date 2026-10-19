@@ -4,6 +4,13 @@ Cập nhật 19/10/2026. Tài liệu này bổ sung các thay đổi mới hơn 
 
 Checklist để rà soát đã xong/còn thiếu/thứ tự làm tiếp: [PROJECT_REVIEW_CHECKLIST](PROJECT_REVIEW_CHECKLIST.md).
 
+## C6 — hoàn thành triển khai One Drop, Replay nâng cao, Personal Ghost, Hall/Album & Web Social (19/10/2026)
+
+Tiếp tục từ C5 `38241de` theo [10](plan/10-C6-challenges-replay-social.md):
+- **C6.1 — One Drop v1 & Placement Heatmap**: Thêm `ONE_DROP_RECIPE` (`one-drop-v1`, ruleset `one-drop-1`) với 4 tầng Residential dựng sẵn đang lắc theo hạt giống UTC (`one-drop-v1|YYYY-MM-DD`), đúng 1 cú thả khối tính điểm (`inputs.length === 1`), 1 mạng, không mái, vật lý rơi/va chạm thân dưới đầy đủ khi Miss (`>= 100%`), kỷ lục cá nhân theo `absError` thấp nhất rồi `durationTicks` thấp nhất, không cộng XP hay ảnh hưởng Quick PB/City. Thêm `computePlacementHeatmap` gồm 40 bin `5%` (`-100%..+100%`) và bộ đếm tràn Miss hai biên (`<-100%`, `>+100%`), loại bỏ móng và mái, ghi rõ mẫu cửa sổ 50 lượt gần nhất.
+- **C6.2 — Replay Viewer Speed/Seek & Personal Ghost**: Nâng cấp `QuickTowerReplay` với tốc độ `0.5× / 1× / 2× / 4×`, play/pause/restart, danh sách `getDropMarkers()`, `seekToTick` / `seekToDrop` / `seekToResult` và bộ nhớ đệm checkpoint chỉ trong viewer (`<= 16` snapshots, `<= 16 MiB`, không lưu vào `GameSave`). Thêm `PersonalGhost` tiền tính toán vị trí/thời điểm thả và đáp từ PB replay cùng seed/config/version (hỗ trợ `retrySameSeedConfig` khi lệch hạt giống, Reduced Motion bỏ vòng xung trang trí, không ảnh hưởng điểm/thưởng).
+- **C6.3 — Hall of Fame, Skyline Album & Web Public/Share/Beat This Tower**: Thêm `save.hallOfFame` (tối đa 5 bản tóm tắt ghim được bảo vệ khi dọn lịch sử 50 lượt, giữ tối đa 3 replay đầy đủ) và `save.album` (tối đa 3 bản chụp quận gồm 25 ô, biểu tượng, cấp đô thị, xác nhận trước khi ghi đè, 0 XP, không lưu base64 PNG, `GameSave <= 256 KiB`). Trên Web (loại trừ hoàn toàn khỏi gói Playable), thêm dịch vụ xuất bản/thu hồi tháp xác minh, kiểm duyệt tên hiển thị `3–24` ký tự + hồ sơ opt-in + báo cáo/ẩn kiểm duyệt, giới hạn tốc độ tải replay công khai, kết xuất thẻ chia sẻ PNG `1200×630` (EN/VI, khớp số liệu xác minh), và các trang `/towers/[id]`, `/players/[id]`, `/challenges/[id]` cùng luồng thử thách cùng hạt giống `Beat This Tower`. Qua **314/314 unit tests (26 files)**, `npm run check` và `npm run evidence:c6` trên cả hai nền tảng ([Evidence C6](plan/evidence/C6-validation.json)).
+
 ## C5 — hoàn thành triển khai Harbor, mục tiêu district, landmark và city evolution (19/10/2026)
 
 Tiếp tục từ Soft Launch `7df93dd` theo [09](plan/09-C5-districts-landmarks.md) và [12](plan/12-art-requirements.md):

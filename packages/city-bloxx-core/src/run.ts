@@ -3,10 +3,11 @@ import { BUILDINGS, isBuildingId, type BuildingId } from "./buildings";
 import { sweepTower } from "./collision";
 import { emptyMetrics, recordMetric, type RunMetrics } from "./metrics";
 import { validateDaily, type DailyDefinition } from "./daily";
+import { validateOneDrop, type OneDropDefinition } from "./one-drop";
 
 export type PlacementQuality = "perfect" | "great" | "good" | "risky" | "miss";
 export type RunPhase = "preparing" | "swing" | "falling" | "settling" | "miss" | "ended";
-export interface RunConfig { seed: number; mode: "quick" | "city" | "daily"; assist: boolean; building?: BuildingId; daily?: DailyDefinition; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
+export interface RunConfig { seed: number; mode: "quick" | "city" | "daily" | "one-drop"; assist: boolean; building?: BuildingId; daily?: DailyDefinition; oneDrop?: OneDropDefinition; legacyPerfect?: boolean; legacyOverlap?: boolean; legacyScoring?: boolean; legacyMotion?: boolean; motionVersion?: 11 | 12 }
 export interface DropInput { tick: number; sequence: number; fraction: number }
 export type DropEvent = DropInput;
 export interface PlacedFloor { x: number; quality: Exclude<PlacementQuality, "miss">; population: number; error: number }
@@ -99,20 +100,74 @@ export class QuickTowerGame {
   private swayPhase = 0;
   constructor(config: number | RunConfig = 1) {
     const value = typeof config === "number" ? { seed: config, mode: "quick" as const, assist: false } : config;
-    if (!Number.isInteger(value.seed) || !["quick", "city", "daily"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
+    if (!Number.isInteger(value.seed) || !["quick", "city", "daily", "one-drop"].includes(value.mode) || typeof value.assist !== "boolean" || (value.mode === "city" && (!isBuildingId(value.building) || value.assist))) throw new Error("Invalid run config");
     const daily = value.mode === "daily" ? validateDaily(value.daily) : undefined;
     if (daily ? value.assist || value.seed !== daily.seed || value.building !== daily.classId : value.daily !== undefined) throw new Error("Invalid Daily config");
+    const oneDrop = value.mode === "one-drop" ? validateOneDrop(value.oneDrop) : undefined;
+    if (oneDrop ? value.assist || value.seed !== oneDrop.seed || (value.building !== undefined && value.building !== oneDrop.classId) : value.oneDrop !== undefined) throw new Error("Invalid One Drop config");
     if (value.legacyPerfect !== undefined && (value.mode !== "city" || typeof value.legacyPerfect !== "boolean")) throw new Error("Invalid legacy rules");
     if (value.legacyOverlap !== undefined && (value.mode !== "city" || typeof value.legacyOverlap !== "boolean")) throw new Error("Invalid legacy overlap rules");
     if (value.legacyScoring !== undefined && (value.mode !== "city" || typeof value.legacyScoring !== "boolean")) throw new Error("Invalid legacy scoring rules");
     if (value.legacyMotion !== undefined && (value.mode !== "city" || typeof value.legacyMotion !== "boolean")) throw new Error("Invalid legacy motion rules");
     if (value.motionVersion !== undefined && (value.mode !== "city" || ![11,12].includes(value.motionVersion))) throw new Error("Invalid motion version");
-    this.config = Object.freeze({ ...value, ...(daily ? { daily } : {}), seed: value.seed | 0 });
+    this.config = Object.freeze({ ...value, ...(daily ? { daily } : {}), ...(oneDrop ? { oneDrop, building: oneDrop.classId } : {}), seed: value.seed | 0 });
+    this.lives = oneDrop ? oneDrop.lives : R.lives;
+    if (oneDrop) {
+      for (let i = 0; i < oneDrop.prebuiltFloors; i++) {
+        this.floors.push({ x: 0, quality: "perfect", population: 0, error: 0 });
+      }
+      this.previousFloorCount = this.floors.length;
+      this.cameraY = Math.max(0, R.cameraTopY - (R.groundY - this.floors.length * R.floorHeight));
+    }
     this.phaseOffset = seedPhase(this.config.seed);
     this.swingPhase = (this.phaseOffset % R.swingPeriodTicks) * 1000;
     this.swayPhase = (this.phaseOffset % R.swayPeriodTicks) * 1000;
     this.updateSwing();
     this.previousCurrent = { x: this.currentX, y: this.currentY, rotation: this.currentRotation };
+  }
+  clone(): QuickTowerGame {
+    const copy = new QuickTowerGame(this.config);
+    copy.tickCount = this.tickCount;
+    copy.accumulator = this.accumulator;
+    copy.paused = this.paused;
+    copy.phase = this.phase;
+    copy.lives = this.lives;
+    copy.population = this.population;
+    copy.perfectCount = this.perfectCount;
+    copy.streak = this.streak;
+    copy.bestStreak = this.bestStreak;
+    copy.comboLevel = this.comboLevel;
+    copy.comboTicks = this.comboTicks;
+    copy.sway = this.sway;
+    copy.currentX = this.currentX;
+    copy.currentY = this.currentY;
+    copy.currentRotation = this.currentRotation;
+    copy.previousCurrent = { ...this.previousCurrent };
+    copy.previousPhase = this.previousPhase;
+    copy.previousFloorCount = this.previousFloorCount;
+    copy.fallSpeed = this.fallSpeed;
+    copy.missTicks = this.missTicks;
+    copy.missAge = this.missAge;
+    copy.missVelocityX = this.missVelocityX;
+    copy.missGroundTick = this.missGroundTick;
+    copy.lastContactFloor = this.lastContactFloor;
+    copy.impact = this.impact ? { ...this.impact } : null;
+    copy.transitionTicks = this.transitionTicks;
+    copy.cameraX = this.cameraX;
+    copy.cameraY = this.cameraY;
+    copy.craneX = this.craneX;
+    copy.released = { ...this.released };
+    copy.swayBias = this.swayBias;
+    copy.lastPlacement = this.lastPlacement;
+    copy.feedbackId = this.feedbackId;
+    copy.feedbackTicks = this.feedbackTicks;
+    copy.floors.splice(0, copy.floors.length, ...this.floors.map(f => ({ ...f })));
+    copy.drops.splice(0, copy.drops.length, ...this.drops.map(d => ({ ...d })));
+    copy.roof = this.roof ? { ...this.roof } : null;
+    Object.assign(copy.metrics, this.getMetrics());
+    copy.swingPhase = this.swingPhase;
+    copy.swayPhase = this.swayPhase;
+    return copy;
   }
   setPaused(paused: boolean): void { this.paused = paused; }
   getTick(): number { return this.tickCount; }
@@ -150,7 +205,7 @@ export class QuickTowerGame {
   }
   getSnapshot(): QuickTowerSnapshot {
     return {
-      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "daily" ? this.config.daily!.rulesetVersion : this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
+      physicsVersion: PHYSICS_VERSION, rulesetVersion: this.config.mode === "one-drop" ? this.config.oneDrop!.rulesetVersion : this.config.mode === "daily" ? this.config.daily!.rulesetVersion : this.config.mode === "city" ? this.config.legacyPerfect ? "build-city-1" : this.config.legacyOverlap ? "build-city-2" : this.config.legacyScoring ? "build-city-3" : this.config.legacyMotion ? "build-city-4" : this.config.motionVersion===11 ? "build-city-5" : this.config.motionVersion===12 ? "build-city-6" : CITY_RULESET_VERSION : this.config.assist ? ASSIST_RULESET_VERSION : RULESET_VERSION,
       seed: this.config.seed, assist: this.config.assist, tick: this.tickCount, phase: this.phase,
       lives: this.lives, population: this.population, perfectCount: this.perfectCount,
       streak: this.streak, bestStreak: this.bestStreak, comboLevel: this.comboLevel,
@@ -169,6 +224,25 @@ export class QuickTowerGame {
     };
   }
   getResult(): RunResult {
+    if (this.config.mode === "one-drop") {
+      const prebuilt = this.config.oneDrop!.prebuiltFloors;
+      const playerFloors = this.floors.slice(prebuilt);
+      const accuracy = playerFloors.length ? q(playerFloors.reduce((sum, f) => sum + 1 - f.error, 0) / playerFloors.length * 100) : 0;
+      const q0 = playerFloors[0]?.quality;
+      const oneDropRating: RunResult["rating"] = !playerFloors.length ? "D" : q0 === "perfect" ? "S" : q0 === "great" ? "A" : q0 === "good" ? "B" : "C";
+      return {
+        population: this.population,
+        height: playerFloors.length,
+        accuracy,
+        perfectCount: this.perfectCount,
+        bestStreak: this.bestStreak,
+        durationTicks: this.tickCount,
+        misses: this.config.oneDrop!.lives - this.lives,
+        ranked: false,
+        rating: oneDropRating,
+        ratingVersion: CITY_RATING_VERSION,
+      };
+    }
     const scored = this.config.legacyScoring ? this.floors : this.floors.slice(1);
     const accuracy = scored.length ? q(scored.reduce((sum, f) => sum + 1 - f.error, 0) / scored.length * 100) : 0;
     const rating = this.floors.length >= Rating.sHeight && accuracy >= Rating.sAccuracy ? "S" : this.floors.length >= Rating.aHeight && accuracy >= Rating.aAccuracy ? "A" : this.floors.length >= Rating.bHeight && accuracy >= Rating.bAccuracy ? "B" : this.floors.length > 0 ? "C" : "D";
@@ -197,7 +271,10 @@ export class QuickTowerGame {
     // Recovery changes amplitude without jumping the tower at impact.
     this.swayBias = q(this.swayBias * .85);
     if (this.phase === "settling") {
-      if (--this.transitionTicks <= 0) this.spawnFloor();
+      if (--this.transitionTicks <= 0) {
+        if (this.config.mode === "one-drop") this.phase = "ended";
+        else this.spawnFloor();
+      }
       return;
     }
     if (this.phase === "swing" || this.phase === "preparing") {

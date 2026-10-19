@@ -29,7 +29,7 @@ Ngày cập nhật: 19/10/2026. Bộ tài liệu này đặc tả roadmap và th
 | [07 — Y0–Y2 Playable release](07-Y0-Y2-playable-integration-release.md) | Y0 audit làm sớm; release cần C4 | Implemented — hoàn thành triển khai Y0–Y2 (`Blocked: portal access` cho submission) |
 | [08 — Soft-launch checklist](08-soft-launch-checklist.md) | C4 + W0/W1 cho Web; C4 + Y0–Y2 cho Playable | Implemented — hoàn thành nghiệm thu kỹ thuật đa nền tảng ([Evidence](evidence/08-soft-launch-validation.json)) |
 | [09 — C5 Districts, landmarks](09-C5-districts-landmarks.md) | Soft launch | Implemented — hoàn thành triển khai ([Evidence](evidence/C5-validation.json)) |
-| [10 — C6 Challenges, replay, social](10-C6-challenges-replay-social.md) | Soft launch; public/social cần W1 | Planned |
+| [10 — C6 Challenges, replay, social](10-C6-challenges-replay-social.md) | Soft launch; public/social cần W1 | Implemented — hoàn thành triển khai ([Evidence](evidence/C6-validation.json)) |
 | [11 — C7 Weekly, modes, LiveOps](11-C7-weekly-modes-liveops.md) | C5/C6 + vận hành ổn định | Planned |
 | [12 — Art requirements](12-art-requirements.md) | Theo phase tương ứng | Brick & Harbor approved/imported; Winter Planned |
 | [13 — Backlog](13-backlog.md) | Có gate riêng | Deferred |

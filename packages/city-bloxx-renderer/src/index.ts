@@ -1,4 +1,4 @@
-import { BUILDINGS, floorSway, QUICK_TOWER_RULES as R, type BuildingId, type QuickTowerSnapshot } from "../../city-bloxx-core/src/index";
+import { activeGhostMarker, BUILDINGS, floorSway, QUICK_TOWER_RULES as R, type BuildingId, type PersonalGhost, type QuickTowerSnapshot } from "../../city-bloxx-core/src/index";
 import { loadPose, project, rigGeometry, SPRITE_ANCHORS as A, type Point } from "./geometry";
 import { BRICK_ANCHORS, buildingSourceRect } from "./sprites";
 import { placementLabel } from "./feedback";
@@ -32,6 +32,7 @@ export class QuickTowerRenderer {
   private buildingImages = new Map<string, { base: HTMLImageElement; mid: HTMLImageElement; roof: HTMLImageElement }>();
   private equipment: RunEquipment = { ...DEFAULT_EQUIPMENT };
   private brickCrane: { rig: HTMLImageElement; hook: HTMLImageElement } | null = null;
+  private ghost: PersonalGhost | null = null;
   private cssWidth = 1;
   private cssHeight = 1;
   private dpr = 1;
@@ -61,6 +62,8 @@ export class QuickTowerRenderer {
     this.warmSprites();
   }
   setEquipment(value: RunEquipment = { ...DEFAULT_EQUIPMENT }): void { this.equipment = { ...value }; }
+  setGhost(ghost: PersonalGhost | null): void { this.ghost = ghost; }
+  getGhost(): PersonalGhost | null { return this.ghost; }
   drawPreview(canvas: HTMLCanvasElement, building: BuildingId, equipment: RunEquipment, locked = false): void {
     canvas.width=240;canvas.height=190;const ctx=canvas.getContext("2d")!;ctx.clearRect(0,0,240,190);
     ctx.fillStyle="#243e50";ctx.fillRect(0,0,240,190);
@@ -95,7 +98,7 @@ export class QuickTowerRenderer {
   resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
   dispose(): void {
     this.sprites.clear(); this.populationImages.clear(); this.populationLoads.clear(); this.buildingImages.clear();
-    this.background = null; this.images = null; this.brickCrane = null; this.populationFx = null;
+    this.background = null; this.images = null; this.brickCrane = null; this.populationFx = null; this.ghost = null;
   }
   async loadPopulation(id: BuildingId): Promise<void> {
     if (this.populationLoads.has(id)) return this.populationLoads.get(id);
@@ -208,9 +211,44 @@ export class QuickTowerRenderer {
       ctx.save(); ctx.globalAlpha = snapshot.phase === "preparing" ? snapshot.loadProgress : 1;
       this.drawFloor(point.x, point.y, scale, pose.rotation, snapshot.building, snapshot.isRoof ? "roof" : snapshot.targetFloors && snapshot.floors.length === 0 ? "base" : "mid"); ctx.restore();
     }
+    this.drawGhost(snapshot, scale, reducedMotion);
     this.drawImpact(snapshot,scale,reducedMotion);
     if (snapshot.lastPlacement && snapshot.feedbackRatio > 0) this.drawFeedback(snapshot, scale, reducedMotion);
     this.drawPopulation(snapshot, scale, reducedMotion);
+  }
+  private drawGhost(snapshot: QuickTowerSnapshot, scale: number, reducedMotion: boolean): void {
+    const marker = activeGhostMarker(this.ghost, snapshot);
+    if (!marker) return;
+    const ctx = this.context;
+    const rel = project({ x: marker.releaseX, y: marker.releaseY }, snapshot, this.cssWidth, this.cssHeight);
+    const land = project({ x: marker.landingX + snapshot.swayOffset, y: marker.landingY }, snapshot, this.cssWidth, this.cssHeight);
+    ctx.save();
+    ctx.strokeStyle = "rgba(116, 235, 213, 0.85)";
+    ctx.fillStyle = "rgba(116, 235, 213, 0.85)";
+    ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+    ctx.beginPath();
+    ctx.moveTo(rel.x - 14 * scale, rel.y);
+    ctx.lineTo(rel.x + 14 * scale, rel.y);
+    ctx.moveTo(rel.x, rel.y - 14 * scale);
+    ctx.lineTo(rel.x, rel.y + 14 * scale);
+    ctx.moveTo(land.x - 18 * scale, land.y);
+    ctx.lineTo(land.x + 18 * scale, land.y);
+    ctx.stroke();
+    if (!reducedMotion) {
+      const deltaTicks = Math.abs(marker.releaseTick - snapshot.tick);
+      if (deltaTicks <= 30) {
+        const pulseRadius = (10 + (1 - deltaTicks / 30) * 18) * scale;
+        ctx.beginPath();
+        ctx.arc(rel.x, rel.y, pulseRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.font = `700 ${Math.max(10, 13 * scale)}px system-ui`;
+    ctx.textAlign = "center";
+    const diff = marker.releaseTick - snapshot.tick;
+    const timingLabel = diff > 0 ? `GHOST -${(diff / R.tickRate).toFixed(1)}s` : diff === 0 ? "GHOST DROP" : `GHOST T${marker.releaseTick}`;
+    ctx.fillText(timingLabel, rel.x, Math.max(14, rel.y - 16 * scale));
+    ctx.restore();
   }
   private drawImpact(snapshot: QuickTowerSnapshot, scale: number, reducedMotion: boolean): void {
     const impact=snapshot.impact;

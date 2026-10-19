@@ -1,0 +1,496 @@
+{
+  "phase": "C6",
+  "title": "One Drop v1, Placement Heatmap, Replay Speed/Seek, Personal Ghost, Hall of Fame, Skyline Album & Web Social",
+  "verifiedAt": "2026-10-19T07:07:01.861Z",
+  "schema": 5,
+  "web": {
+    "schema": 5,
+    "saveBytes": 23128,
+    "oneDropAttempts": 1,
+    "oneDropBest": {
+      "identityId": "c6-web:2",
+      "dateUTC": "2026-10-19",
+      "presetId": "one-drop-v1",
+      "seed": 645306604,
+      "quality": "miss",
+      "signedError": -1.1,
+      "absError": 1.1,
+      "population": 0,
+      "durationTicks": 94,
+      "endedAt": 1792411200000
+    },
+    "heatmapBins": 40,
+    "replayControls": {
+      "speeds": [
+        0.5,
+        1,
+        2,
+        4
+      ],
+      "speedAfterClick": "true",
+      "markerOptions": 12,
+      "floorsAtDrop1": 2,
+      "tickLabelAtEnd": "1388/1388t"
+    },
+    "albumSnapshots": 1,
+    "layouts": {
+      "oneDropEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropResultEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "heatmapEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "heatmapVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "hallOfFameEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumEmptyEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumCapturedEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumOverwriteConfirmEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      }
+    },
+    "socialRoutes": {
+      "towerShareCard": {
+        "naturalWidth": 1200,
+        "naturalHeight": 630,
+        "ownerDisplayed": true,
+        "noPrivateLeak": true,
+        "hasBeatLink": true,
+        "challengeId": "challenge-2"
+      },
+      "revokedTowerUnavailable": true,
+      "optInPlayerVisible": true,
+      "privatePlayerHidden": true,
+      "challengeTicketIssued": "Issued same-seed challenge ticket (ticket-3) · Version physics-0.13.0.",
+      "retiredChallengeBlocked": true
+    }
+  },
+  "playable": {
+    "schema": 5,
+    "saveBytes": 23224,
+    "oneDropAttempts": 1,
+    "oneDropBest": {
+      "identityId": "c6-playable:2",
+      "dateUTC": "2026-10-19",
+      "presetId": "one-drop-v1",
+      "seed": 645306604,
+      "quality": "miss",
+      "signedError": -1.1,
+      "absError": 1.1,
+      "population": 0,
+      "durationTicks": 94,
+      "endedAt": 1792411200000
+    },
+    "heatmapBins": 40,
+    "replayControls": {
+      "speeds": [
+        0.5,
+        1,
+        2,
+        4
+      ],
+      "speedAfterClick": "true",
+      "markerOptions": 12,
+      "floorsAtDrop1": 2,
+      "tickLabelAtEnd": "1388/1388t"
+    },
+    "albumSnapshots": 1,
+    "layouts": {
+      "oneDropEntryEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropEntryVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropGuideEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropGuideVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "oneDropResultEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "heatmapEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "heatmapVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "hallOfFameEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumEmptyEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumCapturedEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumOverwriteConfirmEn": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      },
+      "skylineAlbumVi": {
+        "320x568": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "390x844": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        },
+        "900x430": {
+          "overflowX": 0,
+          "overflowY": 0,
+          "clipped": []
+        }
+      }
+    },
+    "excludesWebSocial": true
+  }
+}

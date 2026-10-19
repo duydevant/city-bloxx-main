@@ -74,6 +74,9 @@ function award(p: ProgressionState, at: number, eligible: (d: AchievementDefinit
   return { ...p, xp: unlocked.reduce((n, d) => checkedAdd(n, d.xp), p.xp), achievements: [...p.achievements, ...unlocked.map(d => d.id)], unlocks: [...p.unlocks, ...unlocked.map(d => ({ id: d.id, version: d.version, at, xp: d.xp }))] };
 }
 export function settleProgression(save: GameSave, summary: RunSummary, baseXP: number, dailyCount: number): ProgressionState {
+  if (summary.mode === "one-drop") {
+    return { ...save.progression, cursors: save.progression.cursors.filter(c => c.sequence !== summary.identity.sequence) };
+  }
   let p = updateRunMissions(save.progression, summary, save.tracking.installationId, save.city.unlocked, summary.endedAt);
   p = { ...p, xp: checkedAdd(p.xp, baseXP), masteryXP: { ...p.masteryXP, [summary.building]: checkedAdd(p.masteryXP[summary.building], baseXP) }, cursors: p.cursors.filter(c => c.sequence !== summary.identity.sequence) };
   if (!summary.metrics) return p;
@@ -87,6 +90,7 @@ export function settleProgression(save: GameSave, summary: RunSummary, baseXP: n
   return award(p, summary.endedAt, d => d.metric === "perfect" ? perfect > 0 : d.metric === "streak" ? !summary.assist && summary.result.bestStreak >= d.target : d.metric === "height" ? summary.mode === "quick" && !summary.assist && summary.result.height >= d.target : d.metric === "class" ? summary.complete && summary.building === d.classId : d.metric === "roof" ? roof > 0 : d.metric === "daily" ? newDaily : false);
 }
 export function recordRunProgress(save: GameSave, summary: RunSummary): GameSave {
+  if (summary.mode === "one-drop") return save;
   if (save.tracking.settled.some(([lo, hi]) => summary.identity.sequence >= lo && summary.identity.sequence <= hi)) return save;
   return { ...save, progression: updateRunMissions(save.progression, summary, save.tracking.installationId, save.city.unlocked, summary.endedAt) };
 }

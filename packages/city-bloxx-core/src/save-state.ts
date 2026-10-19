@@ -6,11 +6,15 @@ import { QUALITIES, type RunMetrics } from "./metrics";
 import { applySummary, emptyStats, emptyTotals, makeSummary, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
 import { emptyDaily, settleDaily, validateDailyState, type DailyState } from "./daily-state";
 import { validateDaily } from "./daily";
+import { emptyOneDrop, settleOneDrop, validateOneDrop, validateOneDropState, type OneDropState } from "./one-drop";
+import { emptyAlbum, HALL_OF_FAME_LIMIT, validateAlbumState, type SkylineAlbumState } from "./album";
 import { restoreTower } from "./checkpoint";
 import { acceptedProgression, emptyProgression, normalizeProgression, settleProgression, type ProgressionState } from "./progression";
 import { emptyInventory, grantCosmetics, normalizeInventory, validateRunEquipment, type InventoryState } from "./cosmetics";
 import { emptyDistricts, normalizeDistricts, reconcileDistrictsState, type DistrictsState } from "./districts";
 export type { DailyState } from "./daily-state";
+export type { OneDropState } from "./one-drop";
+export type { SkylineAlbumState } from "./album";
 export type { ProgressionState } from "./progression-types";
 export type { InventoryState } from "./cosmetics";
 export type { DistrictsState } from "./districts";
@@ -19,7 +23,8 @@ export const HISTORY_LIMIT = 50;
 export const SAVE_BUDGET_BYTES = 256 * 1024;
 export interface SettingsState { muted: boolean; reducedMotion: boolean | null; locale: "en" | "vi" | null }
 export interface TutorialState { quick: boolean; city: boolean; daily: boolean }
-export function completeTutorial(save: GameSave, mode: keyof TutorialState): GameSave {
+export function completeTutorial(save: GameSave, mode: keyof TutorialState | "one-drop"): GameSave {
+  if (mode === "one-drop") return save;
   return save.tutorials[mode] ? save : { ...save, tutorials: { ...save.tutorials, [mode]: true } };
 }
 interface ActiveQuick extends RunContext { progress: RunSummary | null }
@@ -27,9 +32,11 @@ interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
   schema: 5; standardQuickBest: number; assistQuickBest: number; runs: number;
   lastReplay: RunRecord | null; city: CitySave; districts: DistrictsState; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
-  progression: ProgressionState; inventory: InventoryState; daily: DailyState;
+  progression: ProgressionState; inventory: InventoryState; daily: DailyState; oneDrop: OneDropState;
   history: RunSummary[]; replays: { id: string; record: RunRecord }[];
   replayRefs: { latest: string | null; best: string | null; pinned: string | null };
+  hallOfFame: string[];
+  album: SkylineAlbumState;
   tracking: { installationId: string; nextSequence: number; settled: [number, number][]; activeQuick: ActiveQuick | null; pendingCity: PendingCity | null };
 }
 export function emptySave(): GameSave {
@@ -37,8 +44,10 @@ export function emptySave(): GameSave {
     settings: { muted: false, reducedMotion: null, locale: null }, tutorials: { quick:false, city:false, daily:false }, stats: emptyStats(),
     progression: emptyProgression(),
     inventory: emptyInventory(),
-    daily: emptyDaily(), history: [], replays: [],
+    daily: emptyDaily(), oneDrop: emptyOneDrop(), history: [], replays: [],
     replayRefs: { latest: null, best: null, pinned: null },
+    hallOfFame: [],
+    album: emptyAlbum(),
     tracking: { installationId: "", nextSequence: 1, settled: [], activeQuick: null, pendingCity: null } };
 }
 const integer = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= 0;
@@ -66,11 +75,18 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
   if (s?.mode === "daily") {
     try { const d = validateDaily(s.daily); if (s.building !== d.classId || s.seed !== d.seed || s.physicsVersion !== d.physicsVersion || s.rulesetVersion !== d.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > d.targetBodyFloors) return false; } catch { return false; }
   } else if (s?.daily !== undefined) return false;
+  if (s?.mode === "one-drop") {
+    try { const o = validateOneDrop(s.oneDrop); if (s.building !== o.classId || s.seed !== o.seed || s.physicsVersion !== o.physicsVersion || s.rulesetVersion !== o.rulesetVersion || s.assist || s.result?.ranked || s.result?.height > o.targetBodyFloors || (s.metrics && s.metrics.foundation !== 0)) return false; } catch { return false; }
+  } else if (s?.oneDrop !== undefined) return false;
+  const expectedComplete =
+    s?.mode === "one-drop"
+      ? s.outcome === "ended" && s.result?.height === s.oneDrop?.targetBodyFloors
+      : s?.mode !== "quick" && s?.outcome === "ended" && s?.result?.height === BUILDINGS[s.building]?.floors;
   return !!s && validIdentity(s.identity, next, installation) && integer(s.startedAt) && integer(s.endedAt) &&
-    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city", "daily"].includes(s.mode) && isBuildingId(s.building) &&
-    typeof s.assist === "boolean" && !(s.mode === "city" && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
+    (s.startedAt === 0 || s.endedAt >= s.startedAt) && ["quick", "city", "daily", "one-drop"].includes(s.mode) && isBuildingId(s.building) &&
+    typeof s.assist === "boolean" && !((s.mode === "city" || s.mode === "one-drop") && s.assist) && Number.isInteger(s.seed) && tag(s.physicsVersion) && tag(s.rulesetVersion) &&
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
-    ["ended", "abandoned"].includes(s.outcome) && s.complete === (s.mode !== "quick" && s.outcome === "ended" && s.result.height === BUILDINGS[s.building].floors) &&
+    ["ended", "abandoned"].includes(s.outcome) && s.complete === expectedComplete &&
     s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
     (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion)) &&
     [s.baseXPEarned, s.bonusXPEarned, s.builderXPBefore].every(n => n === undefined || integer(n)) &&
@@ -101,11 +117,14 @@ function validateV4(s: GameSave): GameSave {
   s = { ...s, inventory: normalizeInventory(s.inventory) };
   validateRunEquipment(tr.activeQuick?.equipment,"residential"); validateRunEquipment(tr.pendingCity?.equipment,s.city.pending?.classId); validateRunEquipment(s.daily.pending?.equipment,s.daily.pending?.checkpoint.config.building);
   s = { ...s, daily: validateDailyState(s.daily) };
+  s = { ...s, oneDrop: validateOneDropState(s.oneDrop) };
+  s = { ...s, album: validateAlbumState(s.album) };
   s = { ...s, progression: normalizeProgression(s) };
   const dp = s.daily.pending;
   if (dp && (!validIdentity(dp.identity, tr.nextSequence, tr.installationId) || isSettled(s, dp.identity) && restoreTower(dp.checkpoint).getPhase() !== "ended" || dp.identity.id === tr.activeQuick?.identity.id || dp.identity.id === tr.pendingCity?.identity.id)) reject();
   if (!Array.isArray(s.history) || s.history.length > HISTORY_LIMIT || !s.history.every(summary => validSummary(summary, tr.nextSequence, tr.installationId)) ||
     new Set(s.history.map(h => h.identity.id)).size !== s.history.length || !Array.isArray(s.replays) || s.replays.length > 3 || !s.replayRefs) reject();
+  if (s.hallOfFame !== undefined && (!Array.isArray(s.hallOfFame) || s.hallOfFame.length > HALL_OF_FAME_LIMIT || new Set(s.hallOfFame).size !== s.hallOfFame.length || !s.hallOfFame.every(id => typeof id === "string" && s.history.some(h => h.identity.id === id)))) reject();
   if (tr.activeQuick !== null && (!tr.activeQuick || !validIdentity(tr.activeQuick.identity, tr.nextSequence, tr.installationId) || !integer(tr.activeQuick.startedAt) ||
     isSettled(s, tr.activeQuick.identity) || tr.activeQuick.progress !== null && (!validSummary(tr.activeQuick.progress, tr.nextSequence, tr.installationId) || tr.activeQuick.progress.identity.id !== tr.activeQuick.identity.id))) reject();
   if (tr.pendingCity !== null && (!tr.pendingCity || !validIdentity(tr.pendingCity.identity, tr.nextSequence, tr.installationId) || !integer(tr.pendingCity.startedAt) || !s.city.pending || tr.pendingCity.cityRunId !== s.city.pending.runId)) reject();
@@ -113,7 +132,7 @@ function validateV4(s: GameSave): GameSave {
   if (s.history.some(h => !isSettled(s, h.identity))) reject();
   const next = copy(s), ids = new Set<string>();
   next.replays = next.replays.filter(entry => {
-    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && ["quick", "daily"].includes(h.mode) && h.outcome === "ended")) reject();
+    if (!entry || typeof entry.id !== "string" || ids.has(entry.id) || !next.history.some(h => h.identity.id === entry.id && ["quick", "daily", "one-drop"].includes(h.mode) && h.outcome === "ended")) reject();
     ids.add(entry.id);
     try { entry.record = validateRecord(entry.record); return true; } catch { return false; }
   });
@@ -122,6 +141,11 @@ function validateV4(s: GameSave): GameSave {
     if (id !== null && typeof id !== "string") reject();
     if (!next.replays.some(r => r.id === id)) next.replayRefs[key] = null;
   }
+  next.hallOfFame = Array.isArray(next.hallOfFame)
+    ? next.hallOfFame.filter(id => next.history.some(h => h.identity.id === id)).slice(0, HALL_OF_FAME_LIMIT)
+    : next.replayRefs.pinned && next.history.some(h => h.identity.id === next.replayRefs.pinned)
+      ? [next.replayRefs.pinned]
+      : [];
   next.lastReplay = next.replays.find(r => r.id === next.replayRefs.latest)?.record ?? null;
   next.history = next.history.map(h => ({ ...h, replayStatus: next.replays.some(r => r.id === h.identity.id) ? "available" : h.replayStatus === "available" ? "unsupported" : h.replayStatus }));
   return { ...next, schema: 5 };
@@ -173,7 +197,13 @@ export function initializeTracking(save: GameSave, installationId: string, now: 
   return { ...next, tracking: { ...save.tracking, installationId },
     history: save.history.map(h => ({ ...h, identity: { ...h.identity, installationId, id: rename(h.identity.id)! } })),
     replays: save.replays.map(r => ({ ...r, id: rename(r.id)! })),
-    replayRefs: { latest: rename(save.replayRefs.latest), best: rename(save.replayRefs.best), pinned: rename(save.replayRefs.pinned) } };
+    replayRefs: { latest: rename(save.replayRefs.latest), best: rename(save.replayRefs.best), pinned: rename(save.replayRefs.pinned) },
+    hallOfFame: (save.hallOfFame ?? []).map(id => rename(id)!),
+    oneDrop: {
+      ...(save.oneDrop ?? emptyOneDrop()),
+      allTimeBest: save.oneDrop?.allTimeBest ? { ...save.oneDrop.allTimeBest, identityId: rename(save.oneDrop.allTimeBest.identityId)! } : null,
+      days: (save.oneDrop?.days ?? []).map(d => ({ ...d, best: d.best ? { ...d.best, identityId: rename(d.best.identityId)! } : null })),
+    } };
 }
 export function allocateRun(save: GameSave, startedAt: number): { save: GameSave; context: RunContext } {
   if (!integer(startedAt) || save.tracking.nextSequence >= Number.MAX_SAFE_INTEGER) throw new Error("Run identity bounds exceeded");
@@ -199,16 +229,23 @@ function lastUnprotected(history: RunSummary[], wanted: Set<string | null>): num
   return -1;
 }
 function retained(save: GameSave): GameSave {
-  const wanted = new Set(Object.values(save.replayRefs));
-  const replays = save.replays.filter(r => wanted.has(r.id));
-  const history = save.history.filter((h, index) => index < HISTORY_LIMIT || wanted.has(h.identity.id));
-  while (history.length > HISTORY_LIMIT) history.splice(lastUnprotected(history, wanted), 1);
-  return { ...save, replays, history: history.map(h => ({ ...h, replayStatus: replays.some(r => r.id === h.identity.id) ? "available" : h.replayStatus === "available" ? "pruned" : h.replayStatus })),
+  const wantedReplays = new Set(Object.values(save.replayRefs));
+  const replays = save.replays.filter(r => wantedReplays.has(r.id));
+  const protectedHistory = new Set<string | null>([...wantedReplays, ...(save.hallOfFame ?? [])]);
+  const history = save.history.filter((h, index) => index < HISTORY_LIMIT || protectedHistory.has(h.identity.id));
+  while (history.length > HISTORY_LIMIT) {
+    const idx = lastUnprotected(history, protectedHistory);
+    if (idx < 0) break;
+    history.splice(idx, 1);
+  }
+  const hallOfFame = (save.hallOfFame ?? []).filter(id => history.some(h => h.identity.id === id)).slice(0, HALL_OF_FAME_LIMIT);
+  return { ...save, replays, hallOfFame, history: history.map(h => ({ ...h, replayStatus: replays.some(r => r.id === h.identity.id) ? "available" : h.replayStatus === "available" ? "pruned" : h.replayStatus })),
     lastReplay: replays.find(r => r.id === save.replayRefs.latest)?.record ?? null };
 }
 export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecord): GameSave {
   if (!validSummary(summary, save.tracking.nextSequence, save.tracking.installationId)) throw new Error("Invalid run settlement");
   if (isSettled(save, summary.identity)) return save;
+  const isOneDrop = summary.mode === "one-drop";
   const group: StatsGroup = summary.mode === "daily" ? "daily" : summary.mode === "city" ? "city" : summary.assist ? "quick-assist" : "quick-standard";
   const quickEnded = summary.mode === "quick" && summary.outcome === "ended";
   const ranked = quickEnded && !summary.assist;
@@ -216,23 +253,34 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   const xpEarned = runXP(summary);
   if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
   const daily = summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily;
+  const oneDrop = isOneDrop ? settleOneDrop(save.oneDrop ?? emptyOneDrop(), summary) : (save.oneDrop ?? emptyOneDrop());
   const progression = settleProgression(save, summary, xpEarned, daily.lifetimeCreditedDays);
   const totalXP = progression.xp - save.progression.xp;
+  const stats = isOneDrop
+    ? save.stats
+    : {
+        ...save.stats,
+        totals: applySummary(save.stats.totals, summary),
+        byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
+        byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) },
+      };
   const next: GameSave = { ...save,
     standardQuickBest: ranked ? Math.max(save.standardQuickBest, summary.result.population) : save.standardQuickBest,
     assistQuickBest: quickEnded && summary.assist ? Math.max(save.assistQuickBest, summary.result.population) : save.assistQuickBest,
     runs: save.runs + Number(quickEnded),
     daily,
-    stats: { ...save.stats, totals: applySummary(save.stats.totals, summary), byMode: { ...save.stats.byMode, [group]: applySummary(save.stats.byMode[group], summary) },
-      byClass: { ...save.stats.byClass, [summary.building]: applySummary(save.stats.byClass[summary.building], summary) } },
+    oneDrop,
+    stats,
     history: [{ ...copy(summary), xpEarned: totalXP, baseXPEarned: xpEarned, bonusXPEarned: totalXP - xpEarned, builderXPBefore: save.progression.xp,
       unlockedAchievements: progression.achievements.filter(id => !save.progression.achievements.includes(id)), progressionRewardVersion: progression.catalogVersion, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
+    hallOfFame: [...(save.hallOfFame ?? [])],
+    album: save.album ? [...save.album] as SkylineAlbumState : emptyAlbum(),
     progression,
     tracking: { ...save.tracking, settled: receiptRanges(save.tracking.settled, summary.identity.sequence),
       activeQuick: save.tracking.activeQuick?.identity.id === summary.identity.id ? null : save.tracking.activeQuick } };
-  if (record && summary.outcome === "ended" && ["quick", "daily"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
+  if (record && summary.outcome === "ended" && ["quick", "daily", "one-drop"].includes(summary.mode) && record.inputs.length <= 4096 && record.endTick <= 432000) {
     const valid = validateRecord(record);
-    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.config.daily?.id !== summary.daily?.id || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
+    if (valid.config.mode !== summary.mode || valid.config.assist !== summary.assist || valid.config.seed !== summary.seed || valid.config.daily?.id !== summary.daily?.id || valid.config.oneDrop?.id !== summary.oneDrop?.id || valid.endTick !== summary.endTick || JSON.stringify(valid.result) !== JSON.stringify(summary.result)) throw new Error("Replay settlement mismatch");
     next.replays.push({ id: summary.identity.id, record: valid }); next.replayRefs.latest = summary.identity.id;
     if (nextBest) next.replayRefs.best = summary.identity.id;
   }
@@ -300,14 +348,44 @@ export function commitRun(save: GameSave, record: RunRecord): GameSave {
 }
 export function pinReplay(save: GameSave, id: string | null): GameSave {
   if (id !== null && !save.replays.some(r => r.id === id)) throw new Error("Replay unavailable");
-  return retained({ ...save, replayRefs: { ...save.replayRefs, pinned: id } });
+  const hallOfFame = id !== null && !save.hallOfFame.includes(id) && save.hallOfFame.length < HALL_OF_FAME_LIMIT
+    ? [...save.hallOfFame, id]
+    : [...save.hallOfFame];
+  return retained({ ...save, hallOfFame, replayRefs: { ...save.replayRefs, pinned: id } });
+}
+export function pinSummary(save: GameSave, id: string): GameSave {
+  if (!save.history.some(h => h.identity.id === id)) throw new Error("Summary unavailable");
+  if (save.hallOfFame.includes(id)) return save;
+  if (save.hallOfFame.length >= HALL_OF_FAME_LIMIT) throw new Error("Hall of Fame limit reached (max 5)");
+  const hallOfFame = [...save.hallOfFame, id];
+  const canPinReplay = save.replays.some(r => r.id === id) && (save.replayRefs.pinned === null || !hallOfFame.includes(save.replayRefs.pinned));
+  return retained({
+    ...save,
+    hallOfFame,
+    replayRefs: canPinReplay ? { ...save.replayRefs, pinned: id } : { ...save.replayRefs },
+  });
+}
+export function unpinSummary(save: GameSave, id: string): GameSave {
+  const hallOfFame = save.hallOfFame.filter(item => item !== id);
+  const nextPinnedReplay =
+    save.replayRefs.pinned === id
+      ? hallOfFame.find(item => save.replays.some(r => r.id === item)) ?? null
+      : save.replayRefs.pinned;
+  return retained({
+    ...save,
+    hallOfFame,
+    replayRefs: { ...save.replayRefs, pinned: nextPinnedReplay },
+  });
+}
+export function toggleHallOfFame(save: GameSave, id: string): GameSave {
+  return save.hallOfFame.includes(id) ? unpinSummary(save, id) : pinSummary(save, id);
 }
 export function saveByteSize(save: GameSave): number {
   const json = JSON.stringify(save);
   return Math.max(json.length * 2, new TextEncoder().encode(json).byteLength);
 }
 export function prepareSave(save: GameSave, maxBytes = SAVE_BUDGET_BYTES): GameSave {
-  const next = copy(retained(save)), protectedIds = new Set(Object.values(next.replayRefs));
+  const next = copy(retained(save)), protectedIds = new Set<string | null>([...Object.values(next.replayRefs), ...(next.hallOfFame ?? [])]);
   const reconciled = reconcileDistrictsState(next.city, next.districts ?? emptyDistricts(), 0);
   next.city = reconciled.city;
   next.districts = reconciled.districts;
@@ -318,3 +396,4 @@ export function prepareSave(save: GameSave, maxBytes = SAVE_BUDGET_BYTES): GameS
   if (saveByteSize(next) + 64 > maxBytes) throw new Error("Save budget exceeded; previous save preserved");
   return next;
 }
+
