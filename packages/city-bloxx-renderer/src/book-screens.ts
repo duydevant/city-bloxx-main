@@ -1,6 +1,7 @@
 import { COSMETIC_CATALOG, type CosmeticCategory } from "../../city-bloxx-content/cosmetics";
 import { BUILDING_IDS, BUILDINGS, cosmeticItem, cosmeticProgress, equipmentFor, levelProgress, ownsCosmetic, type BuildingId, type GameSave, type RunEquipment } from "../../city-bloxx-core/src/index";
 import type { QuickTowerRenderer } from "./index";
+import { lucideSvg } from "./lucide-icons";
 interface Options {
   panel: HTMLElement; renderer: QuickTowerRenderer; assets: string; save(): GameSave; vi(): boolean; className(id: BuildingId): string;
   showPanel(title: string, body: string, actions: HTMLButtonElement[]): void; button(label: string, action: () => void): HTMLButtonElement;
@@ -35,12 +36,12 @@ export function createBookScreens(o: Options) {
     if(page<4)actions.push(o.button(t("Next","Tiếp"),()=>book(page+1)));
     if(id)actions.push(o.button(t("Customize","Tùy chỉnh"),()=>customize(id)));
     actions.push(o.button(t("Home","Trang chủ"),o.home));if(o.saveStatus()==="error")actions.push(o.button(t("Retry save","Thử lưu lại"),o.retrySave));
-    const coinsText=`🪙 ${save.coins??200} Coins`;
+    const coinsText=`${save.coins??200} Coins`;
     const box=shell(`${t("Architecture Book","Sổ kiến trúc")} · ${id?o.className(id):t("Classic Brick collection","Bộ Gạch cổ điển")} · ${page+1}/5`,id?`${BUILDINGS[id].floors} ${t("body floors","tầng thân")} · ${t("Mastery level","Cấp thông thạo")} ${levelProgress(save.progression.masteryXP[id],20).level} · ${coinsText}\n${t("Adjacent requirements","Yêu cầu kề cạnh")}: ${BUILDINGS[id].requires.map(o.className).join(" + ")||t("None","Không có")}`:`${t("Collect 4 buildings, 4 roofs and the crane for the badge.","Sở hữu 4 nhà, 4 mái và cần cẩu để mở huy hiệu.")} · ${coinsText}`,actions);
     const cards=document.createElement("div");cards.className="cb-book-cards";box.append(cards);
     if(id){
       for(const category of ["building","roof"] as const){const d=COSMETIC_CATALOG.find(d=>d.set==="brick"&&d.category===category&&d.classId===id)!,card=document.createElement("article"),title=document.createElement("strong"),progress=document.createElement("small");title.textContent=d.title[o.vi()?"vi":"en"];
-        const priceTag=!ownsCosmetic(save,d)&&d.coinPrice?` · 🪙 ${d.coinPrice}`:"";
+        const priceTag=!ownsCosmetic(save,d)&&d.coinPrice?` · ${d.coinPrice} Coins`:"";
         progress.textContent=`${cosmeticProgress(save,d)}/${d.target} ${category==="building"?t("completed towers","tháp hoàn thành"):t("Perfect body floors","tầng thân Hoàn hảo")} · ${ownsCosmetic(save,d)?t("Owned","Đã sở hữu"):t("Locked","Chưa mở")}${priceTag}`;
         card.append(title,progress);cards.append(card);
       }
@@ -49,10 +50,10 @@ export function createBookScreens(o: Options) {
       const collected=COSMETIC_CATALOG.filter(d=>d.set==="brick"&&d.category!=="badge"&&save.inventory.owned.includes(d.id));
       const badge=COSMETIC_CATALOG.find(d=>d.id==="brick-badge")!,owned=save.inventory.owned.includes(badge.id),card=document.createElement("article"),icon=document.createElement("img"),label=document.createElement("strong");card.className="cb-book-badge";
       icon.src=`${o.assets.replace(/\/$/,"")}/${badge.assets[0]}`;icon.width=32;icon.height=32;icon.alt="";icon.addEventListener("error",()=>{icon.hidden=true;},{once:true});
-      label.textContent=`${owned?"★":"☆"} ${badge.title[o.vi()?"vi":"en"]} · ${collected.length}/9 · ${owned?t("Owned","Đã sở hữu"):t("Locked","Chưa mở")}`;card.append(icon,label);cards.append(card);
+      label.innerHTML=`${lucideSvg(owned?"award":"lock",14)} <span>${badge.title[o.vi()?"vi":"en"]} · ${collected.length}/9 · ${owned?t("Owned","Đã sở hữu"):t("Locked","Chưa mở")}</span>`;card.append(icon,label);cards.append(card);
       const members=COSMETIC_CATALOG.filter(d=>d.set!=="default");
       const maxCollectionPage=Math.max(0,Math.ceil(members.length/3)-1);
-      for(const item of members.slice(collectionPage*3,collectionPage*3+3)){const row=document.createElement("small");row.textContent=`${save.inventory.owned.includes(item.id)?"★":"☆"} ${item.title[o.vi()?"vi":"en"]}`;cards.append(row);}
+      for(const item of members.slice(collectionPage*3,collectionPage*3+3)){const row=document.createElement("small");row.className="cb-book-item-row";row.innerHTML=`${lucideSvg(save.inventory.owned.includes(item.id)?"check-circle-2":"lock",13)} <span>${item.title[o.vi()?"vi":"en"]}</span>`;cards.append(row);}
       const pager=document.createElement("div");pager.className="cb-actions";
       if(collectionPage>0)pager.append(o.button(t("Earlier items","Vật phẩm trước"),()=>book(page,collectionPage-1)));
       if(collectionPage<maxCollectionPage)pager.append(o.button(t("More items","Thêm vật phẩm"),()=>book(page,collectionPage+1)));
@@ -72,13 +73,13 @@ export function createBookScreens(o: Options) {
     if(o.buy&&selectedItem&&selectedItem.available&&!ownsCosmetic(save,selectedItem)&&(selectedItem.coinPrice??0)>0){
       const price=selectedItem.coinPrice!;
       const canAfford=(save.coins??0)>=price&&o.saveStatus()!=="pending";
-      const buyBtn=o.button(`${t("Buy","Mua")} · 🪙 ${price}`,()=>{if(buyBtn.disabled)return;o.buy!(selectedItem.id);customize(id,step,draft,groupPage);});
+      const buyBtn=o.button(`${t("Buy","Mua")} · ${price} Coins`,()=>{if(buyBtn.disabled)return;o.buy!(selectedItem.id);customize(id,step,draft,groupPage);});
       buyBtn.dataset.cosmeticBuy=selectedItem.id;
       buyBtn.disabled=!canAfford;
       actions.push(buyBtn);
     }
     actions.push(o.button(t("Back to Book","Về Sổ kiến trúc"),()=>book(BUILDING_IDS.indexOf(id))));if(o.saveStatus()==="error")actions.push(o.button(t("Retry save","Thử lưu lại"),o.retrySave));
-    const box=shell(`${t("Customize","Tùy chỉnh")} · ${o.className(id)} · ${step+1}/3`,`${t("Cosmetics change appearance, never score. New runs/rebuilds use your selection.","Trang bị chỉ đổi hình, không tăng điểm. Áp dụng cho lượt mới/rebuild.")} · 🪙 ${save.coins??200} Coins`,actions);
+    const box=shell(`${t("Customize","Tùy chỉnh")} · ${o.className(id)} · ${step+1}/3`,`${t("Cosmetics change appearance, never score. New runs/rebuilds use your selection.","Trang bị chỉ đổi hình, không tăng điểm. Áp dụng cho lượt mới/rebuild.")} · ${save.coins??200} Coins`,actions);
     const cards=document.createElement("div");cards.className="cb-book-cards";box.append(cards);
     if(allItems.length>2){
       const groupSelect=document.createElement("select");groupSelect.className="cb-data-select";groupSelect.dataset.cosmeticGroup="";
@@ -91,7 +92,7 @@ export function createBookScreens(o: Options) {
     }
     for(const d of items){const card=document.createElement("article"),title=document.createElement("strong"),progress=document.createElement("small");title.textContent=d.title[o.vi()?"vi":"en"];
       const lockDetail=d.set==="winter"?t("Winter Event","Sự kiện Mùa đông"):d.set==="season"?t("Season Tier 20","Bậc 20 Mùa giải"):`${cosmeticProgress(save,d)}/${d.target}`;
-      const priceSuffix=!ownsCosmetic(save,d)&&d.coinPrice?` · 🪙 ${d.coinPrice}`:"";
+      const priceSuffix=!ownsCosmetic(save,d)&&d.coinPrice?` · ${d.coinPrice} Coins`:"";
       progress.textContent=!d.available?t("Unavailable","Chưa có"):ownsCosmetic(save,d)?t("Owned","Đã sở hữu"):`${t("Locked","Chưa mở")} · ${lockDetail}${priceSuffix}`;
       const choose=o.button(t("Preview","Xem trước"),()=>customize(id,step,{...draft,[category]:d.id},groupPage));choose.dataset.cosmeticId=d.id;choose.setAttribute("aria-label",`${t("Preview","Xem trước")} ${d.title[o.vi()?"vi":"en"]}`);choose.setAttribute("aria-pressed",String(d.id===selected));choose.disabled=!d.available;card.append(title,progress,choose);cards.append(card);
     }

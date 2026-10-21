@@ -6,9 +6,10 @@ html[lang^=vi] [data-copy=vi] { display:inline; }
 .web-content h2 { font-size:20px; font-weight:700; margin-bottom:12px; }
 .web-intro { max-width:70ch; color:#466173; line-height:1.7; margin-bottom:20px; }
 .web-links ul { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 24px; padding:0; list-style:none; }
-.web-links a,.web-guest { display:inline-flex; align-items:center; min-height:44px; padding:8px 12px; border:1px solid #819aaa; border-radius:9px; font-size:14px; color:#173d54; background:#f5faff; }
+.web-links a,.web-guest { display:inline-flex; align-items:center; gap:6px; min-height:42px; padding:8px 12px; border:1px solid #9bb4c6; border-radius:10px; font-size:13.5px; font-weight:600; color:#173d54; background:linear-gradient(180deg,#ffffff 0%,#f0f7fd 100%); box-shadow:0 2px 0 rgba(148,163,184,.22); transition:transform .1s ease,border-color .15s ease; }
+.web-links a:hover,.web-guest:hover { transform:translateY(-1px); border-color:#0284c7; }
 .web-cta { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0; }
-.web-cta a { display:inline-flex; align-items:center; min-height:44px; padding:12px 20px; border-radius:10px; background:#087dab; color:white; font-weight:700; }
+.web-cta a { display:inline-flex; align-items:center; gap:7px; min-height:44px; padding:12px 20px; border-radius:11px; background:linear-gradient(180deg,#0ea5e9 0%,#0284c7 100%); color:white; font-weight:700; box-shadow:0 3px 0 #0369a1; }
 .web-card { border:1px solid #8ca3b0; border-radius:12px; padding:20px; margin:16px 0; line-height:1.7; }
 .web-catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .web-catalog .web-card { margin:0; }

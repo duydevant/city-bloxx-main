@@ -12,6 +12,7 @@ import { buyCosmeticWithCoins, DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, g
 import { createBookScreens } from "./book-screens";
 import { createDistrictScreens, preloadDistrictBackground } from "./district-screens";
 import { createPvpScreens } from "./pvp-screens";
+import { lucideSvg, type LucideIconName } from "./lucide-icons";
 import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
 import type { PvpPort, RankedPort } from "../../city-bloxx-core/src/ports";
 
@@ -86,24 +87,51 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let oneDropMenuOpen = false;
   let perfectRushMenuOpen = false;
   let skylineSprintMenuOpen = false;
+  let modesMenuOpen = false;
+  let utilitiesMenuOpen = false;
+  let settingsMenuOpen = false;
+  let homeMenuOpen = false;
 
   root.classList.add("cb-game");
   root.classList.toggle("cb-content-session",options.presentation === "content");
   root.lang=vi?"vi":"en";
   root.innerHTML = `
-    <div class="cb-toolbar"><div class="cb-toolbar-title"><strong>${quickName()}</strong><span data-mode></span></div>
+    <div class="cb-toolbar">
+      <div class="cb-toolbar-title">
+        <span class="cb-toolbar-brand-icon">${lucideSvg("building-2", 16)}</span>
+        <strong>${quickName()}</strong>
+        <span data-mode class="cb-mode-badge"></span>
+      </div>
       <div class="cb-toolbar-controls">
-      <button data-pause>${t("Pause")}</button>
-      <button data-sound aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${t("Sound on")}</button>
-      <button data-motion aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}">${t("Reduced motion")}</button>
-      ${options.showLanguageSwitch === false ? "" : `<button data-language aria-label="${t("Language")}">${vi?"EN":"VI"}</button>`}
-    </div></div>
+        <button type="button" data-home-nav class="cb-toolbar-btn" title="${t("Home")}">${lucideSvg("home", 14)}<span>${t("Home")}</span></button>
+        <button type="button" data-pause class="cb-toolbar-btn">${lucideSvg("pause", 14)}<span data-pause-label>${t("Pause")}</span></button>
+        <button type="button" data-sound class="cb-toolbar-btn" aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${lucideSvg("volume-2", 14)}<span data-sound-label>${t("Sound on")}</span></button>
+        <button type="button" data-motion class="cb-toolbar-btn" aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}" hidden>${lucideSvg("sparkles", 14)}<span>${t("Reduced motion")}</span></button>
+        ${options.showLanguageSwitch === false ? "" : `<button type="button" data-language class="cb-toolbar-btn" aria-label="${t("Language")}">${lucideSvg("globe", 14)}<span data-language-label>${vi?"EN":"VI"}</span></button>`}
+        <button type="button" data-settings-open class="cb-toolbar-btn" title="${vi ? "Cài đặt" : "Settings"}">${lucideSvg("settings", 14)}<span data-settings-label>${vi ? "Cài đặt" : "Settings"}</span></button>
+      </div>
+    </div>
     <div class="cb-hud">
-      <div><span>${t("Population")}</span><strong data-population>0</strong></div>
-      <div><span>${t("Floors")}</span><strong data-floors>0</strong></div>
-      <div><span>${t("Lives")}</span><strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong></div>
-      <div><span>${t("Best")}</span><strong data-best>0</strong></div>
-      <div><span>Coins</span><strong data-coins>200</strong></div>
+      <div class="cb-hud-item">
+        <span class="cb-hud-label">${lucideSvg("users", 13)}<span>${t("Population")}</span></span>
+        <strong data-population>0</strong>
+      </div>
+      <div class="cb-hud-item">
+        <span class="cb-hud-label">${lucideSvg("layers", 13)}<span>${t("Floors")}</span></span>
+        <strong data-floors>0</strong>
+      </div>
+      <div class="cb-hud-item cb-hud-lives">
+        <span class="cb-hud-label">${lucideSvg("heart", 13)}<span>${t("Lives")}</span></span>
+        <strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong>
+      </div>
+      <div class="cb-hud-item">
+        <span class="cb-hud-label">${lucideSvg("trophy", 13)}<span>${t("Best")}</span></span>
+        <strong data-best>0</strong>
+      </div>
+      <div class="cb-hud-item cb-hud-coins">
+        <span class="cb-hud-label">${lucideSvg("coins", 13)}<span>Coins</span></span>
+        <strong data-coins>200</strong>
+      </div>
     </div>
     <div class="cb-arena" tabindex="0" role="application" aria-label="${quickName()}">
       <canvas aria-label="${t("Tower")}"></canvas>
@@ -133,6 +161,18 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   const combo = el(".cb-combo span");
   const pauseButton = el<HTMLButtonElement>("[data-pause]");
+  function updatePauseButtonUi(): void {
+    const iconName: LucideIconName = userPaused ? "play" : "pause";
+    const labelText = userPaused ? t("Resume") : t("Pause");
+    pauseButton.innerHTML = `${lucideSvg(iconName, 14)}<span data-pause-label>${labelText}</span>`;
+  }
+  function updateSoundButtonUi(): void {
+    const soundBtn = el<HTMLButtonElement>("[data-sound]");
+    const iconName: LucideIconName = muted ? "volume-x" : "volume-2";
+    const labelText = muted ? t("Sound off") : t("Sound on");
+    soundBtn.innerHTML = `${lucideSvg(iconName, 14)}<span data-sound-label>${labelText}</span>`;
+    soundBtn.setAttribute("aria-pressed", String(muted));
+  }
   let shownLives = 3;
   function showLives(lives:number): void {
     if(lives===shownLives)return;shownLives=lives;
@@ -144,9 +184,47 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const listen = (target: EventTarget, event: string, callback: EventListener) => target.addEventListener(event, callback, { signal: abort.signal });
   listen(el("[data-tutorial-dismiss]"),"click",()=>{save=completeTutorial(save,tutorialMode);tutorial.hidden=true;persist();});
   function message(value: string): void { if (!disposed) notice.textContent = value; }
-  function button(label: string, action: () => void): HTMLButtonElement {
-    const b = document.createElement("button"); b.type = "button"; b.textContent = label;
-    b.addEventListener("click", action); return b;
+  function inferButtonIcon(label: string): LucideIconName | null {
+    const l = label.toLowerCase();
+    if (!l || l.length <= 2) return null;
+    if (l.includes("play") || l.includes("chơi") || l.includes("resume") || l.includes("tiếp tục") || l.includes("start") || l.includes("bắt đầu") || l.includes("build selected") || l.includes("xây ô")) return "play";
+    if (l.includes("pause") || l.includes("tạm dừng")) return "pause";
+    if (l.includes("pvp") || l.includes("1v1") || l.includes("đấu")) return "swords";
+    if (l.includes("mode") || l.includes("chế độ")) return "gamepad-2";
+    if (l.includes("city") || l.includes("thành phố") || l.includes("district") || l.includes("quận") || l.includes("harbor") || l.includes("bến cảng") || l.includes("downtown")) return "building-2";
+    if (l.includes("daily") || l.includes("hằng ngày")) return "calendar";
+    if (l.includes("one drop")) return "target";
+    if (l.includes("rush")) return "zap";
+    if (l.includes("sprint")) return "timer";
+    if (l.includes("statistic") || l.includes("thống kê")) return "bar-chart-3";
+    if (l.includes("history") || l.includes("lịch sử") || l.includes("tháp của tôi")) return "history";
+    if (l.includes("progression") || l.includes("tiến trình") || l.includes("xp") || l.includes("mission") || l.includes("nhiệm vụ")) return "sparkles";
+    if (l.includes("book") || l.includes("sổ kiến trúc") || l.includes("customize") || l.includes("tùy chỉnh") || l.includes("skin")) return "book-open";
+    if (l.includes("guide") || l.includes("hướng dẫn") || l.includes("rule") || l.includes("luật")) return "help-circle";
+    if (l.includes("replay") || l.includes("retry") || l.includes("restart") || l.includes("thử lại") || l.includes("xây lại") || l.includes("phát lại")) return "rotate-ccw";
+    if (l.includes("home") || l.includes("trang chủ")) return "home";
+    if (l.includes("back") || l.includes("previous") || l.includes("trước") || l.includes("quay lại") || l.includes("về ")) return "chevron-left";
+    if (l.includes("next") || l.includes("tiếp")) return "chevron-right";
+    if (l.includes("setting") || l.includes("cài đặt")) return "settings";
+    if (l.includes("ghost")) return "eye";
+    if (l.includes("bot")) return "bot";
+    if (l.includes("buy") || l.includes("mua") || l.includes("coin") || l.includes("pot") || l.includes("xu")) return "coins";
+    if (l.includes("equip") || l.includes("trang bị") || l.includes("accept") || l.includes("nhận") || l.includes("ready") || l.includes("sẵn sàng")) return "check";
+    return null;
+  }
+  function button(label: string, action: () => void, explicitIcon?: LucideIconName, extraClass?: string): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    if (extraClass) b.className = extraClass;
+    const icon = explicitIcon ?? inferButtonIcon(label);
+    if (icon) {
+      b.innerHTML = `${lucideSvg(icon, 14)}<span></span>`;
+      b.querySelector("span")!.textContent = label;
+    } else {
+      b.textContent = label;
+    }
+    b.addEventListener("click", action);
+    return b;
   }
   function showPanel(title: string, body: string, actions: HTMLButtonElement[]): void {
     tutorial.hidden=true;
@@ -154,6 +232,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     oneDropMenuOpen=false;
     perfectRushMenuOpen=false;
     skylineSprintMenuOpen=false;
+    modesMenuOpen=false;
+    utilitiesMenuOpen=false;
+    settingsMenuOpen=false;
+    homeMenuOpen=false;
+    delete panel.dataset.menuScreen;
     panel.removeAttribute("aria-modal");
     dataScreens.clear();
     dailyScreens.clear();
@@ -161,7 +244,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     bookScreens.clear();
     districtScreens.clear();
     pvpScreens.clear();
-    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel", "cb-pvp-panel");
+    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel", "cb-pvp-panel", "cb-home-panel", "cb-modes-panel", "cb-utilities-panel", "cb-settings-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
@@ -425,7 +508,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       replayControls.append(sb);
     }
 
-    const restartBtn = button("↺", () => {
+    const restartBtn = button(wt("Reset", "Đầu"), () => {
       if (!replay) return;
       replayScrubPaused = false;
       replay.restart();
@@ -436,7 +519,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       syncReplayControls();
       lastTime = 0;
       schedule();
-    });
+    }, "rotate-ccw");
     restartBtn.dataset.replayRestart = "true";
     restartBtn.title = t("Restart replay");
     replayControls.append(restartBtn);
@@ -571,7 +654,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if(ticket){flushSave();await saveController.flush();if(rewardSaveStatus==="error"){void options.ranked!.abandon(runContext.identity.id).catch(()=>{});save=previousSave;run=null;runContext=null;rankedId=null;throw new Error("storage");}}
     if(disposed||generation!==startGeneration)return;
     lastFeedback = 0; userPaused = false;
-    panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint();
+    panel.hidden = true; updatePauseButtonUi(); arena.focus(); paint();
     syncPause(); schedule();
   }
   async function startReplay(record: RunRecord): Promise<void> {
@@ -589,8 +672,350 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const equipment=save.history.find(h=>h.identity.id===entry?.id)?.equipment??{...DEFAULT_EQUIPMENT};
     await loadRunArtwork(record.config.building ?? "residential",equipment);if(disposed)return;
     buildReplayControls();
-    panel.hidden = true; pauseButton.textContent = t("Pause"); paint(); syncPause(); schedule();
+    panel.hidden = true; updatePauseButtonUi(); paint(); syncPause(); schedule();
   }
+  function openModesMenu(): void {
+    startGeneration++;
+    mapView = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
+    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
+    renderer.setGhost(null); renderer.setOpponentTower(null); paint();
+    rankedId = null; celebrating = false; renderer.resetEffects();
+
+    showPanel(
+      wt("Game Modes", "Chọn Chế Độ Chơi"),
+      wt("Choose a mode — each mode tracks its own Personal Best.", "Chọn chế độ chơi yêu thích — mỗi chế độ lưu kỷ lục riêng."),
+      [button(t("Home"), home, "home")],
+    );
+    modesMenuOpen = true;
+    panel.classList.add("cb-modes-panel");
+    panel.dataset.menuScreen = "modes";
+
+    const grid = document.createElement("div");
+    grid.className = "cb-mode-grid";
+
+    const addModeCard = (cfg: {
+      icon: LucideIconName;
+      title: string;
+      badge: string;
+      desc: string;
+      attr?: string;
+      onClick: () => void;
+    }) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "cb-mode-card";
+      if (cfg.attr) card.setAttribute(cfg.attr, "true");
+      card.innerHTML = `
+        <span class="cb-mode-card-icon">${lucideSvg(cfg.icon, 20)}</span>
+        <span class="cb-mode-card-body">
+          <span class="cb-mode-card-head">
+            <strong></strong>
+            <em class="cb-mode-card-badge"></em>
+          </span>
+          <small></small>
+        </span>
+      `;
+      card.querySelector("strong")!.textContent = cfg.title;
+      card.querySelector("em")!.textContent = cfg.badge;
+      card.querySelector("small")!.textContent = cfg.desc;
+      card.addEventListener("click", cfg.onClick);
+      grid.append(card);
+    };
+
+    addModeCard({
+      icon: "play",
+      title: t("Play Standard"),
+      badge: `${t("Best")}: ${save.standardQuickBest}`,
+      desc: wt("Endless skyscraper challenge · 3 lives", "Xây tháp vô tận · 3 mạng"),
+      onClick: () => { void start(); },
+    });
+
+    addModeCard({
+      icon: "shield-check",
+      title: t("Play Assist"),
+      badge: `${t("Best")}: ${save.assistQuickBest}`,
+      desc: wt("Slower crane swing · relaxed practice", "Cần cẩu lắc chậm hơn · kỷ lục riêng"),
+      onClick: () => { void start(true); },
+    });
+
+    addModeCard({
+      icon: "building-2",
+      title: t("Build City"),
+      badge: `${totalCityPopulation(save)} ${t("people")}`,
+      desc: wt("5×5 Downtown & Harbor districts", "Quy hoạch đô thị 5×5 & Bến cảng"),
+      onClick: cityMap,
+    });
+
+    if (options.pvp) {
+      addModeCard({
+        icon: "swords",
+        title: wt("Solo PvP 1v1", "Solo PvP 1v1"),
+        badge: `${save.coins ?? 200} Coins`,
+        desc: wt("Realtime 1v1 coin wager · Winner takes all", "Đấu 1v1 thời gian thực · Cao tầng hơn ăn trọn Pot"),
+        attr: "data-open-pvp",
+        onClick: () => openPvp(),
+      });
+    }
+
+    if (featureFlags.daily !== false || save.daily.pending) {
+      addModeCard({
+        icon: "calendar",
+        title: t("Daily Tower"),
+        badge: utcDate(now()),
+        desc: wt("20F Industrial daily seed + 1 roof attempt", "Thử thách 20 tầng Công nghiệp mỗi ngày"),
+        onClick: openDaily,
+      });
+    }
+
+    addModeCard({
+      icon: "target",
+      title: "One Drop",
+      badge: wt("1 Block", "1 Lần thả"),
+      desc: wt("Land 1 block on a swaying 4F tower", "Thả duy nhất 1 khối với độ lệch nhỏ nhất"),
+      attr: "data-open-one-drop",
+      onClick: openOneDrop,
+    });
+
+    if (!liveOpsManifest.killSwitch.rushDisabled) {
+      addModeCard({
+        icon: "zap",
+        title: "Perfect Rush",
+        badge: "60s",
+        desc: wt("Maximize Perfect drops in 60 seconds", "Tối đa số lần Hoàn hảo trong 60 giây"),
+        attr: "data-open-perfect-rush",
+        onClick: openPerfectRush,
+      });
+    }
+
+    if (!liveOpsManifest.killSwitch.sprintDisabled) {
+      addModeCard({
+        icon: "timer",
+        title: "Skyline Sprint",
+        badge: "20F",
+        desc: wt("Race to 20 floors fastest (+5s per Miss)", "Đua tốc độ xây đủ 20 tầng nhanh nhất"),
+        attr: "data-open-skyline-sprint",
+        onClick: openSkylineSprint,
+      });
+    }
+
+    if (options.ranked) {
+      addModeCard({
+        icon: "trophy",
+        title: wt("Ranked Quick", "Quick xếp hạng"),
+        badge: "Online",
+        desc: wt("Verified online leaderboard run", "Đấu tính điểm bảng xếp hạng trực tuyến"),
+        onClick: () => { void startOnline("quick"); },
+      });
+    }
+
+    panel.querySelector(".cb-actions")!.before(grid);
+  }
+
+  function openUtilitiesMenu(): void {
+    startGeneration++;
+    mapView = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
+    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
+    renderer.setGhost(null); renderer.setOpponentTower(null); paint();
+    rankedId = null; celebrating = false; renderer.resetEffects();
+
+    showPanel(
+      wt("Player Hub & Utilities", "Tiện Ích & Hồ Sơ"),
+      wt("View your stats, match history, progression rewards, cosmetics, and guides.", "Xem thống kê, lịch sử tháp, nhiệm vụ, sổ kiến trúc và hướng dẫn chơi."),
+      [button(t("Home"), home, "home")],
+    );
+    utilitiesMenuOpen = true;
+    panel.classList.add("cb-utilities-panel");
+    panel.dataset.menuScreen = "utilities";
+
+    const grid = document.createElement("div");
+    grid.className = "cb-mode-grid";
+
+    const addUtilCard = (icon: LucideIconName, title: string, desc: string, onClick: () => void) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "cb-mode-card";
+      card.innerHTML = `
+        <span class="cb-mode-card-icon">${lucideSvg(icon, 20)}</span>
+        <span class="cb-mode-card-body">
+          <span class="cb-mode-card-head"><strong></strong></span>
+          <small></small>
+        </span>
+      `;
+      card.querySelector("strong")!.textContent = title;
+      card.querySelector("small")!.textContent = desc;
+      card.addEventListener("click", onClick);
+      grid.append(card);
+    };
+
+    if (featureFlags.meta !== false) {
+      addUtilCard("sparkles", progressionLabel(), wt("Daily missions, weekly contracts & season pass", "Nhiệm vụ ngày, hợp đồng tuần & mùa giải"), openProgression);
+    }
+    if (featureFlags.cosmetics !== false) {
+      addUtilCard("book-open", bookLabel(), wt("Unlock & equip building, roof and crane skins", "Mở khóa & trang bị skin nhà, mái, cần cẩu"), openBook);
+    }
+    addUtilCard("bar-chart-3", t("Statistics"), wt("Accuracy heatmap, personal records & career totals", "Biểu đồ độ chính xác & thống kê sự nghiệp"), () => openData(false));
+    addUtilCard("history", t("History"), wt("Saved towers, Hall of Fame & Skyline Album", "Lịch sử các tháp đã xây & Phòng truyền thống"), () => openData(true));
+    if (save.lastReplay) {
+      addUtilCard("rotate-ccw", t("Last replay"), wt("Watch your most recent tower run", "Xem lại lượt thả tháp gần nhất"), () => { void startReplay(save.lastReplay!); });
+    }
+    addUtilCard("help-circle", t("Build City guide"), wt("Learn lot placement, adjacency & district rules", "Hướng dẫn quy tắc xây dựng thành phố & quận"), () => showGuide(0, home));
+    if (!storageWritable) {
+      addUtilCard("rotate-ccw", t("Recover saved progress"), wt("Retry reading saved progress from storage", "Thử đọc lại dữ liệu lưu"), confirmRecovery);
+    }
+
+    panel.querySelector(".cb-actions")!.before(grid);
+  }
+
+  function openSettingsMenu(): void {
+    startGeneration++;
+    mapView = false;
+    checkpointCity(); abandonQuick(); cityActive = false;
+    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
+    renderer.setGhost(null); renderer.setOpponentTower(null); paint();
+    rankedId = null; celebrating = false; renderer.resetEffects();
+
+    showPanel(
+      wt("Game Settings", "Cài Đặt Trò Chơi"),
+      wt("Customize audio, visual comfort, ghost preview, and language.", "Tùy chỉnh âm thanh, hiệu ứng chuyển động, bóng Ghost và ngôn ngữ."),
+      [button(t("Home"), home, "home")],
+    );
+    settingsMenuOpen = true;
+    panel.classList.add("cb-settings-panel");
+    panel.dataset.menuScreen = "settings";
+
+    const list = document.createElement("div");
+    list.className = "cb-settings-list";
+
+    const makeToggleRow = (
+      icon: LucideIconName,
+      title: string,
+      subtitle: string,
+      active: boolean,
+      onToggle: () => void,
+      settingKey: string,
+    ) => {
+      const row = document.createElement("div");
+      row.className = "cb-setting-row";
+      row.dataset.settingRow = settingKey;
+
+      const info = document.createElement("div");
+      info.className = "cb-setting-info";
+
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "cb-setting-icon";
+      iconWrap.innerHTML = lucideSvg(icon, 18);
+
+      const copy = document.createElement("div");
+      copy.className = "cb-setting-copy";
+      const titleEl = document.createElement("strong");
+      titleEl.className = "cb-setting-title";
+      titleEl.textContent = title;
+      const subEl = document.createElement("small");
+      subEl.className = "cb-setting-desc";
+      subEl.textContent = subtitle;
+      copy.append(titleEl, subEl);
+      info.append(iconWrap, copy);
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "cb-toggle-switch";
+      toggleBtn.setAttribute("role", "switch");
+      toggleBtn.setAttribute("aria-checked", String(active));
+      toggleBtn.setAttribute("aria-pressed", String(active));
+      toggleBtn.setAttribute("aria-label", title);
+      toggleBtn.dataset.settingToggle = settingKey;
+      const thumb = document.createElement("span");
+      thumb.className = "cb-toggle-thumb";
+      toggleBtn.append(thumb);
+      toggleBtn.addEventListener("click", onToggle);
+
+      row.append(info, toggleBtn);
+      list.append(row);
+    };
+
+    if (options.showSoundControl !== false) {
+      makeToggleRow(
+        muted ? "volume-x" : "volume-2",
+        wt("Sound Effects & Adaptive Audio", "Âm thanh & Nhạc hiệu ứng"),
+        wt("Toggle crane, placement, and combo sound effects", "Bật hoặc tắt tiếng thả tầng và hiệu ứng combo"),
+        !muted,
+        () => {
+          el<HTMLButtonElement>("[data-sound]").click();
+          openSettingsMenu();
+        },
+        "sound",
+      );
+    }
+
+    makeToggleRow(
+      "sparkles",
+      t("Reduced motion"),
+      t("Limit decorative motion; scoring stays the same."),
+      reducedMotion,
+      () => {
+        el<HTMLButtonElement>("[data-motion]").click();
+        openSettingsMenu();
+      },
+      "motion",
+    );
+
+    makeToggleRow(
+      "eye",
+      wt("Personal Ghost Preview", "Bóng Kỷ Lục Cá Nhân (Ghost)"),
+      wt("Show your Personal Best ghost outline when seeds match", "Hiển thị bóng mờ kỷ lục cá nhân khi trùng seed"),
+      ghostEnabled,
+      () => {
+        ghostEnabled = !ghostEnabled;
+        openSettingsMenu();
+      },
+      "ghost",
+    );
+
+    // Language row with clean compact switch
+    const langRow = document.createElement("div");
+    langRow.className = "cb-setting-row";
+    langRow.dataset.settingRow = "language";
+    const langInfo = document.createElement("div");
+    langInfo.className = "cb-setting-info";
+    const langIcon = document.createElement("span");
+    langIcon.className = "cb-setting-icon";
+    langIcon.innerHTML = lucideSvg("globe", 18);
+    const langCopy = document.createElement("div");
+    langCopy.className = "cb-setting-copy";
+    const langTitle = document.createElement("strong");
+    langTitle.className = "cb-setting-title";
+    langTitle.textContent = t("Language");
+    const langDesc = document.createElement("small");
+    langDesc.className = "cb-setting-desc";
+    langDesc.textContent = vi ? "Tiếng Việt (VI)" : "English (EN)";
+    langCopy.append(langTitle, langDesc);
+    langInfo.append(langIcon, langCopy);
+
+    const langSwitch = document.createElement("button");
+    langSwitch.type = "button";
+    langSwitch.className = "cb-toggle-switch";
+    langSwitch.setAttribute("role", "switch");
+    langSwitch.setAttribute("aria-checked", String(vi));
+    langSwitch.setAttribute("aria-pressed", String(vi));
+    langSwitch.setAttribute("aria-label", t("Language"));
+    langSwitch.dataset.settingToggle = "language";
+    const langThumb = document.createElement("span");
+    langThumb.className = "cb-toggle-thumb";
+    langSwitch.append(langThumb);
+    langSwitch.addEventListener("click", () => {
+      const nextLocale = vi ? "en" : "vi";
+      setLocale(nextLocale);
+      options.onLocaleChange?.(nextLocale);
+      openSettingsMenu();
+    });
+    langRow.append(langInfo, langSwitch);
+    list.append(langRow);
+
+    panel.querySelector(".cb-actions")!.before(list);
+  }
+
   function home(): void {
     startGeneration++;
     if(options.presentation === "content" && ready && options.onNavigate){options.onNavigate("quick");return;}
@@ -599,38 +1024,110 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false; renderer.setGhost(null); renderer.setOpponentTower(null); paint();
     rankedId=null;
     celebrating=false; renderer.resetEffects();
-    const actions = [button(t("Play Standard"), () => start()), button(t("Play Assist"), () => start(true)), button(t("Build City"), cityMap)];
-    if (options.pvp) {
-      const pvpBtn = button(wt("Solo PvP 1v1", "Solo PvP 1v1"), () => openPvp());
-      pvpBtn.dataset.openPvp = "true";
-      actions.push(pvpBtn);
+
+    const playPrimary = button(t("Play Standard"), () => start(), "play", "cb-btn-hero");
+    playPrimary.dataset.playStandard = "true";
+
+    showPanel(
+      quickName(),
+      t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."),
+      [playPrimary],
+    );
+    homeMenuOpen = true;
+    panel.classList.add("cb-home-panel");
+    panel.dataset.menuScreen = "home";
+
+    // Build structured casual-game hub layout inside panel
+    const hub = document.createElement("div");
+    hub.className = "cb-home-hub";
+
+    // 1. Primary Hero Button: Play Standard (line 1) + Quick Tower · 3 Lives · Best (line 2), margin-bottom: 15px
+    const heroBtn = document.createElement("button");
+    heroBtn.type = "button";
+    heroBtn.className = "cb-hero-play-btn";
+    heroBtn.dataset.heroPlay = "true";
+    heroBtn.innerHTML = `
+      <span class="cb-hero-play-icon">${lucideSvg("play", 22)}</span>
+      <span class="cb-hero-play-copy">
+        <strong class="cb-hero-play-title">${t("Play Standard")}</strong>
+        <small class="cb-hero-play-sub">${wt("Quick Tower · 3 Lives", "Xây Tháp Nhanh · 3 Mạng")} · ${t("Best")}: ${save.standardQuickBest}</small>
+      </span>
+    `;
+    heroBtn.addEventListener("click", () => { void start(); });
+    hub.append(heroBtn);
+
+    // 2. Equal-sized Action Buttons Grid: Play Assist, Last replay, Game Modes, Build City, Solo PvP 1v1
+    const equalGrid = document.createElement("div");
+    equalGrid.className = "cb-home-action-grid";
+
+    const assistBtn = button(t("Play Assist"), () => { void start(true); }, "shield-check", "cb-home-equal-btn");
+    equalGrid.append(assistBtn);
+
+    if (save.lastReplay) {
+      const replayBtn = button(t("Last replay"), () => { void startReplay(save.lastReplay!); }, "rotate-ccw", "cb-home-equal-btn");
+      equalGrid.append(replayBtn);
     }
-    if (featureFlags.daily !== false || save.daily.pending) actions.push(button(t("Daily Tower"), openDaily));
-    const oneDropBtn = button("One Drop", openOneDrop);
-    oneDropBtn.dataset.openOneDrop = "true";
-    actions.push(oneDropBtn);
+
+    const allModesBtn = button(wt("Game Modes", "Tất Cả Chế Độ"), openModesMenu, "gamepad-2", "cb-home-equal-btn");
+    allModesBtn.dataset.openModes = "true";
+    equalGrid.append(allModesBtn);
+
+    const quickCityBtn = button(t("Build City"), cityMap, "building-2", "cb-home-equal-btn");
+    equalGrid.append(quickCityBtn);
+
+    if (options.pvp) {
+      const quickPvpBtn = button(wt("Solo PvP 1v1", "Solo PvP 1v1"), () => openPvp(), "swords", "cb-home-equal-btn");
+      quickPvpBtn.dataset.openPvp = "true";
+      equalGrid.append(quickPvpBtn);
+    }
+
+    if (options.ranked) {
+      const rankedBtn = button(wt("Ranked Quick", "Quick xếp hạng"), () => { void startOnline("quick"); }, "trophy", "cb-home-equal-btn");
+      equalGrid.append(rankedBtn);
+    }
+
+    hub.append(equalGrid);
+
+    // 3. Quick Mode Chips Strip (Daily, One Drop, Perfect Rush, Skyline Sprint)
+    const modeChips = document.createElement("div");
+    modeChips.className = "cb-home-chips";
+    if (featureFlags.daily !== false || save.daily.pending) {
+      const dBtn = button(t("Daily Tower"), openDaily, "calendar", "cb-chip-btn");
+      modeChips.append(dBtn);
+    }
+    const odBtn = button("One Drop", openOneDrop, "target", "cb-chip-btn");
+    odBtn.dataset.openOneDrop = "true";
+    modeChips.append(odBtn);
     if (!liveOpsManifest.killSwitch.rushDisabled) {
-      const rushBtn = button("Perfect Rush", openPerfectRush);
-      rushBtn.dataset.openPerfectRush = "true";
-      actions.push(rushBtn);
+      const prBtn = button("Perfect Rush", openPerfectRush, "zap", "cb-chip-btn");
+      prBtn.dataset.openPerfectRush = "true";
+      modeChips.append(prBtn);
     }
     if (!liveOpsManifest.killSwitch.sprintDisabled) {
-      const sprintBtn = button("Skyline Sprint", openSkylineSprint);
-      sprintBtn.dataset.openSkylineSprint = "true";
-      actions.push(sprintBtn);
+      const spBtn = button("Skyline Sprint", openSkylineSprint, "timer", "cb-chip-btn");
+      spBtn.dataset.openSkylineSprint = "true";
+      modeChips.append(spBtn);
     }
-    if(options.ranked){
-      const onlineButtons = [button(wt("Ranked Quick","Quick xếp hạng"),()=>{void startOnline("quick");})];
-      if (featureFlags.daily !== false || save.daily.pending) onlineButtons.push(button(wt("Ranked Daily","Daily xếp hạng"),()=>{void startOnline("daily");}));
-      actions.splice(1,0,...onlineButtons);
+    hub.append(modeChips);
+
+    // 4. Utilities & Settings Dock (Progression, Cosmetics/Book, Statistics, History, More, Settings)
+    const dock = document.createElement("div");
+    dock.className = "cb-home-dock";
+    if (featureFlags.meta !== false) {
+      dock.append(button(progressionLabel(), openProgression, "sparkles", "cb-dock-btn"));
     }
-    if (save.lastReplay) actions.push(button(t("Last replay"), () => startReplay(save.lastReplay!)));
-    actions.push(button(t("Build City guide"), () => showGuide(0,home)));
-    actions.push(button(t("Statistics"), () => openData()), button(t("History"), () => openData(true)));
-    if (featureFlags.meta !== false) actions.push(button(progressionLabel(), openProgression));
-    if (featureFlags.cosmetics !== false) actions.push(button(bookLabel(),openBook));
-    if (!storageWritable) actions.push(button(t("Recover saved progress"), confirmRecovery));
-    showPanel(quickName(), t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."), actions);
+    if (featureFlags.cosmetics !== false) {
+      dock.append(button(bookLabel(), openBook, "book-open", "cb-dock-btn"));
+    }
+    dock.append(button(t("Statistics"), () => openData(false), "bar-chart-3", "cb-dock-btn"));
+    dock.append(button(t("History"), () => openData(true), "history", "cb-dock-btn"));
+    dock.append(button(wt("More", "Tiện ích"), openUtilitiesMenu, "compass", "cb-dock-btn"));
+    dock.append(button(wt("Settings", "Cài đặt"), openSettingsMenu, "settings", "cb-dock-btn"));
+    hub.append(dock);
+
+    const defaultActions = panel.querySelector<HTMLElement>(".cb-actions");
+    if (defaultActions) defaultActions.replaceWith(hub);
+    heroBtn.focus({ preventScroll: true });
   }
   function openPerfectRush(): void {
     if (liveOpsManifest.killSwitch.rushDisabled) {
@@ -1039,8 +1536,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function applySettings(): void {
     muted = options.showSoundControl === false ? false : save.settings.muted; reducedMotion = save.settings.reducedMotion ?? motionQuery.matches;
     if (muted) options.audio.suspend();
-    el("[data-sound]").textContent = muted ? t("Sound off") : t("Sound on");
-    el("[data-sound]").setAttribute("aria-pressed", String(muted));
+    updateSoundButtonUi();
+    updatePauseButtonUi();
     el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion));
     if (options.showLanguageSwitch !== false && save.settings.locale) setLocale(save.settings.locale);
     save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } };
@@ -1143,7 +1640,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       if ((run || replay) && (current().phase !== "ended" || celebrating)) { panel.hidden = true; arena.focus(); syncReplayControls(); }
       lastTime = 0; schedule();
     }
-    pauseButton.textContent = userPaused ? t("Resume") : t("Pause");
+    updatePauseButtonUi();
   }
   function drop(): void {
     if (!ready || panel.hidden === false || hostPaused || userPaused || replay) return;
@@ -1210,7 +1707,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     save = { ...save, daily: beginDaily(save.daily, run, runContext) }; finishedRecord = null; persist();
     if(ticket){flushSave();await saveController.flush();if(rewardSaveStatus==="error"){void options.ranked!.abandon(runContext.identity.id).catch(()=>{});save=previousSave;run=null;runContext=null;rankedId=null;throw new Error("storage");}}
     if(disposed||generation!==startGeneration)return;
-    lastFeedback = 0; userPaused = false; panel.hidden = true; pauseButton.textContent = t("Pause"); arena.focus(); paint(); syncPause(); schedule();
+    lastFeedback = 0; userPaused = false; panel.hidden = true; updatePauseButtonUi(); arena.focus(); paint(); syncPause(); schedule();
   }
   async function resumeDaily(): Promise<void> {
     const generation=++startGeneration;
@@ -1223,7 +1720,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     try{rankedId=await options.ranked?.resume(pending.identity.id,pending.checkpoint.config) ?? null;}catch{showOnlineError();return;}
     if(disposed||generation!==startGeneration)return;
     run = restoreTower(pending.checkpoint); runContext = pending; renderer.resetEffects(run.getSnapshot().feedbackId); applyGhost(run.config); celebrating = false;
-    userPaused = false; lastFeedback = run.getSnapshot().feedbackId; panel.hidden = true; pauseButton.textContent = t("Pause"); paint();
+    userPaused = false; lastFeedback = run.getSnapshot().feedbackId; panel.hidden = true; updatePauseButtonUi(); paint();
     if (run.getPhase() === "ended") dailyResults(); else { syncPause(); schedule(); arena.focus(); }
   }
   function dailyResults(isReplay = false): void {
@@ -1315,8 +1812,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     }
     const classes = document.createElement("div"); classes.className = "cb-city-classes";
     for (const id of BUILDING_IDS) {
-      const b = button(`${className(id)} · ${BUILDINGS[id].floors}${city.unlocked.includes(id) ? "" : " 🔒"}`, () => { selectedClass = id; cityMap(); });
-      b.dataset.class = id; b.style.borderColor = BUILDINGS[id].color; b.setAttribute("aria-pressed", String(id === selectedClass)); classes.append(b);
+      const unlocked = city.unlocked.includes(id);
+      const b = button(`${className(id)} · ${BUILDINGS[id].floors}`, () => { selectedClass = id; cityMap(); }, unlocked ? "building-2" : "lock");
+      b.dataset.class = id; b.dataset.locked = String(!unlocked); b.style.borderColor = BUILDINGS[id].color; b.setAttribute("aria-pressed", String(id === selectedClass)); classes.append(b);
     }
     const grid = document.createElement("div"); grid.className = "cb-city-grid"; grid.setAttribute("role", "group");
     grid.setAttribute("aria-label", activeDistrict === "harbor" ? wt("Harbor 5 by 5 lots", "Bến cảng: 5 hàng, 5 cột ô đất") : t("Downtown 5 by 5 lots"));
@@ -1382,7 +1880,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = restoreTower(pending.checkpoint); replay = null; cityActive = true;
     renderer.resetEffects(run.getSnapshot().feedbackId); celebrating=false;
     userPaused = false; lastFeedback = run.getSnapshot().feedbackId; panel.hidden = true;
-    pauseButton.textContent = t("Pause"); paint();
+    updatePauseButtonUi(); paint();
     if (run.getPhase() === "ended") cityResults(); else { syncPause(); schedule(); arena.focus(); }
   }
   function cityResults(): void {
@@ -1424,6 +1922,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     event.preventDefault(); drop();
   }) as EventListener);
   listen(pauseButton, "click", () => { userPaused = !userPaused; syncPause(); });
+  listen(el("[data-home-nav]"), "click", () => { navigate("quick"); });
+  listen(el("[data-settings-open]"), "click", () => {
+    if (run && !replay && run.getPhase() !== "ended") {
+      userPaused = true;
+      syncPause();
+    }
+    openSettingsMenu();
+  });
   function setLocale(locale:string): void {
     const next=locale.startsWith("vi");if(next===vi)return;
     const shownTutorial=!tutorial.hidden;
@@ -1439,15 +1945,19 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     vi=next;root.lang=vi?"vi":"en";renderer.setLocale(locale);
     save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } };
     // Pause and Paused share a Vietnamese translation; restore controls from state, not reverse text.
-    pauseButton.textContent=userPaused?t("Resume"):t("Pause");
-    el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
+    updatePauseButtonUi();
+    updateSoundButtonUi();
     el("[data-motion]").textContent=t("Reduced motion");
-    const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(pvpScreens.isOpen())pvpScreens.refresh();else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    const languageButton=root.querySelector<HTMLElement>("[data-language]");
+    if(languageButton){
+      const lbl=languageButton.querySelector(".cb-btn-label");
+      if(lbl)lbl.textContent=vi?"EN":"VI";else languageButton.textContent=vi?"EN":"VI";
+    }
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(modesMenuOpen)openModesMenu();else if(utilitiesMenuOpen)openUtilitiesMenu();else if(settingsMenuOpen)openSettingsMenu();else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(pvpScreens.isOpen())pvpScreens.refresh();else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       if(rankedId&&run?.config.mode==="daily"&&run.getPhase()==="ended"&&!replay){dailyResults();return;}
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
-    }else if(run||replay){if(replay)buildReplayControls();paint();}else if(panel.classList.contains("cb-city-panel"))cityMap();
+    }else if(run||replay){if(replay)buildReplayControls();paint();}else if(panel.classList.contains("cb-city-panel"))cityMap();else if(panel.classList.contains("cb-home-panel"))home();
     if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
     persist();
     syncScoreUi();
@@ -1457,11 +1967,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   listen(window, "pagehide", () => { checkpointCity(); flushSave(); });
   listen(el("[data-sound]"), "click", () => {
     muted = !muted; if (muted) options.audio.suspend();
-    el("[data-sound]").textContent = muted ? t("Sound off") : t("Sound on");
-    el("[data-sound]").setAttribute("aria-pressed", String(muted));
+    updateSoundButtonUi();
     save = { ...save, settings: { ...save.settings, muted } }; persist();
+    if (settingsMenuOpen) openSettingsMenu();
   });
-  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); if(progressionScreens.isOpen())progressionScreens.refresh(); });
+  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); if(progressionScreens.isOpen())progressionScreens.refresh(); if(settingsMenuOpen)openSettingsMenu(); });
   if (options.lifecycle) {
     cleanups.push(options.lifecycle.onPause(() => { hostPaused = true; syncPause(); }), options.lifecycle.onResume(() => { hostPaused = false; syncPause(); }));
   } else listen(document, "visibilitychange", () => { hostPaused = document.hidden; syncPause(); });

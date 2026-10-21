@@ -19,6 +19,7 @@ import {
   type RunEquipment,
 } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
+import { lucideSvg } from "./lucide-icons";
 
 export interface PvpScreensDeps {
   arena: HTMLElement;
@@ -95,12 +96,12 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     <div class="cb-pvp-vs-bar" data-pvp-vs-bar>
       <div class="cb-pvp-vs-side" data-pvp-vs-p1>
         <strong data-pvp-p1-name>P1</strong>
-        <span data-pvp-p1-stats>0F · ❤️❤️❤️</span>
+        <span data-pvp-p1-stats>0F · 3/3 HP</span>
       </div>
-      <div class="cb-pvp-vs-pot" data-pvp-vs-pot>🪙 200</div>
+      <div class="cb-pvp-vs-pot" data-pvp-vs-pot>${lucideSvg("coins", 14)} <span>200</span></div>
       <div class="cb-pvp-vs-side" data-pvp-vs-p2>
         <strong data-pvp-p2-name>P2</strong>
-        <span data-pvp-p2-stats>0F · ❤️❤️❤️</span>
+        <span data-pvp-p2-stats>0F · 3/3 HP</span>
       </div>
     </div>
     <div class="cb-pvp-event-banner" data-pvp-live-event hidden></div>
@@ -278,19 +279,19 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const p2 = currentRoom.players.p2;
     const l1 = currentRoom.live.p1;
     const l2 = currentRoom.live.p2;
-    const hearts = (n: number) => "❤️".repeat(Math.max(0, n)) + "🖤".repeat(Math.max(0, 3 - Math.max(0, n)));
+    const hearts = (n: number) => `${Math.max(0, n)}/3 HP`;
 
     if (p1NameEl) p1NameEl.textContent = `${p1.name}${currentSlot === "p1" ? ` (${wt("You", "Bạn")})` : ""}`;
     if (p1StatsEl) p1StatsEl.textContent = `${l1.height}F · ${hearts(l1.lives)}${l1.ended ? ` · ${wt("Done", "Xong")}` : ""}`;
     if (p2NameEl) p2NameEl.textContent = `${p2?.name ?? "P2"}${currentSlot === "p2" ? ` (${wt("You", "Bạn")})` : ""}`;
     if (p2StatsEl) p2StatsEl.textContent = `${l2.height}F · ${hearts(l2.lives)}${l2.ended ? ` · ${wt("Done", "Xong")}` : ""}`;
-    if (potEl) potEl.textContent = `🪙 POT ${currentRoom.totalPot}`;
+    if (potEl) potEl.innerHTML = `${lucideSvg("coins", 14)} <span>POT ${currentRoom.totalPot}</span>`;
 
     // Update main canvas opponent height horizon line
     const oppHeight = oppLive.height;
     deps.renderer.setOpponentTower({
       height: oppHeight,
-      label: `⚔️ ${oppPlayer?.name ?? wt("OPPONENT", "ĐỐI THỦ")}`,
+      label: `VS ${oppPlayer?.name ?? wt("OPPONENT", "ĐỐI THỦ")}`,
     });
 
     // Update event banner if opponent landed/missed a new block
@@ -303,13 +304,13 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
           lastOppEventSeq = latest.sequence;
           bannerEl.hidden = false;
           if (oppLive.lastPlacement === "miss") {
-            bannerEl.textContent = `💥 ${oppPlayer?.name ?? "Opponent"} ${wt("MISSED!", "TRƯỢT KHỐI!")} (${oppLive.lives} ❤️)`;
+            bannerEl.innerHTML = `${lucideSvg("alert-triangle", 14)} <span>${oppPlayer?.name ?? "Opponent"} ${wt("MISSED!", "TRƯỢT KHỐI!")} (${oppLive.lives}/3 HP)</span>`;
             bannerEl.dataset.eventType = "miss";
           } else if (oppLive.lastPlacement === "perfect") {
-            bannerEl.textContent = `⚡ ${oppPlayer?.name ?? "Opponent"} PERFECT! (${oppLive.height}F)`;
+            bannerEl.innerHTML = `${lucideSvg("zap", 14)} <span>${oppPlayer?.name ?? "Opponent"} PERFECT! (${oppLive.height}F)</span>`;
             bannerEl.dataset.eventType = "perfect";
           } else {
-            bannerEl.textContent = `🧱 ${oppPlayer?.name ?? "Opponent"} +1F (${oppLive.height}F)`;
+            bannerEl.innerHTML = `${lucideSvg("layers", 14)} <span>${oppPlayer?.name ?? "Opponent"} +1F (${oppLive.height}F)</span>`;
             bannerEl.dataset.eventType = "good";
           }
         }
@@ -321,7 +322,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     // Update opponent replica mini-canvas
     const pipTitle = liveOverlay.querySelector<HTMLElement>("[data-pvp-pip-title]");
     const pipBadge = liveOverlay.querySelector<HTMLElement>("[data-pvp-pip-badge]");
-    if (pipTitle) pipTitle.textContent = `👁️ ${oppPlayer?.name ?? wt("Opponent", "Đối thủ")}`;
+    if (pipTitle) pipTitle.innerHTML = `${lucideSvg("eye", 12)} <span>${oppPlayer?.name ?? wt("Opponent", "Đối thủ")}</span>`;
     if (pipBadge) pipBadge.textContent = `${oppLive.height}F · ${hearts(oppLive.lives)}`;
 
     if (oppPlayer) {
@@ -355,7 +356,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       if (!deps.pvp || botRoomId !== room.roomId) return;
       const joined = await deps.pvp.joinRoom(room.roomCode, {
         id: botId,
-        name: wt("Skyline Bot 🤖", "Bot Kiến Trúc 🤖"),
+        name: wt("Skyline Bot", "Bot Kiến Trúc"),
         coins: Math.max(2000, room.totalPot),
         wins: 12,
         losses: 5,
@@ -466,9 +467,9 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const statusRow = document.createElement("div");
     statusRow.className = "cb-pvp-wallet-bar";
     statusRow.innerHTML = `
-      <span data-pvp-wallet>🪙 <strong>${save.coins}</strong> Coins</span>
-      <span>🟢 <strong data-pvp-online-count>${onlinePlayersCount}</strong> Online</span>
-      <a href="/pvp" class="cb-pvp-stats-link" data-pvp-dashboard-link>${wt("📊 Live Firebase Stats", "📊 Thống kê Realtime")}</a>
+      <span data-pvp-wallet>${lucideSvg("coins", 14)} <strong>${save.coins}</strong> Coins</span>
+      <span>${lucideSvg("users", 14)} <strong data-pvp-online-count>${onlinePlayersCount}</strong> Online</span>
+      <a href="/pvp" class="cb-pvp-stats-link" data-pvp-dashboard-link>${lucideSvg("bar-chart-3", 14)} <span>${wt("Live Firebase Stats", "Thống kê Realtime")}</span></a>
     `;
 
     // Total Pot Selector Card
@@ -478,15 +479,15 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
 
     const potTitle = document.createElement("strong");
     potTitle.textContent = wt(
-      `1. Configure Total Pot: 🪙 ${selectedPot} (${stakeEach} Coins / player)`,
-      `1. Chọn Tổng Tiền Cược (Total Pot): 🪙 ${selectedPot} (Mỗi người góp ${stakeEach} Xu)`,
+      `1. Configure Total Pot: ${selectedPot} Coins (${stakeEach} Coins / player)`,
+      `1. Chọn Tổng Tiền Cược (Total Pot): ${selectedPot} Xu (Mỗi người góp ${stakeEach} Xu)`,
     );
     createCard.append(potTitle);
 
     const potRow = document.createElement("div");
     potRow.className = "cb-pvp-pot-row";
     for (const preset of PVP_PRESET_POTS) {
-      const b = deps.button(`🪙 ${preset}`, () => {
+      const b = deps.button(`${preset} Coins`, () => {
         selectedPot = preset;
         customPotInput = String(preset);
         renderEntryScreen();
@@ -519,7 +520,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     actionRow.className = "cb-pvp-action-row";
 
     const createBtn = deps.button(
-      wt(`Create Room (Pot 🪙 ${selectedPot})`, `Tạo Phòng (Tổng cược 🪙 ${selectedPot})`),
+      wt(`Create Room (Pot ${selectedPot})`, `Tạo Phòng (Tổng cược ${selectedPot})`),
       () => {
         if (!deps.pvp) return;
         const check = canAffordPot(selectedPot, deps.save().coins);
@@ -555,7 +556,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     createBtn.disabled = !potCheck.valid;
 
     const botBtn = deps.button(
-      wt(`Solo 1v1 vs Live Bot (Pot 🪙 ${selectedPot})`, `Đấu Ngay vs Bot Cược Xu (🪙 ${selectedPot})`),
+      wt(`Solo 1v1 vs Live Bot (Pot ${selectedPot})`, `Đấu Ngay vs Bot Cược Xu (${selectedPot})`),
       () => {
         if (!deps.pvp) return;
         const check = canAffordPot(selectedPot, deps.save().coins);
@@ -634,7 +635,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
         const row = document.createElement("div");
         row.className = "cb-pvp-room-item";
         const info = document.createElement("span");
-        info.textContent = `#${item.roomCode} · ${item.players.p1.name} · 🪙 Pot ${item.totalPot} (${item.stakePerPlayer}/người)`;
+        info.textContent = `#${item.roomCode} · ${item.players.p1.name} · Pot ${item.totalPot} (${item.stakePerPlayer}/người)`;
         const jBtn = deps.button(wt("Join", "Vào"), () => {
           void joinRoomByCode(item.roomCode);
         });
@@ -689,10 +690,10 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
           <strong>${slot.toUpperCase()} · ${wt("Waiting for opponent...", "Đang chờ đối thủ vào phòng...")}</strong>
         </div>
         <div class="cb-pvp-empty-slot">
-          <span>⏳ ${wt("Share Room Code", "Chia sẻ mã phòng")}: <strong>${room.roomCode}</strong></span>
+          <span>${lucideSvg("timer", 14)} ${wt("Share Room Code", "Chia sẻ mã phòng")}: <strong>${room.roomCode}</strong></span>
         </div>
       `;
-      const botFillBtn = deps.button(wt("🤖 Fill with Live Bot", "🤖 Cho Bot vào đấu ngay"), () => {
+      const botFillBtn = deps.button(wt("Fill with Live Bot", "Cho Bot vào đấu ngay"), () => {
         startBotOpponent(room);
       });
       botFillBtn.dataset.pvpSpawnBot = "true";
@@ -707,24 +708,24 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const head = document.createElement("div");
     head.className = "cb-pvp-player-head";
     head.innerHTML = `
-      <strong>🟢 ${player.name} ${isMe ? `(${wt("You", "Bạn")})` : ""}</strong>
-      <span class="cb-pvp-player-meta">🪙 ${player.coins} · ${player.wins}W-${player.losses}L</span>
+      <strong>${lucideSvg("users", 14)} ${player.name} ${isMe ? `(${wt("You", "Bạn")})` : ""}</strong>
+      <span class="cb-pvp-player-meta">${lucideSvg("coins", 13)} ${player.coins} · ${player.wins}W-${player.losses}L</span>
     `;
 
     const statusBadge = document.createElement("div");
     statusBadge.className = "cb-pvp-player-status";
     statusBadge.dataset.pvpReadyState = String(player.ready && player.stakeLocked);
-    statusBadge.textContent =
+    statusBadge.innerHTML =
       player.ready && player.stakeLocked
-        ? wt(`✅ Ready & Locked ${room.stakePerPlayer} 🪙`, `✅ Đã Khóa Cược ${room.stakePerPlayer} 🪙`)
-        : wt("🛠️ Inspecting / Preparing...", "🛠️ Đang chuẩn bị...");
+        ? `${lucideSvg("check-circle-2", 14)} <span>${wt(`Ready & Locked ${room.stakePerPlayer} Coins`, `Đã Khóa Cược ${room.stakePerPlayer} Xu`)}</span>`
+        : `${lucideSvg("clock", 14)} <span>${wt("Inspecting / Preparing...", "Đang chuẩn bị...")}</span>`;
 
     const emoteBubble = document.createElement("div");
     emoteBubble.className = "cb-pvp-emote-bubble";
     emoteBubble.dataset.pvpEmoteBubble = slot;
     if (showEmote && player.emote) {
       emoteBubble.textContent = emoteObj
-        ? `${emoteObj.icon} ${deps.vi() ? emoteObj.vi : emoteObj.en}`
+        ? (deps.vi() ? emoteObj.vi : emoteObj.en)
         : player.emote.text;
     } else {
       emoteBubble.hidden = true;
@@ -752,7 +753,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const equipSummary = document.createElement("small");
     equipSummary.className = "cb-pvp-equip-summary";
     equipSummary.dataset.pvpEquipSummary = slot;
-    equipSummary.textContent = `🏗️ ${cosmeticName(player.equipment.crane, deps.vi())} · 🏢 ${cosmeticName(player.equipment.building, deps.vi())} · 🏠 ${cosmeticName(player.equipment.roof, deps.vi())}`;
+    equipSummary.textContent = `${cosmeticName(player.equipment.crane, deps.vi())} · ${cosmeticName(player.equipment.building, deps.vi())} · ${cosmeticName(player.equipment.roof, deps.vi())}`;
 
     card.append(head, statusBadge, emoteBubble, previewCanvas, equipSummary);
     return card;
@@ -771,8 +772,8 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
 
     const readyBtn = deps.button(
       isReady
-        ? wt(`Cancel Ready (Refund ${room.stakePerPlayer} 🪙)`, `Hủy Sẵn Sàng (Hoàn ${room.stakePerPlayer} 🪙)`)
-        : wt(`Ready & Lock Stake (${room.stakePerPlayer} 🪙)`, `Sẵn Sàng & Khóa Cược (${room.stakePerPlayer} 🪙)`),
+        ? wt(`Cancel Ready (Refund ${room.stakePerPlayer} Coins)`, `Hủy Sẵn Sàng (Hoàn ${room.stakePerPlayer} Xu)`)
+        : wt(`Ready & Lock Stake (${room.stakePerPlayer} Coins)`, `Sẵn Sàng & Khóa Cược (${room.stakePerPlayer} Xu)`),
       () => {
         if (!deps.pvp || !currentRoom) return;
         const currentMe = currentRoom.players[currentSlot];
@@ -810,7 +811,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     leaveBtn.dataset.pvpLeave = "true";
 
     deps.showPanel(
-      `${wt("Room", "Phòng")} #${room.roomCode} · 🪙 POT ${room.totalPot}`,
+      `${wt("Room", "Phòng")} #${room.roomCode} · POT ${room.totalPot}`,
       wt(
         `Each player stakes ${room.stakePerPlayer} Coins · Winner takes all ${room.totalPot} Coins after both finish 3 lives`,
         `Mỗi người cược ${room.stakePerPlayer} Xu · Người cao tầng hơn sau khi cả 2 hết 3 mạng nhận trọn ${room.totalPot} Xu`,
@@ -839,7 +840,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
 
     const potBadge = document.createElement("span");
     potBadge.dataset.pvpRoomPot = String(room.totalPot);
-    potBadge.innerHTML = `🪙 Total Pot: <strong>${room.totalPot}</strong> (${room.stakePerPlayer}/${wt("player", "người")})`;
+    potBadge.innerHTML = `${lucideSvg("coins", 14)} Total Pot: <strong>${room.totalPot}</strong> (${room.stakePerPlayer}/${wt("player", "người")})`;
 
     topBar.append(codeBadge, copyBtn, potBadge);
 
@@ -847,7 +848,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       const potConfigRow = document.createElement("div");
       potConfigRow.className = "cb-pvp-pot-inline";
       for (const preset of PVP_PRESET_POTS) {
-        const b = deps.button(`🪙 ${preset}`, () => {
+        const b = deps.button(`${preset} Coins`, () => {
           if (!deps.pvp || !currentRoom) return;
           void deps.pvp.updateTotalPot(currentRoom.roomId, preset).catch(() => {
             deps.message(wt("Not enough Coins for that Total Pot.", "Không đủ Xu cho mức Tổng Cược này."));
@@ -869,7 +870,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const emoteBar = document.createElement("div");
     emoteBar.className = "cb-pvp-emote-bar";
     for (const emote of PVP_EMOTES) {
-      const eb = deps.button(`${emote.icon} ${deps.vi() ? emote.vi : emote.en}`, () => {
+      const eb = deps.button(deps.vi() ? emote.vi : emote.en, () => {
         if (!deps.pvp || !currentRoom) return;
         void deps.pvp.sendEmote(currentRoom.roomId, currentSlot, {
           id: emote.id,
@@ -898,10 +899,10 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     const p2Name = room.players.p2?.name ?? "P2";
 
     const title = isDraw
-      ? wt(`🤝 Draw Match · Refunded ${res.stakePerPlayer} 🪙`, `🤝 Hòa Số Tầng · Hoàn trả ${res.stakePerPlayer} 🪙`)
+      ? wt(`Draw Match · Refunded ${res.stakePerPlayer} Coins`, `Hòa Số Tầng · Hoàn trả ${res.stakePerPlayer} Xu`)
       : iWon
-        ? wt(`🏆 VICTORY! You Won +${res.totalPot} 🪙!`, `🏆 CHIẾN THẮNG! Bạn nhận trọn +${res.totalPot} 🪙!`)
-        : wt(`💔 Defeat · Opponent Won ${res.totalPot} 🪙`, `💔 Thua Cuộc · Đối thủ nhận ${res.totalPot} 🪙`);
+        ? wt(`VICTORY! You Won +${res.totalPot} Coins!`, `CHIẾN THẮNG! Bạn nhận trọn +${res.totalPot} Xu!`)
+        : wt(`Defeat · Opponent Won ${res.totalPot} Coins`, `Thua Cuộc · Đối thủ nhận ${res.totalPot} Xu`);
 
     const subtitle = wt(
       `Both players exhausted all 3 lives · Final Towers: ${p1Name} (${res.p1Summary.height}F) vs ${p2Name} (${res.p2Summary.height}F)`,
@@ -930,18 +931,18 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     card.dataset.pvpResultWinner = res.winnerSlot;
     card.innerHTML = `
       <div class="cb-pvp-result-col" data-pvp-result-slot="p1">
-        <strong>${p1Name} ${res.winnerSlot === "p1" ? "👑" : ""}</strong>
+        <strong>${p1Name} ${res.winnerSlot === "p1" ? lucideSvg("crown", 14) : ""}</strong>
         <span>${wt("Floors", "Số tầng")}: <strong>${res.p1Summary.height}F</strong></span>
         <span>${wt("Population", "Dân số")}: ${res.p1Summary.population}</span>
         <span>Perfect: ${res.p1Summary.perfectCount}</span>
-        <span class="cb-pvp-payout">${res.winnerSlot === "p1" ? `+${res.payouts.p1} 🪙` : isDraw ? `+${res.payouts.p1} 🪙` : `0 🪙 (${res.netDelta.p1})`}</span>
+        <span class="cb-pvp-payout">${res.winnerSlot === "p1" ? `+${res.payouts.p1} Coins` : isDraw ? `+${res.payouts.p1} Coins` : `0 Coins (${res.netDelta.p1})`}</span>
       </div>
       <div class="cb-pvp-result-col" data-pvp-result-slot="p2">
-        <strong>${p2Name} ${res.winnerSlot === "p2" ? "👑" : ""}</strong>
+        <strong>${p2Name} ${res.winnerSlot === "p2" ? lucideSvg("crown", 14) : ""}</strong>
         <span>${wt("Floors", "Số tầng")}: <strong>${res.p2Summary.height}F</strong></span>
         <span>${wt("Population", "Dân số")}: ${res.p2Summary.population}</span>
         <span>Perfect: ${res.p2Summary.perfectCount}</span>
-        <span class="cb-pvp-payout">${res.winnerSlot === "p2" ? `+${res.payouts.p2} 🪙` : isDraw ? `+${res.payouts.p2} 🪙` : `0 🪙 (${res.netDelta.p2})`}</span>
+        <span class="cb-pvp-payout">${res.winnerSlot === "p2" ? `+${res.payouts.p2} Coins` : isDraw ? `+${res.payouts.p2} Coins` : `0 Coins (${res.netDelta.p2})`}</span>
       </div>
     `;
     deps.panel.querySelector(".cb-actions")!.before(card);
