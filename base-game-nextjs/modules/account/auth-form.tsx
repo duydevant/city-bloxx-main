@@ -73,7 +73,18 @@ export function AuthForm({
         return
       }
       if (mode === "signUp") {
-        await registerApi(email, password, String(fields.get("fullName") ?? "").trim())
+        const created = await registerApi(
+          email,
+          password,
+          String(fields.get("fullName") ?? "").trim(),
+        )
+        if (created?.status === "active" && created?.emailVerifiedAt) {
+          await prepareIdentityChange()
+          await browserAuth().login(email, password)
+          formRef.current?.reset()
+          onSignedIn?.()
+          return
+        }
         setDone("registered")
       }
       if (mode === "forgot" || mode === "resend") {

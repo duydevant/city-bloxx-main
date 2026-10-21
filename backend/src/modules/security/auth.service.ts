@@ -77,22 +77,24 @@ export class AuthService {
           `SELECT * FROM roles WHERE code='user' AND is_default AND is_active FOR SHARE`,
         );
         if (!role) throw new ConflictException('Default user role unavailable');
+        const requireVerify = boolEnv('REQUIRE_EMAIL_VERIFICATION');
         const [user] = await rows<UserRow>(
           tx,
-          `INSERT INTO users(id,email,password_hash,full_name,status) VALUES($1,$2,$3,$4,$5) RETURNING *`,
+          `INSERT INTO users(id,email,password_hash,full_name,status,email_verified_at) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
           [
             randomUUID(),
             dto.email.trim().toLowerCase(),
             passwordHash,
             dto.fullName || null,
-            boolEnv('REQUIRE_EMAIL_VERIFICATION') ? 'pending' : 'active',
+            requireVerify ? 'pending' : 'active',
+            requireVerify ? null : new Date(),
           ],
         );
         await tx.query('INSERT INTO user_roles(user_id,role_id) VALUES($1,$2)', [
           user.id,
           role.id,
         ]);
-        if (boolEnv('REQUIRE_EMAIL_VERIFICATION'))
+        if (requireVerify)
           await this.issueLink(tx, user, 'verify');
         await this.security.audit(
           tx,
@@ -141,6 +143,7 @@ export class AuthService {
     };
   }
   async login(dto: LoginDto, ip: string, userAgent: string) {
+    const requireVerify = boolEnv('REQUIRE_EMAIL_VERIFICATION');
     const [found] = await rows<UserRow>(
       this.db.manager,
       'SELECT * FROM users WHERE lower(email)=$1',
@@ -154,8 +157,8 @@ export class AuthService {
       !found ||
       !valid ||
       found.deleted_at ||
-      found.status !== 'active' ||
-      (boolEnv('REQUIRE_EMAIL_VERIFICATION') && !found.email_verified_at)
+      (requireVerify ? found.status !== 'active' : !['active', 'pending'].includes(found.status)) ||
+      (requireVerify && !found.email_verified_at)
     ) {
       await this.security.audit(
         this.db.manager,
@@ -168,6 +171,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials or account unavailable');
     }
     return this.db.transaction(async (tx) => {
+      if (!requireVerify && (found.status === 'pending' || !found.email_verified_at)) {
+        await tx.query(
+          `UPDATE users SET status='active', email_verified_at=COALESCE(email_verified_at, now()), updated_at=now() WHERE id=$1 AND status IN ('active','pending')`,
+          [found.id],
+        );
+      }
       const [u] = await rows<UserRow>(tx, 'SELECT * FROM users WHERE id=$1 FOR UPDATE', [
         found.id,
       ]);
