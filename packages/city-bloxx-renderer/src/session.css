@@ -364,3 +364,21 @@
 .cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-vs-bar { width:100%; }
 .cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-pip { align-self:center; margin:auto; width:min(92%,280px); padding:8px; }
 .cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-pip canvas { width:260px; height:240px; }
+
+/* Arcade Midnight (.dark) Theme Adaptation for Toolbar & HUD */
+.dark .cb-game { color:#f0f6fc; }
+.dark .cb-toolbar { background:linear-gradient(180deg,#102336 0%,#0b1927 100%); border-color:#1e3a54; box-shadow:0 4px 12px rgba(2,8,18,.4); }
+.dark .cb-toolbar-title strong { color:#f0f6fc; }
+.dark .cb-toolbar-title [data-mode] { background:rgba(56,189,248,.16); color:#7dd3fc; }
+.dark .cb-toolbar-controls button { background:linear-gradient(180deg,#162e46 0%,#102336 100%); border-color:#264a6b; color:#e2e8f0; box-shadow:0 2px 0 rgba(2,8,18,.45); }
+.dark .cb-toolbar-controls button:hover:not(:disabled) { background:linear-gradient(180deg,#1e3d5c 0%,#162e46 100%); border-color:#38bdf8; color:#fff; }
+.dark .cb-hud-item { background:linear-gradient(180deg,#102336 0%,#0c1b2b 100%); border-color:#1e3a54; }
+.dark .cb-hud-coins { background:linear-gradient(180deg,#2b2110 0%,#1f170a 100%); border-color:#854d0e; }
+.dark .cb-hud-coins strong { color:#fde047; }
+.dark .cb-hud-label { color:#94b2cb; }
+.dark .cb-hud-label svg { color:#38bdf8; }
+.dark .cb-hud-coins .cb-hud-label svg { color:#facc15; }
+.dark .cb-hud strong { color:#f0f6fc; }
+.dark .cb-hint { color:#94b2cb; }
+.dark .cb-notice { color:#f87171; }
+

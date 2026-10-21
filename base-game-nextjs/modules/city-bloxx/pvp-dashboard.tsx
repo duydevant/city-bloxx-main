@@ -116,30 +116,52 @@ export function PvpDashboard() {
   ]
 
   return (
-    <div className="pvp-dashboard" data-pvp-dashboard="true" style={{ display: "flex", flexDirection: "column", gap: "18px", marginTop: "12px" }}>
+    <div
+      className="pvp-dashboard"
+      data-pvp-dashboard="true"
+      style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "8px" }}
+    >
       <div
+        className="web-card"
         style={{
           display: "flex",
           flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "12px",
-          padding: "14px 18px",
-          borderRadius: "14px",
-          background: "linear-gradient(135deg, #102433 0%, #1d3b52 100%)",
-          color: "#fff",
-          border: "1px solid rgba(255, 223, 120, 0.35)",
+          gap: "14px",
+          background:
+            "linear-gradient(135deg, var(--game-surface) 0%, var(--game-surface-muted) 100%)",
+          borderColor: "var(--game-border-strong)",
         }}
       >
         <div>
-          <strong style={{ color: "#ffdf78", fontSize: "16px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <Zap size={18} aria-hidden="true" />
+          <strong
+            style={{
+              color: "var(--game-primary)",
+              fontSize: "1.02rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: 850,
+            }}
+          >
+            <span className="web-card-icon" aria-hidden="true">
+              <Zap size={18} />
+            </span>
             <Copy
               en="Google Firebase Realtime Database · Live 1v1 Telemetry"
               vi="Google Firebase Realtime Database · Thống kê Solo 1v1 Trực tiếp"
             />
           </strong>
-          <small style={{ color: "#c9dceb", fontSize: "13px", display: "block", marginTop: "3px" }}>
+          <small
+            style={{
+              color: "var(--game-text-muted)",
+              fontSize: "0.86rem",
+              display: "block",
+              marginTop: "6px",
+              fontWeight: 600,
+            }}
+          >
             <Copy
               en="Winner-Takes-All Coin Wager · Both players build until all 3 lives are exhausted."
               vi="Cược Xu Winner-Takes-All · Cả 2 cùng xây đến khi hết sạch 3 mạng, ai cao tầng hơn ăn trọn quỹ cược."
@@ -149,19 +171,8 @@ export function PvpDashboard() {
         <Link
           href="/play?screen=pvp"
           data-pvp-enter-lobby="true"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "7px",
-            background: "linear-gradient(180deg, #fde047 0%, #f59e0b 100%)",
-            color: "#0f172a",
-            padding: "10px 18px",
-            borderRadius: "11px",
-            fontWeight: 800,
-            textDecoration: "none",
-            fontSize: "14px",
-            boxShadow: "0 3px 0 #b45309",
-          }}
+          className="web-cta"
+          style={{ margin: 0, padding: "10px 18px", fontSize: "0.92rem" }}
         >
           <Swords size={17} aria-hidden="true" />
           <Copy en="Enter Solo PvP 1v1 Lobby" vi="Vào Sảnh Đấu Solo PvP 1v1" />
@@ -171,59 +182,50 @@ export function PvpDashboard() {
       <section
         aria-label="Global PvP Realtime Metrics"
         data-pvp-global-stats="true"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))",
-          gap: "10px",
-        }}
+        className="web-stats"
       >
         {statCards.map(({ key, Icon, en, vi, value }) => (
-          <div
-            key={key}
-            data-pvp-stat={key}
-            style={{
-              background: "#132838",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: "12px",
-              padding: "12px",
-              color: "#fff",
-            }}
-          >
-            <div style={{ fontSize: "12px", color: "#b8cde0", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              <Icon size={14} aria-hidden="true" style={{ color: "#38bdf8" }} />
+          <div key={key} data-pvp-stat={key} className="web-stat-card">
+            <div className="web-stat-label">
+              <Icon size={15} aria-hidden="true" style={{ color: "var(--game-primary)" }} />
               <Copy en={en} vi={vi} />
             </div>
-            <strong style={{ fontSize: "22px", color: "#ffdf78", display: "block", marginTop: "4px" }}>
-              {value}
-            </strong>
+            <strong className="web-stat-value">{value}</strong>
           </div>
         ))}
       </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
-        <section
-          data-pvp-waiting-rooms="true"
-          style={{
-            background: "#132838",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "12px",
-            padding: "14px",
-            color: "#fff",
-          }}
-        >
-          <h2 style={{ margin: "0 0 10px", fontSize: "16px", color: "#ffdf78", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <DoorOpen size={17} aria-hidden="true" />
-            <Copy en="Open Waiting Rooms (1-Click Join)" vi="Phòng Đang Chờ Đối Thủ (Vào Ngay)" />
-          </h2>
+      <div className="web-grid">
+        <section data-pvp-waiting-rooms="true" className="web-card">
+          <div className="web-card-header">
+            <span className="web-card-icon" aria-hidden="true">
+              <DoorOpen size={18} />
+            </span>
+            <h2>
+              <Copy
+                en="Open Waiting Rooms (1-Click Join)"
+                vi="Phòng Đang Chờ Đối Thủ (Vào Ngay)"
+              />
+            </h2>
+          </div>
           {waitingRooms.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "13px", color: "#b8cde0" }}>
+            <p style={{ margin: 0, fontSize: "0.9rem" }}>
               <Copy
                 en="No rooms waiting right now. Click 'Enter Solo PvP 1v1 Lobby' above to create a wager room!"
                 vi="Hiện chưa có phòng đang chờ. Nhấn 'Vào Sảnh Đấu Solo PvP 1v1' ở trên để tạo phòng cược mới!"
               />
             </p>
           ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            <ul
+              style={{
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
               {waitingRooms.map((room) => (
                 <li
                   key={room.roomId}
@@ -232,25 +234,31 @@ export function PvpDashboard() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    background: "rgba(255,255,255,0.06)",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    fontSize: "13px",
+                    gap: "10px",
+                    background: "var(--game-surface-muted)",
+                    border: "1px solid var(--game-border)",
+                    padding: "10px 12px",
+                    borderRadius: "12px",
+                    fontSize: "0.88rem",
                   }}
                 >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", flexWrap: "wrap" }}>
-                    <strong>#{room.roomCode}</strong> · {room.players.p1.name} · <Coins size={13} aria-hidden="true" /> Pot <strong>{room.totalPot}</strong> ({room.stakePerPlayer}/player)
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      flexWrap: "wrap",
+                      color: "var(--game-text)",
+                    }}
+                  >
+                    <strong>#{room.roomCode}</strong> · {room.players.p1.name} ·{" "}
+                    <Coins size={13} aria-hidden="true" style={{ color: "var(--game-gold-deep)" }} /> Pot{" "}
+                    <strong>{room.totalPot}</strong> ({room.stakePerPlayer}/player)
                   </span>
                   <Link
                     href={`/play?screen=pvp&room=${encodeURIComponent(room.roomCode)}`}
-                    style={{
-                      background: "#f1c84b",
-                      color: "#162633",
-                      padding: "4px 10px",
-                      borderRadius: "6px",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                    }}
+                    className="web-badge web-badge-gold"
+                    style={{ textDecoration: "none", padding: "6px 12px" }}
                   >
                     <Copy en="Join" vi="Vào Phòng" />
                   </Link>
@@ -260,33 +268,43 @@ export function PvpDashboard() {
           )}
         </section>
 
-        <section
-          data-pvp-leaderboard="true"
-          style={{
-            background: "#132838",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "12px",
-            padding: "14px",
-            color: "#fff",
-          }}
-        >
-          <h2 style={{ margin: "0 0 10px", fontSize: "16px", color: "#ffdf78", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <Trophy size={17} aria-hidden="true" />
-            <Copy en="Top PvP Coin Winners & Elo" vi="Bảng Xếp Hạng Đại Gia Thắng Cược & Elo" />
-          </h2>
+        <section data-pvp-leaderboard="true" className="web-card">
+          <div className="web-card-header">
+            <span className="web-card-icon web-card-icon-gold" aria-hidden="true">
+              <Trophy size={18} />
+            </span>
+            <h2>
+              <Copy
+                en="Top PvP Coin Winners & Elo"
+                vi="Bảng Xếp Hạng Đại Gia Thắng Cược & Elo"
+              />
+            </h2>
+          </div>
           {leaderboard.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "13px", color: "#b8cde0" }}>
+            <p style={{ margin: 0, fontSize: "0.9rem" }}>
               <Copy
                 en="Complete a Solo PvP 1v1 match to appear on the live Firebase leaderboard."
                 vi="Hoàn thành một trận Solo PvP 1v1 để ghi danh lên bảng xếp hạng Firebase trực tiếp."
               />
             </p>
           ) : (
-            <ol style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px" }}>
+            <ol
+              style={{
+                margin: 0,
+                paddingLeft: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                fontSize: "0.9rem",
+              }}
+            >
               {leaderboard.map((entry) => (
                 <li key={entry.id} data-pvp-leader={entry.id}>
-                  <strong>{entry.name}</strong> — <span style={{ color: "#ffdf78" }}>{entry.netCoinsWon >= 0 ? `+${entry.netCoinsWon}` : entry.netCoinsWon} Coins</span> ·{" "}
-                  {entry.wins}W-{entry.losses}L · {entry.bestHeight}F · Elo {entry.elo}
+                  <strong>{entry.name}</strong> —{" "}
+                  <span style={{ color: "var(--game-primary)", fontWeight: 800 }}>
+                    {entry.netCoinsWon >= 0 ? `+${entry.netCoinsWon}` : entry.netCoinsWon} Coins
+                  </span>{" "}
+                  · {entry.wins}W-{entry.losses}L · {entry.bestHeight}F · Elo {entry.elo}
                 </li>
               ))}
             </ol>
@@ -294,23 +312,24 @@ export function PvpDashboard() {
         </section>
       </div>
 
-      <section
-        data-pvp-recent-matches="true"
-        style={{
-          background: "#132838",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "12px",
-          padding: "14px",
-          color: "#fff",
-        }}
-      >
-        <h2 style={{ margin: "0 0 10px", fontSize: "16px", color: "#ffdf78", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-          <History size={17} aria-hidden="true" />
-          <Copy en="Recent 1v1 Matches (Realtime Feed)" vi="Lịch Sử Trận Đấu 1v1 Gần Đây (Trực Tiếp)" />
-        </h2>
+      <section data-pvp-recent-matches="true" className="web-card">
+        <div className="web-card-header">
+          <span className="web-card-icon" aria-hidden="true">
+            <History size={18} />
+          </span>
+          <h2>
+            <Copy
+              en="Recent 1v1 Matches (Realtime Feed)"
+              vi="Lịch Sử Trận Đấu 1v1 Gần Đây (Trực Tiếp)"
+            />
+          </h2>
+        </div>
         {recentMatches.length === 0 ? (
-          <p style={{ margin: 0, fontSize: "13px", color: "#b8cde0" }}>
-            <Copy en="No completed matches recorded in this session yet." vi="Chưa có trận đấu hoàn tất nào được ghi nhận." />
+          <p style={{ margin: 0, fontSize: "0.9rem" }}>
+            <Copy
+              en="No completed matches recorded in this session yet."
+              vi="Chưa có trận đấu hoàn tất nào được ghi nhận."
+            />
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -324,24 +343,47 @@ export function PvpDashboard() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: "8px",
-                  background: "rgba(255,255,255,0.06)",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
+                  background: "var(--game-surface-muted)",
+                  border: "1px solid var(--game-border)",
+                  padding: "10px 12px",
+                  borderRadius: "12px",
+                  fontSize: "0.88rem",
                 }}
               >
                 <span>
                   <strong>#{match.roomCode}</strong> ·{" "}
-                  <strong style={{ color: match.winnerSlot === "p1" ? "#7ef29d" : "#fff" }}>
+                  <strong
+                    style={{
+                      color:
+                        match.winnerSlot === "p1"
+                          ? "var(--game-success)"
+                          : "var(--game-text)",
+                    }}
+                  >
                     {match.p1.name} ({match.p1.height}F)
                   </strong>{" "}
                   vs{" "}
-                  <strong style={{ color: match.winnerSlot === "p2" ? "#7ef29d" : "#fff" }}>
+                  <strong
+                    style={{
+                      color:
+                        match.winnerSlot === "p2"
+                          ? "var(--game-success)"
+                          : "var(--game-text)",
+                    }}
+                  >
                     {match.p2.name} ({match.p2.height}F)
                   </strong>
                 </span>
-                <span style={{ color: "#ffdf78", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                  <Crown size={14} aria-hidden="true" />
+                <span
+                  style={{
+                    color: "var(--game-primary)",
+                    fontWeight: 800,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <Crown size={14} aria-hidden="true" style={{ color: "var(--game-gold-deep)" }} />
                   {match.winnerSlot === "draw"
                     ? `Draw (Pot ${match.totalPot} Coins)`
                     : `${match.winnerSlot === "p1" ? match.p1.name : match.p2.name} won +${match.totalPot} Coins`}

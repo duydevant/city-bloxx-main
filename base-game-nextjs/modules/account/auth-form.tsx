@@ -1,6 +1,8 @@
 "use client"
+
 import Link from "next/link"
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react"
+import { CheckCircle2, KeyRound, LogIn, Mail, User, UserPlus } from "lucide-react"
 import { ApiError, type AuthIssue } from "@/lib/api/api-client"
 import { emailApi, registerApi, resetApi, verifyApi } from "@/lib/api/auth.api"
 import { browserAuth } from "@/lib/auth/session"
@@ -10,6 +12,7 @@ import { copy, errorCopy } from "./copy"
 import { cancelIdentityChange, prepareIdentityChange } from "@/lib/cloud/browser"
 
 export type AuthMode = "signIn" | "signUp" | "forgot" | "reset" | "verify" | "resend"
+
 export function AuthForm({
   mode,
   onSignedIn,
@@ -32,14 +35,17 @@ export function AuthForm({
   const [issue, setIssue] = useState<AuthIssue | null>(null),
     [retryAt, setRetryAt] = useState(0)
   const [seconds, setSeconds] = useState(0)
+
   useEffect(() => {
     const update = () => setSeconds(Math.max(0, Math.ceil((retryAt - Date.now()) / 1000)))
     const timer = setInterval(update, 1000)
     return () => clearInterval(timer)
   }, [retryAt])
+
   const token = useRef<string | null>(null),
     tokenRead = useRef(false),
     formRef = useRef<HTMLFormElement>(null)
+
   useEffect(() => {
     if (mode !== "reset" && mode !== "verify") return
     if (tokenRead.current) return
@@ -48,6 +54,7 @@ export function AuthForm({
     // Keep one-time tokens in memory, outside subsequent URLs/Referer and browser history.
     if (location.search) history.replaceState(history.state, "", location.pathname)
   }, [mode])
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy || Date.now() < retryAt) return
@@ -113,20 +120,27 @@ export function AuthForm({
       setBusy(false)
     }
   }
+
   const t = (key: keyof typeof copy) => copy[key][index]
+
   if (mode === "signIn" && auth.status === "authenticated")
     return (
-      <section className="auth-stack">
+      <section className="web-card auth-stack">
         <p role="status">
+          <CheckCircle2 size={16} className="inline mr-1.5 text-emerald-600" aria-hidden="true" />
           {locale === "vi" ? "Đã đăng nhập: " : "Signed in: "}
           {auth.user?.email}
         </p>
-        <Link href="/profile">{locale === "vi" ? "Quản lý tài khoản" : "Manage account"}</Link>
-        <p>{t("local")}</p>
+        <Link href="/profile" className="game-btn">
+          <User size={16} aria-hidden="true" />
+          <span>{locale === "vi" ? "Quản lý tài khoản" : "Manage account"}</span>
+        </Link>
+        <p className="text-sm text-muted-foreground">{t("local")}</p>
       </section>
     )
+
   return (
-    <div className="auth-stack">
+    <div className="web-card auth-stack">
       {done ? (
         <p role="status">{t(done as keyof typeof copy)}</p>
       ) : (
@@ -140,7 +154,10 @@ export function AuthForm({
         >
           {mode !== "reset" && mode !== "verify" && (
             <label>
-              {t("email")}
+              <span className="inline-flex items-center gap-1.5">
+                <Mail size={14} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                {t("email")}
+              </span>
               <input
                 name="email"
                 type="email"
@@ -153,13 +170,19 @@ export function AuthForm({
           )}
           {mode === "signUp" && (
             <label>
-              {t("name")}
+              <span className="inline-flex items-center gap-1.5">
+                <User size={14} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                {t("name")}
+              </span>
               <input name="fullName" maxLength={150} autoComplete="name" />
             </label>
           )}
           {(mode === "signIn" || mode === "signUp" || mode === "reset") && (
             <label>
-              {t(mode === "reset" ? "newPassword" : "password")}
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound size={14} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                {t(mode === "reset" ? "newPassword" : "password")}
+              </span>
               <input
                 name="password"
                 type="password"
@@ -171,9 +194,22 @@ export function AuthForm({
               />
             </label>
           )}
-          {(mode === "signUp" || mode === "reset") && <p id="password-policy">{t("policy")}</p>}
-          <button type="submit" disabled={busy || !ready || seconds > 0}>
-            {busy ? t("working") : seconds > 0 ? `${seconds}s` : t(mode)}
+          {(mode === "signUp" || mode === "reset") && (
+            <p id="password-policy" className="text-xs text-muted-foreground">
+              {t("policy")}
+            </p>
+          )}
+          <button
+            type="submit"
+            className={mode === "signIn" || mode === "signUp" ? "game-btn-gold" : ""}
+            disabled={busy || !ready || seconds > 0}
+          >
+            {mode === "signUp" ? (
+              <UserPlus size={16} aria-hidden="true" />
+            ) : (
+              <LogIn size={16} aria-hidden="true" />
+            )}
+            <span>{busy ? t("working") : seconds > 0 ? `${seconds}s` : t(mode)}</span>
           </button>
         </form>
       )}
@@ -194,14 +230,18 @@ export function AuthForm({
                 {t(target)}
               </button>
             ) : (
-              <Link key={target} href={href}>
+              <Link key={target} href={href} className="game-header-pill">
                 {t(target)}
               </Link>
             ),
           )}
       </nav>
-      <p>{t("local")}</p>
-      {!onModeChange && <Link href="/play">{t("guest")}</Link>}
+      <p className="text-xs text-muted-foreground">{t("local")}</p>
+      {!onModeChange && (
+        <Link href="/play" className="game-header-pill self-start">
+          {t("guest")}
+        </Link>
+      )}
     </div>
   )
 }

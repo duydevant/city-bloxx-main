@@ -1,5 +1,15 @@
 "use client"
+
 import { useState, type FormEvent } from "react"
+import {
+  CheckCircle2,
+  KeyRound,
+  LogIn,
+  LogOut,
+  Save,
+  ShieldAlert,
+  User,
+} from "lucide-react"
 import { browserAuth } from "@/lib/auth/session"
 import { ApiError, type AuthIssue } from "@/lib/api/api-client"
 import { useAuthStore } from "@/lib/store/auth.store"
@@ -18,6 +28,7 @@ export function AccountProfile() {
     [message, setMessage] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<"one" | "all" | null>(null)
   const t = (key: keyof typeof copy) => copy[key][i]
+
   async function execute(work: () => Promise<void>) {
     if (busy) return
     setBusy(true)
@@ -31,6 +42,7 @@ export function AccountProfile() {
       setBusy(false)
     }
   }
+
   function profile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
@@ -46,6 +58,7 @@ export function AccountProfile() {
       setMessage(t("saved"))
     })
   }
+
   function password(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget,
@@ -63,20 +76,36 @@ export function AccountProfile() {
       setMessage(t("resetDone"))
     })
   }
+
   return (
     <section className="web-card auth-stack">
       {auth.user ? (
         <>
-          <h2>{auth.user.email}</h2>
-          <p>
-            {auth.user.emailVerifiedAt
-              ? i
-                ? "Email đã xác thực"
-                : "Email verified"
-              : i
-                ? "Email chưa xác thực"
-                : "Email not verified"}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2>
+              <User size={20} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+              <span>{auth.user.email}</span>
+            </h2>
+            <span
+              className={`game-badge ${auth.user.emailVerifiedAt ? "game-badge-success" : "game-badge-warning"}`}
+            >
+              {auth.user.emailVerifiedAt ? (
+                <CheckCircle2 size={14} aria-hidden="true" />
+              ) : (
+                <ShieldAlert size={14} aria-hidden="true" />
+              )}
+              <span>
+                {auth.user.emailVerifiedAt
+                  ? i
+                    ? "Email đã xác thực"
+                    : "Email verified"
+                  : i
+                    ? "Email chưa xác thực"
+                    : "Email not verified"}
+              </span>
+            </span>
+          </div>
+
           <form
             method="post"
             className="auth-stack"
@@ -104,11 +133,25 @@ export function AccountProfile() {
                 defaultValue={auth.user.username ?? ""}
               />
             </label>
-            <button disabled={busy}>{i ? "Lưu thông tin" : "Save details"}</button>
+            <button disabled={busy}>
+              <Save size={15} aria-hidden="true" />
+              <span>{i ? "Lưu thông tin" : "Save details"}</span>
+            </button>
           </form>
-          <form method="post" className="auth-stack" onSubmit={password} aria-label={t("reset")}>
+
+          <hr className="border-border my-1" />
+
+          <form
+            method="post"
+            className="auth-stack"
+            onSubmit={password}
+            aria-label={t("reset")}
+          >
             <label>
-              {t("currentPassword")}
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound size={14} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                {t("currentPassword")}
+              </span>
               <input
                 name="currentPassword"
                 type="password"
@@ -118,7 +161,10 @@ export function AccountProfile() {
               />
             </label>
             <label>
-              {t("newPassword")}
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound size={14} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                {t("newPassword")}
+              </span>
               <input
                 name="newPassword"
                 type="password"
@@ -128,57 +174,91 @@ export function AccountProfile() {
                 autoComplete="new-password"
               />
             </label>
-            <p>{t("policy")}</p>
-            <button disabled={busy}>{t("reset")}</button>
+            <p className="text-xs text-muted-foreground">{t("policy")}</p>
+            <button disabled={busy}>
+              <KeyRound size={15} aria-hidden="true" />
+              <span>{t("reset")}</span>
+            </button>
           </form>
+
+          <hr className="border-border my-1" />
+
           {confirm ? (
-            <div className="auth-stack">
-              <p>{t("confirm")}</p>
-              <button
-                disabled={busy}
-                onClick={() => {
-                  checkpointAccount()
-                  void execute(async () => {
-                    try {
-                      await prepareIdentityChange("logout")
-                      await browserAuth().logout(confirm === "all")
-                    } finally {
-                      cancelIdentityChange()
-                      setConfirm(null)
-                    }
-                  })
-                }}
-              >
-                {t(confirm === "all" ? "signOutAll" : "signOut")}
-              </button>
-              <button type="button" onClick={() => setConfirm(null)}>
-                {t("cancel")}
-              </button>
+            <div className="cloud-copy-card">
+              <p className="text-sm font-medium">{t("confirm")}</p>
+              <div className="auth-links">
+                <button
+                  className="game-btn-danger"
+                  disabled={busy}
+                  onClick={() => {
+                    checkpointAccount()
+                    void execute(async () => {
+                      try {
+                        await prepareIdentityChange("logout")
+                        await browserAuth().logout(confirm === "all")
+                      } finally {
+                        cancelIdentityChange()
+                        setConfirm(null)
+                      }
+                    })
+                  }}
+                >
+                  <LogOut size={15} aria-hidden="true" />
+                  <span>{t(confirm === "all" ? "signOutAll" : "signOut")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="game-btn-secondary"
+                  onClick={() => setConfirm(null)}
+                >
+                  {t("cancel")}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="auth-links">
-              <button onClick={() => setConfirm("one")}>{t("signOut")}</button>
-              <button onClick={() => setConfirm("all")}>{t("signOutAll")}</button>
+              <button
+                type="button"
+                className="game-btn-secondary"
+                onClick={() => setConfirm("one")}
+              >
+                <LogOut size={14} aria-hidden="true" />
+                <span>{t("signOut")}</span>
+              </button>
+              <button
+                type="button"
+                className="game-btn-secondary"
+                onClick={() => setConfirm("all")}
+              >
+                <LogOut size={14} aria-hidden="true" />
+                <span>{t("signOutAll")}</span>
+              </button>
             </div>
           )}
         </>
       ) : (
         <>
           <h2>
-            {auth.status === "loading"
-              ? i
-                ? "Đang kiểm tra phiên…"
-                : "Checking session…"
-              : i
-                ? "Khách"
-                : "Guest"}
+            <User size={20} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+            <span>
+              {auth.status === "loading"
+                ? i
+                  ? "Đang kiểm tra phiên…"
+                  : "Checking session…"
+                : i
+                  ? "Khách"
+                  : "Guest"}
+            </span>
           </h2>
-          <button onClick={showSignIn}>{t("signIn")}</button>
+          <button className="game-btn-gold" onClick={showSignIn}>
+            <LogIn size={16} aria-hidden="true" />
+            <span>{t("signIn")}</span>
+          </button>
         </>
       )}
       {message && <p role="status">{message}</p>}
       {issue && <p role="alert">{errorCopy[issue][i]}</p>}
-      <p>{t("local")}</p>
+      <p className="text-xs text-muted-foreground">{t("local")}</p>
     </section>
   )
 }

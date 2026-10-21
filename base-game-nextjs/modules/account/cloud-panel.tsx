@@ -1,5 +1,15 @@
 "use client"
+
 import { useEffect, useRef, useState } from "react"
+import {
+  Cloud,
+  Download,
+  HardDrive,
+  RefreshCw,
+  ShieldCheck,
+  Smartphone,
+  Upload,
+} from "lucide-react"
 import { browserCloud } from "@/lib/cloud/browser"
 import { useCloud } from "@/lib/cloud/use-cloud"
 import { guestRaw, parseSave } from "@/lib/cloud/guest"
@@ -27,6 +37,7 @@ const messages: Record<CloudStatus, [string, string]> = {
     "Đám mây chưa chấp nhận save · giữ bản trên thiết bị",
   ],
 }
+
 export function saveSummary(raw: string | null, vi: boolean): string {
   if (!raw) return vi ? "Chưa có bản lưu" : "No save"
   try {
@@ -39,6 +50,7 @@ export function saveSummary(raw: string | null, vi: boolean): string {
       : "Original cannot be read; download to preserve it."
   }
 }
+
 function download(raw: string, name: string) {
   const url = URL.createObjectURL(new Blob([raw], { type: "application/json" })),
     link = document.createElement("a")
@@ -47,6 +59,7 @@ function download(raw: string, name: string) {
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
 export function CloudPanel() {
   const state = useCloud(),
     { locale } = useI18n(),
@@ -62,15 +75,18 @@ export function CloudPanel() {
     state.ready &&
     ["conflict", "peer", "review", "storage"].includes(state.status)
   const open = expanded || critical
+
   useEffect(() => {
     const show = () => setExpanded(true)
     window.addEventListener("city-bloxx:open-cloud", show)
     return () => window.removeEventListener("city-bloxx:open-cloud", show)
   }, [])
+
   useEffect(() => {
     if (open && !dialog.current?.open) dialog.current?.showModal()
     if (!open) dialog.current?.close()
   }, [open])
+
   async function action(work: () => Promise<unknown>) {
     if (busy) return
     setBusy(true)
@@ -83,8 +99,10 @@ export function CloudPanel() {
       setBusy(false)
     }
   }
+
   const local = state.raw,
     remote = state.remote?.payload ? JSON.stringify(state.remote.payload) : null
+
   return (
     <>
       <CloudTrigger floating />
@@ -98,9 +116,25 @@ export function CloudPanel() {
         }}
       >
         <div className="auth-stack">
-          <h2 id="cloud-title">{vi ? "Tiến trình và đám mây" : "Progress and cloud"}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="cloud-title" className="m-0">
+              <Cloud size={22} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+              <span>{vi ? "Tiến trình và đám mây" : "Progress and cloud"}</span>
+            </h2>
+            {!critical && (
+              <button
+                type="button"
+                className="auth-close"
+                onClick={() => setExpanded(false)}
+              >
+                {vi ? "Đóng" : "Close"}
+              </button>
+            )}
+          </div>
+
           <p role="status">{messages[state.status][i]}</p>
-          <p>
+
+          <p className="text-sm text-muted-foreground">
             {state.scope === "guest"
               ? vi
                 ? "Save Khách tách riêng khỏi mọi tài khoản."
@@ -109,110 +143,174 @@ export function CloudPanel() {
                 ? "Save chỉ thuộc tài khoản đã mở. Không cộng dồn XP, thống kê hoặc vật phẩm giữa các bản."
                 : "Progress belongs to the opened account. XP, stats and inventory are never added across copies."}
           </p>
-          <p>
-            <strong>{vi ? "Trên thiết bị" : "On this device"}</strong>
-            <br />
-            {saveSummary(local, vi)}
-          </p>
-          {state.remote && (
-            <p>
-              <strong>{vi ? "Trên đám mây" : "In cloud"}</strong>
-              <br />
-              {saveSummary(remote, vi)}
-              <br />
-              {vi ? "Sửa đổi" : "Revision"}: {state.remote.revision} ·{" "}
-              {state.remote.updatedAt ? new Date(state.remote.updatedAt).toLocaleString(locale) : "–"}
-            </p>
-          )}
+
+          {/* Side-by-Side Comparison Cards */}
+          <div className="cloud-compare-grid">
+            <div className="cloud-copy-card">
+              <strong>
+                <Smartphone size={16} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                <span>{vi ? "Trên thiết bị" : "On this device"}</span>
+              </strong>
+              <span className="text-sm font-medium">{saveSummary(local, vi)}</span>
+            </div>
+
+            {state.remote && (
+              <div className="cloud-copy-card">
+                <strong>
+                  <Cloud size={16} className="text-amber-500" aria-hidden="true" />
+                  <span>{vi ? "Trên đám mây" : "In cloud"}</span>
+                </strong>
+                <span className="text-sm font-medium">{saveSummary(remote, vi)}</span>
+                <span className="cloud-copy-meta">
+                  {vi ? "Sửa đổi" : "Revision"}: {state.remote.revision} ·{" "}
+                  {state.remote.updatedAt
+                    ? new Date(state.remote.updatedAt).toLocaleString(locale)
+                    : "–"}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Primary Resolution Actions */}
           {state.status === "review" && (
-            <button disabled={busy} onClick={() => void action(() => browserCloud().acceptIdentity())}>
-              {vi ? "Mở tiến trình của tài khoản hiện tại" : "Open the current account's progress"}
+            <button
+              className="game-btn-gold"
+              disabled={busy}
+              onClick={() => void action(() => browserCloud().acceptIdentity())}
+            >
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>
+                {vi ? "Mở tiến trình của tài khoản hiện tại" : "Open the current account's progress"}
+              </span>
             </button>
           )}
+
           {state.remote && state.remote.compatibility !== "incompatible" && (
-            <>
-              <p>
+            <div className="cloud-copy-card">
+              <p className="text-xs text-muted-foreground">
                 {vi
                   ? "Hai bản sẽ được sao lưu trước khi chọn. City và Daily đang dở được giữ nguyên theo bản được chọn."
                   : "Both copies are backed up before selection. Unfinished City and Daily towers stay with the selected copy."}
               </p>
-              <button
-                disabled={busy || !local}
-                onClick={() => void action(() => browserCloud().choose("local"))}
-              >
-                {vi ? "Giữ bản trên thiết bị" : "Keep this device's copy"}
-              </button>
-              <button
-                disabled={busy || !remote}
-                onClick={() => void action(() => browserCloud().choose("cloud"))}
-              >
-                {vi ? "Dùng bản trên đám mây" : "Use the cloud copy"}
-              </button>
-            </>
+              <div className="cloud-actions-primary">
+                <button
+                  disabled={busy || !local}
+                  onClick={() => void action(() => browserCloud().choose("local"))}
+                >
+                  <Smartphone size={15} aria-hidden="true" />
+                  <span>{vi ? "Giữ bản trên thiết bị" : "Keep this device's copy"}</span>
+                </button>
+                <button
+                  className="game-btn-gold"
+                  disabled={busy || !remote}
+                  onClick={() => void action(() => browserCloud().choose("cloud"))}
+                >
+                  <Cloud size={15} aria-hidden="true" />
+                  <span>{vi ? "Dùng bản trên đám mây" : "Use the cloud copy"}</span>
+                </button>
+              </div>
+            </div>
           )}
+
           {state.status === "peer" && (
-            <button disabled={busy} onClick={() => void action(() => browserCloud().reloadLocal())}>
-              {vi ? "Mở bản tài khoản vừa được lưu" : "Open the saved account copy"}
+            <button
+              className="game-btn-gold"
+              disabled={busy}
+              onClick={() => void action(() => browserCloud().reloadLocal())}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              <span>{vi ? "Mở bản tài khoản vừa được lưu" : "Open the saved account copy"}</span>
             </button>
           )}
-          {state.scope && state.scope !== "guest" && state.status !== "review" && (
-            <>
-              <button disabled={busy} onClick={() => void action(() => browserCloud().retry())}>
-                {vi ? "Thử đồng bộ lại" : "Retry cloud sync"}
-              </button>
-              <button
-                disabled={busy || state.status === "incompatible"}
-                onClick={() =>
-                  void action(async () => {
-                    const guest = guestRaw()
-                    if (
-                      !window.confirm(
-                        `${vi ? "Nhập tiến trình Khách thay thế bản tài khoản trên thiết bị? Hai bản sẽ được sao lưu; save Khách vẫn giữ nguyên." : "Import Guest progress to replace this account's device copy? Both copies will be backed up; Guest stays unchanged."}\n${saveSummary(guest, vi)}\n${saveSummary(local, vi)}`,
-                      )
-                    )
-                      return
-                    await browserCloud().importGuest()
-                  })
-                }
-              >
-                {vi ? "Nhập tiến trình Khách…" : "Import Guest progress…"}
-              </button>
-              <button
-                disabled={busy}
-                onClick={() =>
-                  void action(async () =>
-                    download(
-                      JSON.stringify(await browserCloud().backups(), null, 2),
-                      "city-bloxx-backups.json",
-                    ),
-                  )
-                }
-              >
-                {vi ? "Tải các bản sao lưu" : "Download backups"}
-              </button>
-            </>
-          )}
-          {local && (
-            <button onClick={() => download(local, "city-bloxx-local.json")}>
-              {vi ? "Tải bản gốc trên thiết bị" : "Download device original"}
-            </button>
-          )}
-          {remote && (
-            <button onClick={() => download(remote, "city-bloxx-cloud.json")}>
-              {vi ? "Tải bản gốc đám mây" : "Download cloud original"}
-            </button>
-          )}
+
           {state.ready && !["review", "peer"].includes(state.status) && (
             <button
+              className="game-btn-gold"
               onClick={() => {
                 browserCloud().continueLocal()
                 setExpanded(false)
               }}
             >
-              {vi ? "Tiếp tục với bản hiện tại trên thiết bị" : "Continue with this device's copy"}
+              <span>
+                {vi ? "Tiếp tục với bản hiện tại trên thiết bị" : "Continue with this device's copy"}
+              </span>
             </button>
           )}
-          {!critical && <button onClick={() => setExpanded(false)}>{vi ? "Đóng" : "Close"}</button>}
+
+          {/* Secondary & Advanced Backup / Import Section */}
+          <div className="cloud-advanced-details">
+            <strong className="text-xs uppercase tracking-wider text-muted-foreground">
+              <HardDrive size={13} className="inline mr-1" aria-hidden="true" />
+              {vi ? "Đồng bộ & Sao lưu nâng cao" : "Sync & Advanced Backups"}
+            </strong>
+            <div className="cloud-advanced-actions">
+              {state.scope && state.scope !== "guest" && state.status !== "review" && (
+                <>
+                  <button
+                    className="game-btn-secondary"
+                    disabled={busy}
+                    onClick={() => void action(() => browserCloud().retry())}
+                  >
+                    <RefreshCw size={14} aria-hidden="true" />
+                    <span>{vi ? "Thử đồng bộ lại" : "Retry cloud sync"}</span>
+                  </button>
+                  <button
+                    className="game-btn-secondary"
+                    disabled={busy || state.status === "incompatible"}
+                    onClick={() =>
+                      void action(async () => {
+                        const guest = guestRaw()
+                        if (
+                          !window.confirm(
+                            `${vi ? "Nhập tiến trình Khách thay thế bản tài khoản trên thiết bị? Hai bản sẽ được sao lưu; save Khách vẫn giữ nguyên." : "Import Guest progress to replace this account's device copy? Both copies will be backed up; Guest stays unchanged."}\n${saveSummary(guest, vi)}\n${saveSummary(local, vi)}`,
+                          )
+                        )
+                          return
+                        await browserCloud().importGuest()
+                      })
+                    }
+                  >
+                    <Upload size={14} aria-hidden="true" />
+                    <span>{vi ? "Nhập tiến trình Khách…" : "Import Guest progress…"}</span>
+                  </button>
+                  <button
+                    className="game-btn-secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void action(async () =>
+                        download(
+                          JSON.stringify(await browserCloud().backups(), null, 2),
+                          "city-bloxx-backups.json",
+                        ),
+                      )
+                    }
+                  >
+                    <Download size={14} aria-hidden="true" />
+                    <span>{vi ? "Tải các bản sao lưu" : "Download backups"}</span>
+                  </button>
+                </>
+              )}
+              {local && (
+                <button
+                  className="game-btn-secondary"
+                  onClick={() => download(local, "city-bloxx-local.json")}
+                >
+                  <Download size={14} aria-hidden="true" />
+                  <span>{vi ? "Tải bản gốc trên thiết bị" : "Download device original"}</span>
+                </button>
+              )}
+              {remote && (
+                <button
+                  className="game-btn-secondary"
+                  onClick={() => download(remote, "city-bloxx-cloud.json")}
+                >
+                  <Download size={14} aria-hidden="true" />
+                  <span>{vi ? "Tải bản gốc đám mây" : "Download cloud original"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {failed && (
             <p role="alert">
               {vi
@@ -225,6 +323,7 @@ export function CloudPanel() {
     </>
   )
 }
+
 export function CloudTrigger({ floating = false }: { floating?: boolean }) {
   const state = useCloud(),
     { locale } = useI18n(),
@@ -238,7 +337,7 @@ export function CloudTrigger({ floating = false }: { floating?: boolean }) {
       title={label}
       onClick={() => window.dispatchEvent(new Event("city-bloxx:open-cloud"))}
     >
-      <span aria-hidden="true">☁</span>
+      <Cloud className="size-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden="true" />
       <span className="cloud-label">{label}</span>
     </button>
   )

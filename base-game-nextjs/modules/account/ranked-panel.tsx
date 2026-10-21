@@ -1,12 +1,14 @@
-"use client";
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useI18n } from "@/lib/i18n";
-import { useAuthStore } from "@/lib/store/auth.store";
-import { useRanked } from "@/lib/ranked/use-ranked";
-import { browserRanked } from "@/lib/ranked/browser";
-import { checkpointProgress } from "@/lib/cloud/browser";
-import type { PublicRun } from "@/lib/ranked/coordinator";
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
+import { Play, RefreshCw, Trophy } from "lucide-react"
+import { useI18n } from "@/lib/i18n"
+import { useAuthStore } from "@/lib/store/auth.store"
+import { useRanked } from "@/lib/ranked/use-ranked"
+import { browserRanked } from "@/lib/ranked/browser"
+import { checkpointProgress } from "@/lib/cloud/browser"
+import type { PublicRun } from "@/lib/ranked/coordinator"
 
 const labels: Record<PublicRun["state"], [string, string]> = {
   starting: ["Waiting for a start ticket", "Đang chờ vé bắt đầu"],
@@ -29,42 +31,48 @@ const labels: Record<PublicRun["state"], [string, string]> = {
     "Attempt ended without a submission",
     "Lượt đã dừng, không gửi kết quả",
   ],
-};
+}
+
 export function RankedPanel() {
   const state = useRanked(),
     auth = useAuthStore(),
     { locale } = useI18n(),
-    i = locale === "vi" ? 1 : 0;
+    i = locale === "vi" ? 1 : 0
   const [open, setOpen] = useState(false),
     [failed, setFailed] = useState(false),
-    [now, setNow] = useState(0);
-  const dialog = useRef<HTMLDialogElement>(null);
+    [now, setNow] = useState(0)
+  const dialog = useRef<HTMLDialogElement>(null)
+
   useEffect(() => {
     const show = () => {
-      void checkpointProgress().finally(() => setOpen(true));
-    };
-    window.addEventListener("city-bloxx:open-ranked", show);
-    return () => window.removeEventListener("city-bloxx:open-ranked", show);
-  }, []);
+      void checkpointProgress().finally(() => setOpen(true))
+    }
+    window.addEventListener("city-bloxx:open-ranked", show)
+    return () => window.removeEventListener("city-bloxx:open-ranked", show)
+  }, [])
+
   useEffect(() => {
     if (open) {
-      dialog.current?.showModal();
-      const timer = setInterval(() => setNow(Date.now()), 1000);
-      return () => clearInterval(timer);
+      dialog.current?.showModal()
+      const timer = setInterval(() => setNow(Date.now()), 1000)
+      return () => clearInterval(timer)
     }
-    dialog.current?.close();
-  }, [open]);
+    dialog.current?.close()
+  }, [open])
+
   const active = state.runs.filter((r) =>
     ["starting", "active", "queued", "processing"].includes(r.state),
-  ).length;
+  ).length
+
   const retry = async () => {
-    setFailed(false);
+    setFailed(false)
     try {
-      await browserRanked().retry();
+      await browserRanked().retry()
     } catch {
-      setFailed(true);
+      setFailed(true)
     }
-  };
+  }
+
   return (
     <dialog
       ref={dialog}
@@ -72,33 +80,50 @@ export function RankedPanel() {
       aria-labelledby="ranked-title"
       onCancel={() => setOpen(false)}
     >
-      <button
-        type="button"
-        className="auth-close"
-        onClick={() => setOpen(false)}
-      >
-        {i ? "Đóng" : "Close"}
-      </button>
-      <h2 id="ranked-title">{i ? "Kết quả xếp hạng" : "Ranked results"}</h2>
-      <p>
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="ranked-title" className="m-0">
+          <Trophy size={22} className="text-amber-500" aria-hidden="true" />
+          <span>{i ? "Kết quả xếp hạng" : "Ranked results"}</span>
+        </h2>
+        <button
+          type="button"
+          className="auth-close"
+          onClick={() => setOpen(false)}
+        >
+          {i ? "Đóng" : "Close"}
+        </button>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
         {i
           ? "Chọn Quick/Daily xếp hạng trong menu để lấy vé trước khi chơi. Chơi cá nhân, Assist, City và replay không gửi kết quả lên bảng."
           : "Choose Ranked Quick/Daily in the game menu to get a ticket before play. Personal play, Assist, City and replays never submit to boards."}
       </p>
-      <p>
+      <p className="text-sm text-muted-foreground">
         {i
           ? "XP, nhiệm vụ và thống kê cá nhân chỉ nhận một lần. Xác minh server chỉ cập nhật kết quả online và bảng xếp hạng."
           : "Personal XP, missions and statistics settle once. Server verification only updates online results and boards."}
       </p>
-      <p>
-        <Link href="/leaderboards" onClick={() => setOpen(false)}>
-          {i ? "Xem bảng xếp hạng" : "View leaderboards"}
+
+      <div className="flex flex-wrap items-center gap-3 my-2">
+        <Link
+          href="/leaderboards"
+          className="game-header-pill"
+          onClick={() => setOpen(false)}
+        >
+          <Trophy size={14} aria-hidden="true" />
+          <span>{i ? "Xem bảng xếp hạng" : "View leaderboards"}</span>
         </Link>
-        {" · "}
-        <Link href="/play" onClick={() => setOpen(false)}>
-          {i ? "Chơi" : "Play"}
+        <Link
+          href="/play"
+          className="game-header-play-btn"
+          onClick={() => setOpen(false)}
+        >
+          <Play size={14} aria-hidden="true" />
+          <span>{i ? "Chơi" : "Play"}</span>
         </Link>
-      </p>
+      </div>
+
       {(!state.owner ||
         auth.status !== "authenticated" ||
         auth.user?.id !== state.owner) && (
@@ -111,6 +136,7 @@ export function RankedPanel() {
           </Link>
         </p>
       )}
+
       {auth.user && !auth.user.emailVerifiedAt && (
         <p>
           <Link href="/resend-verification" onClick={() => setOpen(false)}>
@@ -120,6 +146,7 @@ export function RankedPanel() {
           </Link>
         </p>
       )}
+
       <p role="status">
         {state.issue === "storage" || failed
           ? i
@@ -139,16 +166,19 @@ export function RankedPanel() {
                   : "Sending paused. Check sign-in, connection and retry time."
                 : `${active}/16 ${i ? "lượt đang chờ/đang chơi" : "pending/active attempts"}`}
       </p>
+
       {state.owner && (
         <button
           type="button"
           onClick={() => {
-            void retry();
+            void retry()
           }}
         >
-          {i ? "Thử lưu/gửi lại" : "Retry saving/sending"}
+          <RefreshCw size={15} aria-hidden="true" />
+          <span>{i ? "Thử lưu/gửi lại" : "Retry saving/sending"}</span>
         </button>
       )}
+
       <ul className="ranked-list">
         {[...state.runs]
           .sort((a, b) => b.createdAt - a.createdAt)
@@ -187,23 +217,25 @@ export function RankedPanel() {
             </li>
           ))}
       </ul>
+
       {state.ready && state.runs.length === 0 && (
-        <p>
+        <p className="text-sm text-muted-foreground">
           {i
             ? "Chưa có lượt xếp hạng trên thiết bị này cho tài khoản hiện tại."
             : "No ranked attempts on this device for the current account."}
         </p>
       )}
     </dialog>
-  );
+  )
 }
+
 export function RankedTrigger() {
   const state = useRanked(),
     { locale } = useI18n(),
     count = state.runs.filter((r) =>
       ["queued", "processing"].includes(r.state),
-    ).length;
-  const label = `${locale === "vi" ? "Xếp hạng" : "Ranked"}${count ? ` · ${count}` : ""}`;
+    ).length
+  const label = `${locale === "vi" ? "Xếp hạng" : "Ranked"}${count ? ` · ${count}` : ""}`
   return (
     <button
       className="cloud-status ranked-status"
@@ -212,8 +244,8 @@ export function RankedTrigger() {
       title={label}
       onClick={() => window.dispatchEvent(new Event("city-bloxx:open-ranked"))}
     >
-      <span aria-hidden="true">🏆</span>
+      <Trophy className="size-4 shrink-0 text-amber-500" aria-hidden="true" />
       <span className="cloud-label">{label}</span>
     </button>
-  );
+  )
 }
