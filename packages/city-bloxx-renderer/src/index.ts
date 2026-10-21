@@ -33,6 +33,7 @@ export class QuickTowerRenderer {
   private equipment: RunEquipment = { ...DEFAULT_EQUIPMENT };
   private customCranes = new Map<"brick" | "winter" | "season", { rig: HTMLImageElement; hook: HTMLImageElement }>();
   private ghost: PersonalGhost | null = null;
+  private opponentTower: { height: number; label: string } | null = null;
   private cssWidth = 1;
   private cssHeight = 1;
   private dpr = 1;
@@ -43,10 +44,11 @@ export class QuickTowerRenderer {
     this.context = context; this.assetBase = assetBase.replace(/\/$/, "");
   }
   async load(): Promise<void> {
+    const bust = this.assetBase.startsWith("/") ? "?v=c82" : "";
     const [sky, floor, crane, hook] = await Promise.all([
       loadImage(`${this.assetBase}/bg/default/bg_stack_default_sky.png`),
       loadImage(`${this.assetBase}/stack/default/bldg_residential_default_mid.png`),
-      loadImage(`${this.assetBase}/stack/default/crane_rig_default_sprite.png`),
+      loadImage(`${this.assetBase}/stack/default/crane_rig_default_sprite.png${bust}`),
       loadImage(`${this.assetBase}/stack/default/crane_hook_default_sprite.png`),
     ]);
     this.images = { sky, floor, crane, hook };
@@ -77,6 +79,7 @@ export class QuickTowerRenderer {
   setEquipment(value: RunEquipment = { ...DEFAULT_EQUIPMENT }): void { this.equipment = { ...value }; }
   setGhost(ghost: PersonalGhost | null): void { this.ghost = ghost; }
   getGhost(): PersonalGhost | null { return this.ghost; }
+  setOpponentTower(value: { height: number; label: string } | null): void { this.opponentTower = value; }
   drawPreview(canvas: HTMLCanvasElement, building: BuildingId, equipment: RunEquipment, locked = false): void {
     canvas.width=240;canvas.height=190;const ctx=canvas.getContext("2d")!;ctx.clearRect(0,0,240,190);
     ctx.fillStyle="#243e50";ctx.fillRect(0,0,240,190);
@@ -89,9 +92,10 @@ export class QuickTowerRenderer {
     const craneSet = renderCosmetic(equipment.crane,"crane",building).set;
     const themedCrane = craneSet !== "default" ? this.customCranes.get(craneSet) : null;
     const rig=themedCrane?themedCrane.rig:this.images?.crane,hook=themedCrane?themedCrane.hook:this.images?.hook;
-    const a=themedCrane?BRICK_ANCHORS.crane:A.crane;
+    const a=themedCrane?BRICK_ANCHORS.crane:A.crane,px=100+(a.pulley.x-a.x)/a.width*130,py=16+(a.pulley.y-a.y)/a.width*130;
     if(rig)ctx.drawImage(rig,a.x,a.y,a.width,a.height,100,16,130,a.height/a.width*130);
-    if(hook)ctx.drawImage(hook,0,0,128,128,180,73,27,27);
+    if(rig&&hook){ctx.strokeStyle="#263540";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,76);ctx.stroke();}
+    if(hook)ctx.drawImage(hook,0,0,128,128,px-13.5,73,27,27);
     if(locked) {ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,112,240,24);ctx.fillStyle="#ffdf78";ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.fillText(this.vi?"XEM TRƯỚC · CHƯA MỞ":"LOCKED PREVIEW",120,128);}
   }
   async loadEquipment(id: BuildingId, value: RunEquipment): Promise<void> {
@@ -99,7 +103,8 @@ export class QuickTowerRenderer {
     await Promise.all([...sets].map(set => this.loadBuilding(id, set)));
     const craneSet = renderCosmetic(value.crane, "crane", id).set;
     if (craneSet !== "default" && !this.customCranes.has(craneSet)) {
-      const [rig, hook] = await Promise.all(["rig", "hook"].map(part => loadImage(`${this.assetBase}/rig/${craneSet}/crane_${part}_${craneSet}_sprite.png`)));
+      const bust = this.assetBase.startsWith("/") ? "?v=c82" : "";
+      const [rig, hook] = await Promise.all(["rig", "hook"].map(part => loadImage(`${this.assetBase}/rig/${craneSet}/crane_${part}_${craneSet}_sprite.png${part === "rig" ? bust : ""}`)));
       this.customCranes.set(craneSet, { rig, hook }); this.warmSprites();
     }
   }
@@ -113,7 +118,7 @@ export class QuickTowerRenderer {
   resetEffects(feedbackId = 0): void { this.feedbackSeen = feedbackId; this.populationFx = null; this.completionSeen = false; }
   dispose(): void {
     this.sprites.clear(); this.populationImages.clear(); this.populationLoads.clear(); this.buildingImages.clear();
-    this.background = null; this.images = null; this.customCranes.clear(); this.populationFx = null; this.ghost = null;
+    this.background = null; this.images = null; this.customCranes.clear(); this.populationFx = null; this.ghost = null; this.opponentTower = null;
   }
   async loadPopulation(id: BuildingId): Promise<void> {
     if (this.populationLoads.has(id)) return this.populationLoads.get(id);
@@ -226,10 +231,44 @@ export class QuickTowerRenderer {
       ctx.save(); ctx.globalAlpha = snapshot.phase === "preparing" ? snapshot.loadProgress : 1;
       this.drawFloor(point.x, point.y, scale, pose.rotation, snapshot.building, snapshot.isRoof ? "roof" : snapshot.targetFloors && snapshot.floors.length === 0 ? "base" : "mid"); ctx.restore();
     }
+    this.drawOpponentHorizon(snapshot, scale);
     this.drawGhost(snapshot, scale, reducedMotion);
     this.drawImpact(snapshot,scale,reducedMotion);
     if (snapshot.lastPlacement && snapshot.feedbackRatio > 0) this.drawFeedback(snapshot, scale, reducedMotion);
     this.drawPopulation(snapshot, scale, reducedMotion);
+  }
+  private drawOpponentHorizon(snapshot: QuickTowerSnapshot, scale: number): void {
+    if (!this.opponentTower || this.opponentTower.height <= 0) return;
+    const ctx = this.context;
+    const worldY = R.groundY - this.opponentTower.height * R.floorHeight;
+    const lineY = project({ x: 0, y: worldY }, snapshot, this.cssWidth, this.cssHeight).y;
+    const clampedY = Math.max(24, Math.min(this.cssHeight - 16, lineY));
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 107, 107, 0.88)";
+    ctx.lineWidth = Math.max(1.5, 2.2 * scale);
+    ctx.setLineDash([7, 5]);
+    ctx.beginPath();
+    ctx.moveTo(8, clampedY);
+    ctx.lineTo(this.cssWidth - 8, clampedY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(25, 36, 48, 0.85)";
+    const badgeText = `${this.opponentTower.label}: ${this.opponentTower.height}F`;
+    ctx.font = `700 ${Math.max(10, Math.round(12 * scale))}px system-ui`;
+    const metrics = ctx.measureText(badgeText);
+    const bw = metrics.width + 14;
+    const bh = Math.max(18, Math.round(20 * scale));
+    const bx = 10;
+    const by = Math.max(6, clampedY - bh - 4);
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = "rgba(255, 107, 107, 0.9)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = "#ffdf78";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(badgeText, bx + 7, by + bh / 2);
+    ctx.restore();
   }
   private drawGhost(snapshot: QuickTowerSnapshot, scale: number, reducedMotion: boolean): void {
     const marker = activeGhostMarker(this.ghost, snapshot);

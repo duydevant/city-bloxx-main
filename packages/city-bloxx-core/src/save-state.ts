@@ -3,7 +3,9 @@ import { validateRecord, verifyRecord } from "./replay";
 import { acceptCityTower, emptyCity, validateCity, type CitySave } from "./city";
 import { BUILDING_IDS, BUILDINGS, isBuildingId } from "./buildings";
 import { QUALITIES, type RunMetrics } from "./metrics";
-import { applySummary, emptyStats, emptyTotals, makeSummary, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { applySummary, emptyStats, emptyTotals, makeSummary, runCoins, runXP, RUN_REWARD_VERSION, type LifetimeStats, type RunContext, type RunIdentity, type RunSummary, type StatTotals, type StatsGroup } from "./tracking";
+import { STARTING_COINS } from "../../city-bloxx-content/settlement";
+export { STARTING_COINS };
 import { emptyDaily, settleDaily, validateDailyState, type DailyState } from "./daily-state";
 import { validateDaily } from "./daily";
 import { emptyOneDrop, settleOneDrop, validateOneDrop, validateOneDropState, type OneDropState } from "./one-drop";
@@ -40,6 +42,7 @@ interface ActiveQuick extends RunContext { progress: RunSummary | null }
 interface PendingCity extends RunContext { cityRunId: string }
 export interface GameSave {
   schema: 5; standardQuickBest: number; assistQuickBest: number; runs: number;
+  coins: number; coinReceipts: string[];
   lastReplay: RunRecord | null; city: CitySave; districts: DistrictsState; settings: SettingsState; tutorials: TutorialState; stats: LifetimeStats;
   progression: ProgressionState; inventory: InventoryState; daily: DailyState; oneDrop: OneDropState; liveOps: LiveOpsSaveState;
   history: RunSummary[]; replays: { id: string; record: RunRecord }[];
@@ -49,7 +52,7 @@ export interface GameSave {
   tracking: { installationId: string; nextSequence: number; settled: [number, number][]; activeQuick: ActiveQuick | null; pendingCity: PendingCity | null };
 }
 export function emptySave(): GameSave {
-  return { schema: 5, standardQuickBest: 0, assistQuickBest: 0, runs: 0, lastReplay: null, city: emptyCity(), districts: emptyDistricts(),
+  return { schema: 5, standardQuickBest: 0, assistQuickBest: 0, runs: 0, coins: STARTING_COINS, coinReceipts: [], lastReplay: null, city: emptyCity(), districts: emptyDistricts(),
     settings: { muted: false, reducedMotion: null, locale: null }, tutorials: { quick:false, city:false, daily:false }, stats: emptyStats(),
     progression: emptyProgression(),
     inventory: emptyInventory(),
@@ -105,7 +108,7 @@ function validSummary(s: RunSummary, next: number, installation: string): boolea
     integer(s.endTick) && validResult(s.result) && s.result.durationTicks === s.endTick && validMetrics(s.metrics) &&
     ["ended", "abandoned"].includes(s.outcome) && s.complete === expectedComplete &&
     s.verification === "local" && ["available", "pruned", "unsupported", "not-recorded"].includes(s.replayStatus) &&
-    (s.xpEarned === undefined || integer(s.xpEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion)) &&
+    (s.xpEarned === undefined || integer(s.xpEarned)) && (s.coinsEarned === undefined || integer(s.coinsEarned)) && (s.rewardVersion === undefined || tag(s.rewardVersion)) &&
     [s.baseXPEarned, s.bonusXPEarned, s.builderXPBefore].every(n => n === undefined || integer(n)) &&
     (s.progressionRewardVersion === undefined || tag(s.progressionRewardVersion)) &&
     (s.unlockedAchievements === undefined || Array.isArray(s.unlockedAchievements) && s.unlockedAchievements.length <= 128 && s.unlockedAchievements.every(tag)) &&
@@ -127,6 +130,9 @@ function validateV4(s: GameSave): GameSave {
   if (!s.settings || typeof s.settings.muted !== "boolean" || ![null, true, false].includes(s.settings.reducedMotion) || ![null, "en", "vi"].includes(s.settings.locale)) reject();
   if (s.tutorials === undefined) s = { ...s, tutorials: { quick:true, city:true, daily:true } };
   if (!s.tutorials || ![s.tutorials.quick,s.tutorials.city,s.tutorials.daily].every(v=>typeof v === "boolean")) reject();
+  if (s.coins === undefined) s = { ...s, coins: STARTING_COINS };
+  if (s.coinReceipts === undefined) s = { ...s, coinReceipts: [] };
+  if (!integer(s.coins) || !Array.isArray(s.coinReceipts) || s.coinReceipts.length > 64 || new Set(s.coinReceipts).size !== s.coinReceipts.length || !s.coinReceipts.every(r => typeof r === "string" && r.length > 0 && r.length <= 120)) reject();
   if (!s.stats || !integer(s.stats.trackedSince) || !validTotals(s.stats.totals) || !s.stats.byMode || !s.stats.byClass ||
     !["quick-standard", "quick-assist", "city", "daily"].every(k => validTotals(s.stats.byMode[k as StatsGroup])) || !BUILDING_IDS.every(k => validTotals(s.stats.byClass[k]))) reject();
   if (!s.progression || s.progression.version !== 1 || !integer(s.progression.xp) || !s.progression.masteryXP || !BUILDING_IDS.every(k => integer(s.progression.masteryXP[k])) ||
@@ -282,7 +288,9 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
   const ranked = quickEnded && !summary.assist;
   const nextBest = ranked && summary.result.population > save.standardQuickBest;
   const xpEarned = runXP(summary);
-  if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
+  const coinsEarned = runCoins(summary);
+  const currentCoins = save.coins ?? STARTING_COINS;
+  if (!integer(xpEarned) || !integer(save.progression.xp + xpEarned) || !integer(save.progression.masteryXP[summary.building] + xpEarned) || !integer(coinsEarned) || !integer(currentCoins + coinsEarned)) throw new Error("Reward bounds exceeded; previous save preserved");
   const daily = summary.mode === "daily" ? settleDaily(save.daily, summary) : save.daily;
   const oneDrop = isOneDrop ? settleOneDrop(save.oneDrop ?? emptyOneDrop(), summary) : (save.oneDrop ?? emptyOneDrop());
   const liveOps = settleLiveOpsOnRun(save, summary, save.daily.lifetimeCreditedDays, daily.lifetimeCreditedDays);
@@ -300,11 +308,13 @@ export function settleRun(save: GameSave, summary: RunSummary, record?: RunRecor
     standardQuickBest: ranked ? Math.max(save.standardQuickBest, summary.result.population) : save.standardQuickBest,
     assistQuickBest: quickEnded && summary.assist ? Math.max(save.assistQuickBest, summary.result.population) : save.assistQuickBest,
     runs: save.runs + Number(quickEnded),
+    coins: currentCoins + coinsEarned,
+    coinReceipts: [...(save.coinReceipts ?? [])],
     daily,
     oneDrop,
     liveOps,
     stats,
-    history: [{ ...copy(summary), xpEarned: totalXP, baseXPEarned: xpEarned, bonusXPEarned: totalXP - xpEarned, builderXPBefore: save.progression.xp,
+    history: [{ ...copy(summary), xpEarned: totalXP, coinsEarned, baseXPEarned: xpEarned, bonusXPEarned: totalXP - xpEarned, builderXPBefore: save.progression.xp,
       unlockedAchievements: progression.achievements.filter(id => !save.progression.achievements.includes(id)), progressionRewardVersion: progression.catalogVersion, rewardVersion: RUN_REWARD_VERSION }, ...save.history], replays: [...save.replays], replayRefs: { ...save.replayRefs },
     hallOfFame: [...(save.hallOfFame ?? [])],
     album: save.album ? [...save.album] as SkylineAlbumState : emptyAlbum(),

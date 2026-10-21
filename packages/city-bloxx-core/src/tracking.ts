@@ -17,6 +17,7 @@ export interface RunSummary extends RunContext {
   outcome: "ended" | "abandoned"; complete: boolean;
   verification: "local"; replayStatus: "available" | "pruned" | "unsupported" | "not-recorded";
   xpEarned?: number; rewardVersion?: string;
+  coinsEarned?: number;
   baseXPEarned?: number; bonusXPEarned?: number; builderXPBefore?: number;
   unlockedAchievements?: string[]; progressionRewardVersion?: string;
   unlockedCosmetics?: string[];
@@ -86,5 +87,12 @@ export function runXP(summary: RunSummary): number {
   return (body.perfect + body.great + body.good + body.risky) * SETTLEMENT_REWARDS.landedBody +
     body.perfect * SETTLEMENT_REWARDS.perfectBody + Number(summary.complete) * SETTLEMENT_REWARDS.finiteCompletion;
 }
+export function runCoins(summary: RunSummary): number {
+  if (!summary.metrics || summary.mode === "one-drop") return 0;
+  const body = summary.metrics.body;
+  return (body.perfect + body.great + body.good + body.risky) * SETTLEMENT_REWARDS.coinLandedBody +
+    body.perfect * SETTLEMENT_REWARDS.coinPerfectBody + Number(summary.complete) * SETTLEMENT_REWARDS.coinFiniteCompletion;
+}
 export const RUN_REWARD_VERSION = SETTLEMENT_REWARDS.version;
+
 

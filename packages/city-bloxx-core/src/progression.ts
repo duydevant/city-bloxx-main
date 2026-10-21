@@ -1,4 +1,5 @@
 import { ACHIEVEMENT_CATALOG, MISSION_CATALOG, MISSION_FALLBACKS, PROGRESSION_RULES, type AchievementDefinition } from "../../city-bloxx-content/progression";
+import { SETTLEMENT_REWARDS, STARTING_COINS } from "../../city-bloxx-content/settlement";
 import { BUILDING_IDS, type BuildingId } from "./buildings";
 import { isUTCDate, utcDate } from "./daily";
 import { acceptedMission, checkedAdd, DIFFICULTIES, missionExpired, refreshMissions, rerollMission, updateRunMissions, validateMissionCatalog } from "./missions";
@@ -112,15 +113,22 @@ export function claimMission(save: GameSave, date: string, id: string, at: numbe
   const day = p.missionDays.find(d => d.dateUTC === date), slot = day?.slots.find(s => s.definition.id === id);
   if (!slot || slot.status !== "ready" || at < slot.completedAt! || date > utcDate(at) || missionExpired(date, p.latestMissionDate!)) return next;
   const liveOps = next.liveOps ?? emptyLiveOpsSave();
+  const receipt = `mission:${date}:${id}`;
   const freeSeason = addSeasonSPWithReceipt(
     liveOps.freeSeason,
-    `mission:${date}:${id}`,
+    receipt,
     BUNDLED_LIVEOPS_MANIFEST.freeSeason.spSources.dailyMissionClaim,
     at,
     BUNDLED_LIVEOPS_MANIFEST,
   );
+  const currentCoins = next.coins ?? STARTING_COINS;
+  const alreadyCreditedCoins = (next.coinReceipts ?? []).includes(receipt);
+  const nextCoins = alreadyCreditedCoins ? currentCoins : checkedAdd(currentCoins, SETTLEMENT_REWARDS.coinDailyMissionClaim);
+  const coinReceipts = alreadyCreditedCoins ? [...(next.coinReceipts ?? [])] : [...(next.coinReceipts ?? []), receipt].slice(-64);
   return {
     ...next,
+    coins: nextCoins,
+    coinReceipts,
     progression: { ...p, xp: checkedAdd(p.xp, slot.definition.xp), missionDays: p.missionDays.map(d => d !== day ? d : { ...d, slots: d.slots.map(s => s !== slot ? s : { ...s, status: "claimed", claimedAt: at }) }) },
     liveOps: { ...liveOps, freeSeason },
   };

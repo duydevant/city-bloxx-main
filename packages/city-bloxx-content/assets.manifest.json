@@ -229,8 +229,8 @@
       "path": "stack/default/crane_rig_default_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 184020,
-      "sha256": "bca86a6702f0e69a305aad56e510dd547bba18a180dc40a705317fd6f13b5eb5",
+      "bytes": 170639,
+      "sha256": "53ef899001830a8e92459b796ca51aaf00ef879fed1737bcfaa9428b82e13231",
       "targets": [
         "web",
         "playable"
@@ -504,8 +504,8 @@
       "path": "rig/brick/crane_rig_brick_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 195696,
-      "sha256": "2d90d554a7871a895e4d651437fcf2e7c69fdac77c06031b8b7e35ef165967fc",
+      "bytes": 186984,
+      "sha256": "2bdbb7f35724fec5d1c78db5c1f0dc423c911af028be073d10a87d6eac600e14",
       "targets": [
         "web",
         "playable"
@@ -570,8 +570,8 @@
       "path": "rig/winter/crane_rig_winter_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 178810,
-      "sha256": "b1a8f77848b73aea1d883c7cf3029413581c2d472c0cf15ff80b130d3910db9d",
+      "bytes": 171768,
+      "sha256": "590681a605ce116477129e27ba1d087043632456b157179a1b0457dfafc7f89b",
       "targets": [
         "web",
         "playable"
@@ -614,8 +614,8 @@
       "path": "rig/season/crane_rig_season_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 178282,
-      "sha256": "d3fb07c12854c92d68aa736dbea9d501dfeae04dfe429cef6b44df7cd26cea8a",
+      "bytes": 171298,
+      "sha256": "2b183c9c2bcae3bc201cd96962f3ce275a592891d8c1b3f6850b599ea33fec64",
       "targets": [
         "web",
         "playable"

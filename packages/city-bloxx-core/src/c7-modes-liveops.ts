@@ -12,6 +12,7 @@ import {
   type WinterEventManifest,
 } from "../../city-bloxx-content/c7-liveops";
 import { DIFFICULTIES, checkedAdd } from "./missions";
+import { SETTLEMENT_REWARDS, STARTING_COINS } from "../../city-bloxx-content/settlement";
 import { BUILDING_IDS, type BuildingId } from "./buildings";
 import { UTC_DAY_MS, isUTCDate, shiftUTCDate, utcDate } from "./daily";
 import { PHYSICS_VERSION } from "./rules";
@@ -1046,15 +1047,22 @@ export function claimWeeklyContract(
         },
   );
   const claimedReceipts = [...liveOps.weekly.claimedReceipts, receipt].slice(-64);
+  const coinReceipt = `weekly:${receipt}`;
   const freeSeason = addSeasonSPWithReceipt(
     liveOps.freeSeason,
-    `weekly:${receipt}`,
+    coinReceipt,
     manifest.freeSeason.spSources.weeklyContractClaim,
     at,
     manifest,
   );
+  const currentCoins = refreshed.coins ?? STARTING_COINS;
+  const alreadyCreditedCoins = (refreshed.coinReceipts ?? []).includes(coinReceipt);
+  const nextCoins = alreadyCreditedCoins ? currentCoins : checkedAdd(currentCoins, SETTLEMENT_REWARDS.coinWeeklyContractClaim);
+  const coinReceipts = alreadyCreditedCoins ? [...(refreshed.coinReceipts ?? [])] : [...(refreshed.coinReceipts ?? []), coinReceipt].slice(-64);
   return {
     ...refreshed,
+    coins: nextCoins,
+    coinReceipts,
     progression: {
       ...refreshed.progression,
       xp: checkedAdd(refreshed.progression.xp, slot.definition.xp),

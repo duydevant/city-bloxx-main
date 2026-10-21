@@ -8,15 +8,16 @@ import { beginDaily, checkpointDaily, resolveDaily, utcDate } from "../../city-b
 import { createDailyScreens } from "./daily-screens";
 import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rerollSaveMission } from "../../city-bloxx-core/src/index";
 import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
-import { DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, grantCosmetics, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
+import { buyCosmeticWithCoins, DEFAULT_EQUIPMENT, equipmentFor, equipCosmetic, grantCosmetics, renderCosmetic, type RunEquipment } from "../../city-bloxx-core/src/cosmetics";
 import { createBookScreens } from "./book-screens";
 import { createDistrictScreens, preloadDistrictBackground } from "./district-screens";
+import { createPvpScreens } from "./pvp-screens";
 import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
-import type { RankedPort } from "../../city-bloxx-core/src/ports";
+import type { PvpPort, RankedPort } from "../../city-bloxx-core/src/ports";
 
-export type SessionScreen = "quick" | "city" | "daily" | "one-drop" | "perfect-rush" | "skyline-sprint" | "statistics" | "history" | "book" | "progression";
+export type SessionScreen = "quick" | "city" | "daily" | "one-drop" | "perfect-rush" | "skyline-sprint" | "pvp" | "statistics" | "history" | "book" | "progression";
 export function sessionScreen(value: string | null): SessionScreen {
-  return ["quick","city","daily","one-drop","perfect-rush","skyline-sprint","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
+  return ["quick","city","daily","one-drop","perfect-rush","skyline-sprint","pvp","statistics","history","book","progression"].includes(value??"") ? value as SessionScreen : "quick";
 }
 
 export interface SessionFeatureFlags {
@@ -29,9 +30,10 @@ export interface SessionOptions {
   audio: AudioPort; seed: () => number; locale?: string; onLocaleChange?: (locale:string) => void;
   showLanguageSwitch?: boolean; showSoundControl?: boolean;
   capabilities?: Capabilities; tracking?: TrackingPort;
-  initialScreen?: SessionScreen; initialReplayId?: string; presentation?: "game" | "content";
+  initialScreen?: SessionScreen; initialReplayId?: string; initialPvpRoom?: string; presentation?: "game" | "content";
   onNavigate?: (screen: SessionScreen, replayId?: string) => void;
   ranked?: RankedPort;
+  pvp?: PvpPort;
   featureFlags?: SessionFeatureFlags;
   liveOpsManifest?: LiveOpsManifest;
 }
@@ -101,6 +103,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       <div><span>${t("Floors")}</span><strong data-floors>0</strong></div>
       <div><span>${t("Lives")}</span><strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong></div>
       <div><span>${t("Best")}</span><strong data-best>0</strong></div>
+      <div><span>Coins</span><strong data-coins>200</strong></div>
     </div>
     <div class="cb-arena" tabindex="0" role="application" aria-label="${quickName()}">
       <canvas aria-label="${t("Tower")}"></canvas>
@@ -157,7 +160,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     progressionScreens.clear();
     bookScreens.clear();
     districtScreens.clear();
-    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel");
+    pvpScreens.clear();
+    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel", "cb-pvp-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
@@ -247,7 +251,8 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     retry: persist, status: () => rewardSaveStatus, paused: () => hostPaused || userPaused, reducedMotion: () => reducedMotion });
   const bookLabel = () => vi ? "Sổ kiến trúc" : "Architecture Book";
   const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
-    equip: (id,equipment) => { if(rewardSaveStatus === "pending")return;let next=save;for(const item of [equipment.building,equipment.roof,equipment.crane])next=equipCosmetic(next,item,id);save=next;persist(); } });
+    equip: (id,equipment) => { if(rewardSaveStatus === "pending")return;let next=save;for(const item of [equipment.building,equipment.roof,equipment.crane])next=equipCosmetic(next,item,id);save=next;persist(); },
+    buy: itemId => { if(rewardSaveStatus === "pending")return;try{save=buyCosmeticWithCoins(save,itemId,now());paint();persist();}catch{/* ignore */}} });
   let harborBgFailed = false;
   async function switchDistrict(districtId: DistrictId): Promise<void> {
     if (!save.districts.unlockedDistricts.includes(districtId)) return;
@@ -271,6 +276,31 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     updateSave: next => { save = next; persist(); },
     backToMap: cityMap,
   });
+  const pvpScreens = createPvpScreens({
+    arena,
+    panel,
+    renderer,
+    assets: options.assets,
+    pvp: options.pvp,
+    save: () => save,
+    updateSave: next => { save = next; paint(); persist(); },
+    vi: () => vi,
+    now,
+    installationId,
+    showPanel,
+    button,
+    home,
+    openBook,
+    startPvpRun: async (room) => {
+      await start(false, false, { seed: room.seed, mode: "quick", assist: false, building: room.building });
+    },
+    message,
+  });
+  function openPvp(roomCode?: string): void {
+    checkpointCity(); abandonQuick(); cityActive = false; mapView = false;
+    cancelFrame(); run = null; replay = null; userPaused = false; celebrating = false; renderer.resetEffects(); renderer.setOpponentTower(null); paint();
+    pvpScreens.openLobby(roomCode);
+  }
   const dailyTimer = window.setInterval(() => { if (!hostPaused && !disposed) {
     if (ready) {
       let next = ensureMissions(save, now());
@@ -465,6 +495,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   function current() { return replay?.getSnapshot() ?? run?.getSnapshot() ?? idleSnapshot; }
   function paint(s = current()): void {
     renderer.render(s, replay?.getPreviousRenderSnapshot(s) ?? run?.getPreviousRenderSnapshot(s), replay?.getInterpolationAlpha() ?? run?.getInterpolationAlpha() ?? 1, reducedMotion);
+    setText("[data-coins]", String(save.coins ?? 200));
     if(mapView&&!run&&!replay) {
       const activeDistrict = save.districts.activeDistrict;
       const districtState = activeDistrict === "harbor" ? save.districts.harbor : save.districts.downtown;
@@ -565,10 +596,15 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if(options.presentation === "content" && ready && options.onNavigate){options.onNavigate("quick");return;}
     mapView=false;
     checkpointCity(); abandonQuick(); cityActive = false;
-    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false; renderer.setGhost(null); paint();
+    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false; renderer.setGhost(null); renderer.setOpponentTower(null); paint();
     rankedId=null;
     celebrating=false; renderer.resetEffects();
     const actions = [button(t("Play Standard"), () => start()), button(t("Play Assist"), () => start(true)), button(t("Build City"), cityMap)];
+    if (options.pvp) {
+      const pvpBtn = button(wt("Solo PvP 1v1", "Solo PvP 1v1"), () => openPvp());
+      pvpBtn.dataset.openPvp = "true";
+      actions.push(pvpBtn);
+    }
     if (featureFlags.daily !== false || save.daily.pending) actions.push(button(t("Daily Tower"), openDaily));
     const oneDropBtn = button("One Drop", openOneDrop);
     oneDropBtn.dataset.openOneDrop = "true";
@@ -1079,8 +1115,16 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       checkpointCity();
       if (!muted && s.lastPlacement) options.audio.play(s.lastPlacement);
     }
+    if (run && !replay && pvpScreens.isInActiveMatch()) {
+      pvpScreens.onLocalFrame(run);
+    }
     paint(s);
     if (s.phase === "ended") {
+      if (run && !replay && pvpScreens.isInActiveMatch()) {
+        settleCurrent();
+        pvpScreens.onLocalEnded(run);
+        return;
+      }
       celebrating = !!s.targetFloors && !run?.config.oneDrop && !replay?.record.config.oneDrop && !run?.config.skylineSprint && !replay?.record.config.skylineSprint && renderer.hasPopulationEffect();
       if (celebrating) schedule(); else results(!!replay);
     } else schedule();
@@ -1372,11 +1416,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       [t("Best streak"),String(result.bestStreak)],[t("Duration"),`${(result.durationTicks/60).toFixed(1)}s`]]);paint();
   }
   listen(arena, "pointerdown", ((event: PointerEvent) => {
-    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,.cb-panel,.cb-replay-controls")) return;
+    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,input,a,.cb-panel,.cb-replay-controls")) return;
     event.preventDefault(); arena.focus(); drop();
   }) as EventListener);
   listen(arena, "keydown", ((event: KeyboardEvent) => {
-    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,.cb-replay-controls")) return;
+    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,input,a,.cb-replay-controls")) return;
     event.preventDefault(); drop();
   }) as EventListener);
   listen(pauseButton, "click", () => { userPaused = !userPaused; syncPause(); });
@@ -1399,7 +1443,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     el("[data-sound]").textContent=muted?t("Sound off"):t("Sound on");
     el("[data-motion]").textContent=t("Reduced motion");
     const languageButton=root.querySelector("[data-language]");if(languageButton)languageButton.textContent=vi?"EN":"VI";
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(pvpScreens.isOpen())pvpScreens.refresh();else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       if(rankedId&&run?.config.mode==="daily"&&run.getPhase()==="ended"&&!replay){dailyResults();return;}
       dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
       if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
@@ -1434,7 +1478,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     startGeneration++;
     if(!ready||disposed)return;
     const show=()=>{
-      if(screen==="city")cityMap();else if(screen==="daily")openDaily();else if(screen==="one-drop")openOneDrop();else if(screen==="perfect-rush")openPerfectRush();else if(screen==="skyline-sprint")openSkylineSprint();
+      if(screen==="city")cityMap();else if(screen==="daily")openDaily();else if(screen==="one-drop")openOneDrop();else if(screen==="perfect-rush")openPerfectRush();else if(screen==="skyline-sprint")openSkylineSprint();else if(screen==="pvp")openPvp(options.initialPvpRoom);
       else if(screen==="statistics"||screen==="history"){
         if(options.presentation==="content"){if(screen==="statistics")dataScreens.statistics();else dataScreens.history();}
         else openData(screen==="history");
@@ -1467,7 +1511,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   })();
   function setFeatureFlags(nextFlags: SessionFeatureFlags): void {
     featureFlags = { ...featureFlags, ...nextFlags };
-    if (ready && !disposed && !run && !replay && !mapView && !dailyScreens.isOpen() && !progressionScreens.isOpen() && !bookScreens.isOpen() && !dataScreens.isOpen() && guidePage < 0) {
+    if (ready && !disposed && !run && !replay && !mapView && !dailyScreens.isOpen() && !progressionScreens.isOpen() && !bookScreens.isOpen() && !dataScreens.isOpen() && !pvpScreens.isOpen() && guidePage < 0) {
       home();
     }
   }
@@ -1478,13 +1522,14 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (ready && !disposed) {
       if (progressionScreens.isOpen()) progressionScreens.refresh();
       else if (bookScreens.isOpen()) bookScreens.refresh();
-      else if (!run && !replay && !mapView && !dailyScreens.isOpen() && !dataScreens.isOpen() && guidePage < 0) home();
+      else if (!run && !replay && !mapView && !dailyScreens.isOpen() && !dataScreens.isOpen() && !pvpScreens.isOpen() && guidePage < 0) home();
     }
   }
   return { ready: readyPromise, setLocale, setFeatureFlags, setLiveOpsManifest, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
     checkpointCity(); abandonQuick(); flushSave();
     progressionScreens.clear();
     bookScreens.clear();
+    pvpScreens.dispose();
     disposed = true;startGeneration++; saveController.dispose(); cancelFrame(); abort.abort(); cleanups.forEach(fn => fn());
     renderer.dispose(); options.audio.dispose(); root.replaceChildren();
   } };

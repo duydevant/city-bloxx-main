@@ -21,7 +21,7 @@
 .cb-content-session button,.cb-content-session select { min-height:44px; }
 .cb-game button[aria-pressed=true] { background:#f7d76c; }
 .cb-game button:focus-visible,.cb-arena:focus-visible { outline:3px solid #f4b82b; outline-offset:2px; }
-.cb-hud { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+.cb-hud { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
 .cb-hud>div { text-align:center; border-radius:10px; padding:5px; background:#f5faff; }
 .cb-hud span,.cb-hud strong { display:block; overflow:hidden; text-overflow:ellipsis; }
 .cb-hud span { font-size:10px; color:#506775; }
@@ -209,3 +209,43 @@
   .cb-progression-content .cb-data-select { font-size:11px; padding:3px; margin:0; }
   .cb-progression-panel button { font-size:10px; padding:3px 7px; }
 }
+.cb-pvp-panel { gap:6px; overflow-y:auto; justify-content:flex-start; padding:10px; }
+.cb-pvp-panel h2 { margin:0; font-size:17px; }
+.cb-pvp-content,.cb-pvp-room-container { width:min(100%,580px); display:flex; flex-direction:column; gap:6px; font-size:12px; }
+.cb-pvp-wallet-bar,.cb-pvp-room-topbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; background:#ffffff14; border-radius:8px; padding:5px 8px; font-size:11px; }
+.cb-pvp-stats-link { color:#ffdf78; font-weight:700; text-decoration:underline; }
+.cb-pvp-card { background:#ffffff12; border:1px solid #ffffff24; border-radius:8px; padding:7px 9px; display:flex; flex-direction:column; gap:6px; text-align:left; }
+.cb-pvp-pot-row,.cb-pvp-pot-inline,.cb-pvp-action-row,.cb-pvp-join-row,.cb-pvp-emote-bar { display:flex; flex-wrap:wrap; gap:5px; align-items:center; justify-content:center; }
+.cb-pvp-input { border:1px solid #9aaebc; border-radius:7px; padding:5px 8px; background:#f8fbff; color:#223441; font:600 12px system-ui; width:145px; }
+.cb-pvp-room-list { display:flex; flex-direction:column; gap:4px; }
+.cb-pvp-room-item { display:flex; justify-content:space-between; align-items:center; gap:6px; background:#0f1d2899; padding:4px 8px; border-radius:6px; font-size:11px; }
+.cb-pvp-vs-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; }
+.cb-pvp-player-card { background:#0f202dd8; border:1px solid #ffdf7855; border-radius:9px; padding:6px; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
+.cb-pvp-player-head { width:100%; display:flex; justify-content:space-between; align-items:center; gap:4px; font-size:11px; }
+.cb-pvp-player-meta { color:#ffdf78; font-weight:700; font-size:10px; }
+.cb-pvp-player-status { font-size:10px; padding:2px 6px; border-radius:5px; background:#ffffff18; width:100%; text-align:center; }
+.cb-pvp-player-status[data-pvp-ready-state=true] { background:#1c6e4f; color:#b8ffdf; font-weight:700; }
+.cb-pvp-emote-bubble { background:#ffdf78; color:#182834; font-weight:800; font-size:11px; padding:2px 8px; border-radius:999px; }
+.cb-pvp-preview-canvas { width:100%; max-width:170px; height:auto; border-radius:7px; border:1px solid #ffffff26; background:#243e50; }
+.cb-pvp-equip-summary { font-size:9px; color:#d2e3f0; line-height:1.25; text-align:center; }
+.cb-pvp-empty-slot { min-height:110px; display:flex; align-items:center; justify-content:center; color:#b8ccd9; font-size:11px; text-align:center; padding:8px; }
+.cb-pvp-result-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:min(100%,460px); margin-bottom:8px; }
+.cb-pvp-result-col { background:#ffffff14; border:1px solid #ffffff28; border-radius:9px; padding:8px; display:flex; flex-direction:column; gap:3px; font-size:12px; }
+.cb-pvp-payout { color:#ffdf78; font-weight:800; font-size:14px; margin-top:2px; }
+.cb-pvp-live-overlay { position:absolute; inset:0; pointer-events:none; z-index:2; display:flex; flex-direction:column; justify-content:space-between; padding:6px; }
+.cb-pvp-live-overlay[hidden] { display:none; }
+.cb-pvp-vs-bar { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:6px; background:rgba(15,28,39,.86); border:1px solid rgba(255,223,120,.45); border-radius:10px; padding:4px 8px; color:#fff; font-size:11px; }
+.cb-pvp-vs-side { display:flex; flex-direction:column; min-width:0; }
+.cb-pvp-vs-side:last-child { text-align:right; }
+.cb-pvp-vs-side strong { font-size:11px; color:#ffdf78; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cb-pvp-vs-pot { background:#f1c84b; color:#1a2b36; font-weight:800; font-size:11px; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+.cb-pvp-event-banner { align-self:center; background:rgba(20,35,48,.9); color:#ffdf78; border:1px solid #ffdf7877; border-radius:999px; padding:2px 10px; font-size:11px; font-weight:700; }
+.cb-pvp-pip { align-self:flex-end; margin-top:auto; background:rgba(15,26,36,.9); border:2px solid #ffdf7899; border-radius:10px; padding:4px; display:flex; flex-direction:column; align-items:center; gap:3px; width:148px; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+.cb-pvp-pip-header { width:100%; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#ffdf78; font-weight:700; padding:0 2px; }
+.cb-pvp-pip canvas { width:140px; height:175px; border-radius:6px; display:block; }
+.cb-pvp-spectator-note { font-size:11px; color:#ffdf78; text-align:center; padding:4px 6px; font-weight:700; }
+.cb-pvp-live-overlay[data-pvp-spectator=true] { background:rgba(12,24,34,.82); pointer-events:auto; align-items:center; }
+.cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-vs-bar { width:100%; }
+.cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-pip { align-self:center; margin:auto; width:min(92%,280px); padding:8px; }
+.cb-pvp-live-overlay[data-pvp-spectator=true] .cb-pvp-pip canvas { width:260px; height:240px; }
+

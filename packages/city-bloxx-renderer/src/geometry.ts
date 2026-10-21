@@ -5,7 +5,7 @@ export const EMPTY_CABLE_LENGTH = R.emptyCableLength;
 export const SPRITE_ANCHORS = Object.freeze({
   // Source PNG coordinates; transparent canvas padding is not part of the body.
   floor: { x: 128, y: 64, width: 256, height: 128 },
-  crane: { x: 14, y: 9, width: 995, height: 210, pulley: { x: 974, y: 64 }, scale: .4 },
+  crane: { x: 14, y: 9, width: 995, height: 210, pulley: { x: 924, y: 159 }, scale: .4 },
   hook: { eye: { x: 64, y: 9 }, tip: { x: 61, y: 119 }, scale: .5 },
 });
 export function loadPose(snapshot: QuickTowerSnapshot, previous?: QuickTowerSnapshot, alpha = 1, reducedMotion = false): LoadPose {

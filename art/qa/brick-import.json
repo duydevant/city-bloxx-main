@@ -3,7 +3,7 @@
   "generator": "built-in image_gen",
   "promptSpec": "plan/12-art-requirements.md",
   "normalization": "solid alpha cutout; opaque rectangular body; canonical approved crop/anchor; Default source untouched",
-  "packBytes": 1095236,
+  "packBytes": 1086524,
   "assets": [
     {
       "path": "stack/brick/bldg_residential_brick_base.png",
@@ -224,7 +224,7 @@
       },
       "width": 1024,
       "height": 512,
-      "bytes": 195696
+      "bytes": 186984
     },
     {
       "path": "rig/brick/crane_hook_brick_sprite.png",

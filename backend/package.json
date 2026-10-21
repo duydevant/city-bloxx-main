@@ -1,8 +1,8 @@
 {
-  "name": "@minh1509sotatek/nest_base",
+  "name": "@city-bloxx/backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Nest TypeScript starter repository",
+  "description": "City Bloxx Online Backend API",
   "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",

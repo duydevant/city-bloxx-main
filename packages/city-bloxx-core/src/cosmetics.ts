@@ -54,6 +54,7 @@ export function validateCosmeticCatalog(catalog: readonly CosmeticItem[] = COSME
   if(!Array.isArray(catalog)||catalog.length>128||new Set(catalog.map(d=>d?.id)).size!==catalog.length)throw new Error("Invalid cosmetic catalog");
   for(const d of catalog)if(!d||!tag(d.id)||d.version!=="cosmetics-1"||!["building","roof","crane","badge"].includes(d.category)||!["default","brick","winter","season"].includes(d.set)||typeof d.available!=="boolean"||
     !["free","completed","perfect","daily","collection","event","season"].includes(d.rule)||!integer(d.target)||d.target>1000000||(d.rule==="free"?d.target!==0:d.target<1)||
+    (d.coinPrice!==undefined&&(!integer(d.coinPrice)||d.coinPrice>1000000||(d.rule==="free"||d.category==="badge")&&d.coinPrice!==0))||
     (d.category==="building"||d.category==="roof"?d.classId===null||!BUILDING_IDS.includes(d.classId):d.classId!==null)||
     d.rule==="completed"&&d.category!=="building"||d.rule==="perfect"&&d.category!=="roof"||d.rule==="daily"&&d.category!=="crane"||d.rule==="collection"&&d.category!=="badge"||
     !Array.isArray(d.assets)||!d.assets.length||d.assets.length>3||d.assets.some((a:unknown)=>typeof a!=="string"||! /^(stack|city|rig|ui)\/(default|brick|winter|season)\/[a-z0-9_-]+\.(png|svg)$/.test(a))||
@@ -82,6 +83,30 @@ export function grantSpecificCosmetics(save: GameSave, itemIds: readonly string[
   }
   return next;
 }
+export function buyCosmeticWithCoins(save: GameSave, itemId: string, at: number, catalog = COSMETIC_CATALOG): GameSave {
+  validateCosmeticCatalog(catalog);
+  if (!integer(at)) throw new Error("Invalid purchase timestamp");
+  const item = catalog.find(d => d.id === itemId);
+  if (!item || !item.available || item.category === "badge") throw new Error("Cosmetic is unavailable or cannot be purchased");
+  if (ownsCosmetic(save, item)) return save;
+  const price = item.coinPrice ?? 0;
+  if (!integer(price) || price <= 0) throw new Error("Cosmetic cannot be purchased with coins");
+  if (!integer(save.coins) || save.coins < price) throw new Error("Insufficient coins");
+  if (save.inventory.owned.length >= 128 || save.inventory.grants.length >= 128) throw new Error("Inventory bounds exceeded; previous preserved");
+  const receipt = `buy:${item.id}`;
+  const coinReceipts = [...(save.coinReceipts ?? []).filter(r => r !== receipt), receipt].slice(-64);
+  const bought: GameSave = {
+    ...save,
+    coins: save.coins - price,
+    coinReceipts,
+    inventory: {
+      ...save.inventory,
+      owned: [...save.inventory.owned, item.id],
+      grants: [...save.inventory.grants, { id: item.id, version: item.version, at }],
+    },
+  };
+  return grantCosmetics(bought, at, catalog);
+}
 export function equipCosmetic(save: GameSave, itemId: string, classId: BuildingId): GameSave {
   const item = COSMETIC_CATALOG.find(d => d.id === itemId);
   if (!item || !item.available || item.category === "badge" || item.classId !== null && item.classId !== classId || !ownsCosmetic(save, item)) throw new Error("Cosmetic is locked, unavailable or incompatible");
@@ -94,3 +119,4 @@ export function equipCosmetic(save: GameSave, itemId: string, classId: BuildingI
 export function equipmentFor(save: GameSave, classId: BuildingId): RunEquipment {
   return { building: save.inventory.equipment.buildings[classId], roof: save.inventory.equipment.roofs[classId], crane: save.inventory.equipment.crane };
 }
+

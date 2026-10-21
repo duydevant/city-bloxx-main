@@ -25,6 +25,7 @@ import {
 } from "@/lib/portal/bridge"
 import { browserRanked } from "@/lib/ranked/browser"
 import { resolveWebLiveOpsManifest } from "@/lib/liveops/service"
+import { createFirebasePvpPort } from "@/lib/pvp/firebase-rtdb"
 
 export function QuickTower({
   initialScreen,
@@ -45,10 +46,12 @@ export function QuickTower({
     parsedPortal.screen ??
     (params.has("screen") ? sessionScreen(params.get("screen")) : undefined)
   const resolvedInitialReplay = parsedPortal.replayId ?? params.get("replay") ?? undefined
+  const resolvedInitialRoom = params.get("room") ?? undefined
   const portalQuery = useRef(parsedPortal)
   const initial = useRef({
     screen: resolvedInitialScreen,
     replay: resolvedInitialReplay,
+    room: resolvedInitialRoom,
   })
   const currentScreenRef = useRef<SessionScreen>(resolvedInitialScreen ?? "quick")
   const lastQuery = useRef(query)
@@ -113,6 +116,7 @@ export function QuickTower({
       lifecycle: portalLifecycle ?? undefined,
       score: portalScore ?? undefined,
       ranked: cloud.scope && cloud.scope !== "guest" ? browserRanked().port(cloud.scope) : undefined,
+      pvp: createFirebasePvpPort(),
       seed: () => Date.now() & 0x7fffffff,
       locale: localeRef.current,
       showLanguageSwitch: embed ? portalQuery.current.showLanguageSwitch : false,
@@ -124,6 +128,7 @@ export function QuickTower({
       },
       initialScreen: initial.current.screen,
       initialReplayId: initial.current.replay,
+      initialPvpRoom: initial.current.room,
       presentation: content ? "content" : "game",
       onNavigate: (screen, replayId) => {
         currentScreenRef.current = screen

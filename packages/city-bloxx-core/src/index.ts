@@ -21,5 +21,7 @@ export * from "./one-drop";
 export * from "./album";
 export * from "./ghost";
 export * from "./c7-modes-liveops";
+export * from "./pvp";
+
 
 
