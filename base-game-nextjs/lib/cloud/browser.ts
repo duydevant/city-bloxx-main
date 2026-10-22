@@ -20,7 +20,11 @@ export function registerCheckpoint(work: () => Promise<boolean>) {
   }
 }
 export async function checkpointProgress() {
-  return !checkpoint || (await checkpoint()) || singleton?.snapshot().status === "peer"
+  return (
+    !checkpoint ||
+    (await checkpoint()) ||
+    ["peer", "conflict", "review", "storage", "incompatible"].includes(singleton?.snapshot().status ?? "")
+  )
 }
 export async function prepareIdentityChange(kind: "login" | "logout" = "login") {
   if (!(await checkpointProgress())) throw new Error("storage")

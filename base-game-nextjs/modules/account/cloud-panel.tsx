@@ -121,11 +121,24 @@ export function CloudPanel() {
               <Cloud size={22} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
               <span>{vi ? "Tiến trình và đám mây" : "Progress and cloud"}</span>
             </h2>
-            {!critical && (
+            {(!critical || state.ready) && (
               <button
                 type="button"
                 className="auth-close"
-                onClick={() => setExpanded(false)}
+                disabled={busy}
+                onClick={() => {
+                  if (critical) {
+                    if (state.status === "peer") {
+                      void action(async () => {
+                        await browserCloud().reloadLocal()
+                        setExpanded(false)
+                      })
+                      return
+                    }
+                    browserCloud().continueLocal()
+                  }
+                  setExpanded(false)
+                }}
               >
                 {vi ? "Đóng" : "Close"}
               </button>
@@ -154,7 +167,7 @@ export function CloudPanel() {
               <span className="text-sm font-medium">{saveSummary(local, vi)}</span>
             </div>
 
-            {state.remote && (
+            {state.remote && state.remote.payload !== null && (
               <div className="cloud-copy-card">
                 <strong>
                   <Cloud size={16} className="text-amber-500" aria-hidden="true" />
@@ -185,7 +198,7 @@ export function CloudPanel() {
             </button>
           )}
 
-          {state.remote && state.remote.compatibility !== "incompatible" && (
+          {state.remote && state.remote.payload !== null && state.remote.compatibility !== "incompatible" && (
             <div className="cloud-copy-card">
               <p className="text-xs text-muted-foreground">
                 {vi
@@ -216,7 +229,12 @@ export function CloudPanel() {
             <button
               className="game-btn-gold"
               disabled={busy}
-              onClick={() => void action(() => browserCloud().reloadLocal())}
+              onClick={() =>
+                void action(async () => {
+                  await browserCloud().reloadLocal()
+                  setExpanded(false)
+                })
+              }
             >
               <RefreshCw size={15} aria-hidden="true" />
               <span>{vi ? "Mở bản tài khoản vừa được lưu" : "Open the saved account copy"}</span>

@@ -157,10 +157,22 @@ export function QuickTower({
         account: "backend-ready",
       },
       tracking: {
-        installationId: () =>
-          [...crypto.getRandomValues(new Uint8Array(16))]
-            .map((n) => n.toString(16).padStart(2, "0"))
-            .join(""),
+        installationId: () => {
+          try {
+            const key = "city-bloxx.installation-id.v1"
+            const existing = localStorage.getItem(key)
+            if (existing && /^[a-f0-9]{32}$/.test(existing)) return existing
+            const next = [...crypto.getRandomValues(new Uint8Array(16))]
+              .map((n) => n.toString(16).padStart(2, "0"))
+              .join("")
+            localStorage.setItem(key, next)
+            return next
+          } catch {
+            return [...crypto.getRandomValues(new Uint8Array(16))]
+              .map((n) => n.toString(16).padStart(2, "0"))
+              .join("")
+          }
+        },
         now: () => Date.now(),
       },
       onLocaleChange: (next) => {

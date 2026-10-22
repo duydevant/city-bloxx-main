@@ -2007,9 +2007,11 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   const readyPromise = (async () => {
     const load = renderer.load().catch(() => message(t("Some artwork could not load; playing with fallback graphics.")));
+    let initialRaw = "";
     try {
       const value = await saveController.load();
       if (disposed) return;
+      try { initialRaw = JSON.stringify(prepareSave(value)); } catch { initialRaw = ""; }
       loadedSave(value);
     }
     catch { storageWritable = false; message(t("Save could not be read. Playing without saving to protect your old progress.")); }
@@ -2017,7 +2019,10 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (disposed) return;
     applySettings();
     ready = true; renderer.resize(arena.clientWidth, arena.clientHeight);
-    if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();persist();
+    if(options.initialScreen)navigate(options.initialScreen,options.initialReplayId);else home();
+    let currentRaw = "";
+    try { currentRaw = JSON.stringify(prepareSave(save)); } catch { currentRaw = ""; }
+    if (currentRaw !== initialRaw) persist();
   })();
   function setFeatureFlags(nextFlags: SessionFeatureFlags): void {
     featureFlags = { ...featureFlags, ...nextFlags };
@@ -2027,16 +2032,19 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   }
   function setLiveOpsManifest(manifest: LiveOpsManifest): void {
     liveOpsManifest = manifest;
+    if (!ready || disposed) return;
+    const before = JSON.stringify(save);
     save = ensureWeeklyContracts(save, now(), liveOpsManifest);
-    persist();
+    if (JSON.stringify(save) !== before) persist();
     if (ready && !disposed) {
       if (progressionScreens.isOpen()) progressionScreens.refresh();
       else if (bookScreens.isOpen()) bookScreens.refresh();
       else if (!run && !replay && !mapView && !dailyScreens.isOpen() && !dataScreens.isOpen() && !pvpScreens.isOpen() && guidePage < 0) home();
     }
   }
-  return { ready: readyPromise, setLocale, setFeatureFlags, setLiveOpsManifest, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();checkpointCity();flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
-    checkpointCity(); abandonQuick(); flushSave();
+  return { ready: readyPromise, setLocale, setFeatureFlags, setLiveOpsManifest, navigate, whenSaved: () => saveController.flush(), async checkpointAndPause() { userPaused=true;syncPause();const hadActiveRun=Boolean((cityActive&&run)||(run&&!replay&&runContext));checkpointCity();if(saveTimer||hadActiveRun)flushSave(); await saveController.flush(); return storageWritable && rewardSaveStatus !== "error"; }, dispose() {
+    const hadActiveRun=Boolean((cityActive&&run)||(run&&!replay&&runContext));
+    checkpointCity(); abandonQuick(); if(saveTimer||hadActiveRun)flushSave();
     progressionScreens.clear();
     bookScreens.clear();
     pvpScreens.dispose();

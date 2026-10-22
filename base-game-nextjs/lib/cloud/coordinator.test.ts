@@ -493,4 +493,20 @@ describe("W1.4 durable account cloud coordinator", () => {
     expect(c.snapshot().revision).toBe("9007199254740994")
     expect(w.calls.findLast((call) => call.body)!.body!.expectedRevision).toBe("9007199254740993")
   })
+  it("re-baselines local progress without locking in a conflict when cloud has no save (revision 0, payload null)", async () => {
+    const w = world(),
+      { c, p } = await seeded(w)
+    await p.port.save({ ...emptySave(), runs: 5 })
+    await c.flush()
+    expect(c.snapshot().revision).toBe("2")
+    // Simulate a backend redeploy / empty cloud DB while client IndexedDB still has revision "2"
+    w.clouds.set("A", remote("0", null))
+    await c.reconcile()
+    expect(c.snapshot().status).toBe("pending")
+    expect(c.snapshot().locked).toBe(false)
+    expect(c.snapshot().remote).toBeNull()
+    await c.flush()
+    expect(c.snapshot().status).toBe("saved")
+    expect((w.clouds.get("A")!.payload as GameSave).runs).toBe(5)
+  })
 })

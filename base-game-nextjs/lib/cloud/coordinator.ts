@@ -80,6 +80,10 @@ function snapshot(value: CloudSnapshot): CloudSnapshot {
   return value
 }
 
+function validConflict(conflict: CloudSnapshot | null): CloudSnapshot | null {
+  return conflict && conflict.payload !== null ? conflict : null
+}
+
 export class CloudCoordinator {
   private state = INITIAL_CLOUD
   private listeners = new Set<() => void>()
@@ -106,14 +110,15 @@ export class CloudCoordinator {
     return this.state.scope === owner && this.epoch === epoch
   }
   private display(record: AccountSave, status?: CloudStatus) {
+    const conflict = validConflict(record.conflict)
     const incompatible =
-      (record.raw !== null && !compatible(record.raw)) || record.conflict?.compatibility === "incompatible"
+      (record.raw !== null && !compatible(record.raw)) || conflict?.compatibility === "incompatible"
     const next =
       status ??
       (incompatible
         ? "incompatible"
-        : record.conflict
-          ? "conflict"
+        : conflict
+           ? "conflict"
           : record.rejected
             ? "rejected"
             : record.pending || !sameSave(record.raw, record.base)
@@ -122,14 +127,13 @@ export class CloudCoordinator {
     this.emit({
       raw: record.raw,
       revision: record.revision,
-      remote: record.conflict,
+      remote: conflict,
       retryAt: record.retryAt,
       status: next,
       ready: compatible(record.raw),
       locked:
         ["peer", "review", "storage"].includes(next) ||
-        (!this.allowLocal && ["conflict", "incompatible"].includes(next)) ||
-        !!record.pending?.replace,
+        (!this.allowLocal && (["conflict", "incompatible"].includes(next) || !!record.pending?.replace)),
     })
   }
   async identity(owner: string, authenticated: boolean, approved = false) {
@@ -230,8 +234,13 @@ export class CloudCoordinator {
             }
             let accepted = false
             let backedUp = false
+            let changed = false
             const record = await this.env.storage.change(owner!, (record, backup) => {
               if (!valid()) return record
+              if (!record.pending?.replace && sameSave(record.raw, raw)) {
+                accepted = true
+                return record
+              }
               if (record.version !== version || record.pending?.replace) {
                 if (staleRaw !== raw) {
                   backup(raw, "stale-tab")
@@ -240,7 +249,7 @@ export class CloudCoordinator {
                 return record
               }
               accepted = true
-              if (sameSave(record.raw, raw)) return record
+              changed = true
               return { ...record, raw, version: this.env.uuid(), rejected: false }
             })
             if (backedUp) staleRaw = raw
@@ -253,7 +262,7 @@ export class CloudCoordinator {
             }
             version = record.version
             this.display(record, !this.authenticated ? "auth" : undefined)
-            this.env.post(owner!, record.version)
+            if (changed) this.env.post(owner!, record.version)
             this.schedule()
             return true // Local durable only; cloud acknowledgement is a separate state.
           } catch {
@@ -369,6 +378,19 @@ export class CloudCoordinator {
       if (error instanceof ApiError && error.status === 409) {
         const cloud = snapshot(await this.env.request<CloudSnapshot>(owner, "/city-bloxx/save"))
         if (!this.current(owner, epoch)) return
+        if (cloud.revision === "0" && cloud.payload === null) {
+          const record = await this.env.storage.change(owner, (record) => ({
+            ...record,
+            base: null,
+            revision: "0",
+            pending: null,
+            conflict: null,
+          }))
+          if (!this.current(owner, epoch)) return
+          this.display(record)
+          this.schedule()
+          return
+        }
         let record = await this.env.storage.change(owner, (record) => ({ ...record, conflict: cloud }))
         await this.env.pause()
         record = (await this.env.storage.read(owner)) ?? record
@@ -380,7 +402,7 @@ export class CloudCoordinator {
           if (terminal && record.pending) backup(JSON.stringify(record.pending), "rejected-mutation")
           return {
             ...record,
-            conflict: terminal ? (record.pending?.remote ?? record.conflict) : record.conflict,
+            conflict: terminal ? validConflict(record.pending?.remote ?? record.conflict) : validConflict(record.conflict),
             pending: terminal ? null : record.pending,
             rejected: terminal,
             retryAt: this.env.now() + Math.max(1, error.retryAfter ?? (error.status === 429 ? 60 : 5)) * 1000,
@@ -411,7 +433,7 @@ export class CloudCoordinator {
     if (!owner || owner === "guest" || !this.authenticated || this.target) return
     try {
       let record = await this.env.storage.read(owner)
-      if (record?.pending && !record.conflict && !record.rejected) {
+      if (record?.pending && !validConflict(record.conflict) && !record.rejected) {
         await this.flush()
         record = await this.env.storage.read(owner)
         if (record?.pending) {
@@ -423,6 +445,9 @@ export class CloudCoordinator {
       if (!this.current(owner, epoch) || !this.authenticated) return
       const cloudRaw = cloud.payload === null ? null : JSON.stringify(cloud.payload)
       record = await this.env.storage.change(owner, (record, backup) => {
+        if (record.conflict && record.conflict.payload === null) {
+          record = { ...record, conflict: null }
+        }
         if (record.pending) return record
         if (record.raw === null && cloudRaw === null)
           return { ...record, raw: JSON.stringify(emptySave()), version: this.env.uuid() }
@@ -449,13 +474,16 @@ export class CloudCoordinator {
           // Identical snapshots need no merge or active-state replacement.
           if (sameSave(record.raw, cloudRaw))
             return { ...record, base: cloudRaw, revision: cloud.revision, conflict: null }
+          // An empty cloud (revision 0, payload null) has nothing to conflict with; upload the local save.
+          if (cloudRaw === null && compatible(record.raw))
+            return { ...record, base: null, revision: "0", conflict: null }
           return { ...record, conflict: cloud }
         }
         return record
       })
       if (!this.current(owner, epoch)) return
       this.display(record)
-      if (record.conflict) await this.env.pause()
+      if (validConflict(record.conflict)) await this.env.pause()
       else this.schedule()
     } catch (error) {
       if (!this.current(owner, epoch)) return
