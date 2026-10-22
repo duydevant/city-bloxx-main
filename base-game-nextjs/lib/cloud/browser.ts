@@ -69,15 +69,19 @@ export function browserCloud() {
       void cloud.peer(message.owner, message.version).catch(() => {})
   })
   let previous = ""
+  const isEmbedRoute = () =>
+    typeof window !== "undefined" && window.location.pathname.startsWith("/embed")
   const identity = () => {
     const state = auth.snapshot()
     if (state.status === "loading") return
+    const embed = isEmbedRoute()
     let remembered: string | null = null
     try {
       remembered = localStorage.getItem(ACTIVE_OWNER_KEY)
     } catch {}
     if (remembered && !/^[a-f0-9-]{36}$/i.test(remembered)) remembered = null
-    const owner = state.user?.id ?? (state.issue && remembered ? remembered : "guest")
+    const owner =
+      state.user?.id ?? (!embed && state.issue && remembered ? remembered : "guest")
     const authenticated = state.status === "authenticated" && state.user?.id === owner
     const key = `${owner}:${authenticated}`
     if (key === previous) return
@@ -85,18 +89,36 @@ export function browserCloud() {
     // An initial Guest restore may complete while login waits for the auth lock.
     // It must not consume the user's confirmation for the authenticated identity.
     const approved =
+      embed ||
       (approvedChange === "login" && authenticated) ||
       (approvedChange === "logout" && owner === "guest" && state.issue === null)
-    if (approved) approvedChange = null
+    if (approved && !embed) approvedChange = null
     void cloud.identity(owner, authenticated, approved).catch(() => {})
   }
+  let autoResolving = false
   cloud.subscribe(() => {
-    const scope = cloud.snapshot().scope
-    if (scope && cloud.snapshot().status !== "review") {
+    const snap = cloud.snapshot()
+    const scope = snap.scope
+    if (scope && snap.status !== "review") {
       try {
         if (scope === "guest") localStorage.removeItem(ACTIVE_OWNER_KEY)
         else localStorage.setItem(ACTIVE_OWNER_KEY, scope)
       } catch {}
+    }
+    if (isEmbedRoute() && snap.locked && !autoResolving) {
+      if (snap.status === "review") {
+        autoResolving = true
+        void cloud.acceptIdentity().finally(() => {
+          autoResolving = false
+        })
+      } else if (snap.status === "peer") {
+        autoResolving = true
+        void cloud.reloadLocal().finally(() => {
+          autoResolving = false
+        })
+      } else if (snap.ready && ["conflict", "storage", "incompatible"].includes(snap.status)) {
+        cloud.continueLocal()
+      }
     }
   })
   auth.subscribe(identity)

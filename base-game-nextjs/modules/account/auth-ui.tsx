@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { KeyRound, ShieldAlert } from "lucide-react"
 import { useI18n } from "@/lib/i18n"
 import { useAuthStore } from "@/lib/store/auth.store"
@@ -21,6 +22,8 @@ export function checkpointAccount() {
 export function AuthUIProvider({ children }: { children: React.ReactNode }) {
   const state = useAuthStore(),
     { locale } = useI18n(),
+    pathname = usePathname(),
+    isEmbed = pathname?.startsWith("/embed") ?? false,
     i = locale === "vi" ? 1 : 0
   const [open, setOpen] = useState(false),
     dialog = useRef<HTMLDialogElement>(null)
@@ -58,9 +61,9 @@ export function AuthUIProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthUI.Provider value={show}>
       {children}
-      <CloudPanel />
-      <RankedPanel />
-      {state.status === "required" && dismissed !== state && (
+      {!isEmbed && <CloudPanel />}
+      {!isEmbed && <RankedPanel />}
+      {!isEmbed && state.status === "required" && dismissed !== state && (
         <aside className="auth-notice" role="status">
           <ShieldAlert size={18} className="shrink-0" aria-hidden="true" />
           <span className="flex-1">{copy.required[i]}</span>
