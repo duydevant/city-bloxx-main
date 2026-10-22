@@ -3,6 +3,8 @@ import { Suspense } from "react"
 
 import { QuickTower } from "@/modules/city-bloxx/quick-tower"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "City Bloxx (Embed)",
   description: "Embedded City Bloxx game frame for multi-game portals.",

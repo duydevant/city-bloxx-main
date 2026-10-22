@@ -49,6 +49,7 @@ const nextConfig: NextConfig = {
         source: "/embed",
         headers: [
           { key: "Content-Security-Policy", value: `frame-ancestors ${frameAncestors}` },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
