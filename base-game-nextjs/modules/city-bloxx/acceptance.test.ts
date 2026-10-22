@@ -44,7 +44,7 @@ describe("C0–C2 acceptance", () => {
     until(game, () => game.getSnapshot().phase === "swing")
     const s=game.getSnapshot()
     expect(s.floors.length).toBe(50)
-    expect(s.difficulty.cableLength).toBeCloseTo(R.pendulumLength*.72*.9,4)
+    expect(s.difficulty.cableLength).toBeCloseTo(R.pendulumLength*.48*.9,4)
     expect(s.current.y + cameraLift(s)).toBeLessThanOrEqual(R.spawnY + 1)
     expect(s.current.y + R.floorHeight).toBeLessThan(R.groundY - s.floors.length*R.floorHeight)
     expect(s.lives).toBe(3)

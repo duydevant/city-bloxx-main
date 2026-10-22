@@ -4,7 +4,7 @@ export const ASSIST_RULESET_VERSION = "quick-tower-assist-0.13.0";
 export const CITY_RULESET_VERSION = "build-city-7";
 export const CITY_RATING_VERSION = "city-rating-1";
 export const RATING_VERSION = "quick-rating-1";
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export const QUICK_TOWER_RULES = Object.freeze({
   tickRate: 60,
@@ -65,27 +65,35 @@ export interface QuickDifficulty {
   speedMultiplier: number; amplitude: number; baselineSway: number; swaySpeedMultiplier: number;
   cableLength: number; emptyCableLength: number;
 }
-// Completed floors, speed relative to the 192-tick oscillator, loaded cable ratio, ambient sway.
-export const HEIGHT_DIFFICULTY = Object.freeze([
+const V12_HEIGHT_DIFFICULTY = Object.freeze([
   [0,.72,1,0], [2,.72,1,0], [10,.76,.95,1], [20,.84,.90,2.5],
   [30,.94,.84,4], [40,1.04,.78,5.5], [50,1.14,.72,7], [60,1.22,.68,8],
 ] as const);
+// Completed floors, speed relative to the 192-tick oscillator, loaded cable ratio, ambient sway.
+export const HEIGHT_DIFFICULTY = Object.freeze([
+  [0,.72,1,0], [2,.72,1,0], [8,.75,.9625,.75], [10,.86,.92,4.5], [20,1.12,.74,12],
+  [30,1.34,.62,18], [40,1.52,.54,22], [50,1.68,.48,25], [60,1.82,.44,27],
+] as const);
 export function getQuickDifficulty(height: number, assist = false, legacyMotion = false, motionVersion?: 11 | 12): QuickDifficulty {
   if (!legacyMotion) {
+    const table = motionVersion ? V12_HEIGHT_DIFFICULTY : HEIGHT_DIFFICULTY;
     const h = Math.max(0,Number.isFinite(height)?height:0);
-    const upper = HEIGHT_DIFFICULTY.findIndex(point=>point[0]>=h);
-    const b = HEIGHT_DIFFICULTY[upper<0?HEIGHT_DIFFICULTY.length-1:upper];
-    const a = HEIGHT_DIFFICULTY[Math.max(0,(upper<0?HEIGHT_DIFFICULTY.length-1:upper)-1)];
+    const upper = table.findIndex(point=>point[0]>=h);
+    const b = table[upper<0?table.length-1:upper];
+    const a = table[Math.max(0,(upper<0?table.length-1:upper)-1)];
     const t = a===b?0:Math.min(1,(h-a[0])/(b[0]-a[0]));
     const speed = a[1]+(b[1]-a[1])*t, ratio = a[2]+(b[2]-a[2])*t;
     const cableLength = QUICK_TOWER_RULES.pendulumLength*ratio*(motionVersion===11?1:QUICK_TOWER_RULES.loadedCableScale);
     const strength = assist?QUICK_TOWER_RULES.assistDifficultyStrength:1;
+    const swayBoost = motionVersion || h <= 8
+      ? Math.min(Math.max(0,h-2),58)/58*.18
+      : 6/58*.18 + Math.min(h-8,52)/52*.42;
     return {
       speedMultiplier:(.72+(speed-.72)*strength)/(assist?QUICK_TOWER_RULES.assistSwingMultiplier:1)/(motionVersion===11?1:motionVersion===12?.9:QUICK_TOWER_RULES.swingCycleScale),
       // A shorter cable needs a narrower arc; never let horizontal travel exceed cable length.
       amplitude:cableLength*.8, cableLength, emptyCableLength:QUICK_TOWER_RULES.emptyCableLength,
       baselineSway:(a[3]+(b[3]-a[3])*t)*strength,
-      swaySpeedMultiplier:1+Math.min(Math.max(0,h-2),58)/58*.18*strength,
+      swaySpeedMultiplier:1+swayBoost*strength,
     };
   }
   // Already-started City towers retain the exact v0.7–v0.10 motion until accepted/cancelled.

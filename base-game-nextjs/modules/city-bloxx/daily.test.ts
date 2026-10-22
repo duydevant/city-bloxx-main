@@ -115,8 +115,8 @@ describe("C4.1 save, streak and settlement", () => {
     const state = settleDaily(a.save.daily, first)
     const original = state.days[0].bestComplete!
     const cases = [
-      { summary: { ...first, result: { ...first.result, population: 1306 } }, wins: true },
-      { summary: { ...summary, result: { ...summary.result, population: 1304 } }, wins: false },
+      { summary: { ...first, result: { ...first.result, population: summary.result.population + 1 } }, wins: true },
+      { summary: { ...summary, result: { ...summary.result, population: summary.result.population - 1 } }, wins: false },
       { summary: { ...first, metrics: summary.metrics }, wins: true },
       { summary: { ...first, result: { ...first.result, misses: 0 } }, wins: true },
       { summary: { ...first, result: { ...first.result, durationTicks: 2999 } }, wins: true },
@@ -223,7 +223,7 @@ describe("C4.1 save, streak and settlement", () => {
     expect(save.daily.days.find(d => d.dateUTC === "2026-10-09")).toBeUndefined()
     expect(save.daily.lifetimeCreditedDays).toBe(1)
     expect(save.daily.longestStreak).toBe(1)
-    expect(best!.result.population).toBe(1305)
+    expect(best!.result.population).toBe(records[0].result.population)
     expect(migrateSave(save)).toEqual(save)
   })
 })

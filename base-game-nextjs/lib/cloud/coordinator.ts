@@ -241,7 +241,7 @@ export class CloudCoordinator {
                 accepted = true
                 return record
               }
-              if (record.version !== version || record.pending?.replace) {
+              if (record.version !== version || (record.pending?.replace && !this.allowLocal)) {
                 if (staleRaw !== raw) {
                   backup(raw, "stale-tab")
                   backedUp = true
@@ -250,7 +250,11 @@ export class CloudCoordinator {
               }
               accepted = true
               changed = true
-              return { ...record, raw, version: this.env.uuid(), rejected: false }
+              const pending =
+                record.pending?.replace && this.allowLocal
+                  ? { ...record.pending, replace: false }
+                  : record.pending
+              return { ...record, raw, pending, version: this.env.uuid(), rejected: false }
             })
             if (backedUp) staleRaw = raw
             if (!valid()) return accepted

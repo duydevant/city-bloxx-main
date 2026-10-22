@@ -23,7 +23,7 @@ parentPort.on('message', ({ id, record, operation, request }) => {
       if (!payload || Array.isArray(payload) || typeof payload !== 'object' || payload.schema !== schema) throw new Error('Schema mismatch');
       // Check nesting even for a future local snapshot that is only being backed up.
       canonical(payload, 0, request.choice !== 'cloud');
-      const compatible = [1,2,3,4].includes(schema);
+      const compatible = [1,2,3,4,5].includes(schema);
       if (!compatible && request.choice !== 'cloud') return parentPort.postMessage({ id, ok: false, errorCode: 'GAME_SAVE_INCOMPATIBLE' });
       const normalized = request.choice === 'cloud' ? null : migrateSave(payload);
       if (normalized && Buffer.byteLength(JSON.stringify(normalized)) > 262144) return parentPort.postMessage({ id, ok: false, errorCode: 'GAME_SAVE_TOO_LARGE' });

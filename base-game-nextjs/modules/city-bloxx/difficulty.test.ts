@@ -46,12 +46,18 @@ describe("height difficulty ramp",()=>{
     expect(getQuickDifficulty(30).amplitude).toBeLessThan(R.pendulumLength)
     expect(getQuickDifficulty(30).baselineSway).toBeGreaterThan(0)
   })
-  it("keeps ten floors gentle, progresses to sixty, and never stretches past the cable",()=>{
-    expect(getQuickDifficulty(10).speedMultiplier/getQuickDifficulty(0).speedMultiplier).toBeLessThan(1.06)
-    for(const height of [0,10,20,40,50,60])for(const assist of [false,true]) {
+  it("keeps early floors gentle, ramps up strongly to sixty, and never stretches past the cable",()=>{
+    expect(getQuickDifficulty(8).speedMultiplier/getQuickDifficulty(0).speedMultiplier).toBeLessThan(1.06)
+    for(const height of [0,2])for(const assist of [false,true]) {
       const now=getQuickDifficulty(height,assist),before=getQuickDifficulty(height,assist,false,12)
       expect(now.cableLength).toBe(before.cableLength)
       expect(before.speedMultiplier/now.speedMultiplier).toBeCloseTo(.9,8)
+    }
+    for(const height of [10,20,40,50,60]) {
+      const now=getQuickDifficulty(height),before=getQuickDifficulty(height,false,false,12)
+      expect(now.cableLength).toBeLessThan(before.cableLength)
+      expect(now.speedMultiplier).toBeGreaterThan(before.speedMultiplier)
+      expect(now.baselineSway).toBeGreaterThan(before.baselineSway)
     }
     for(let floor=0;floor<=100;floor++) {
       const current=getQuickDifficulty(floor),next=getQuickDifficulty(floor+1)
@@ -59,7 +65,7 @@ describe("height difficulty ramp",()=>{
       expect(current.amplitude).toBeLessThan(current.cableLength)
       expect(next.cableLength).toBeLessThanOrEqual(current.cableLength)
       expect(next.speedMultiplier).toBeGreaterThanOrEqual(current.speedMultiplier)
-      expect(next.speedMultiplier-current.speedMultiplier).toBeLessThanOrEqual(.01235)
+      expect(next.speedMultiplier-current.speedMultiplier).toBeLessThanOrEqual(.07)
     }
   })
   it("restores the recorded v0.10 City fall exactly and retains old motion on the next save",()=>{

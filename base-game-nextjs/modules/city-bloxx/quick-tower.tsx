@@ -285,7 +285,7 @@ export function QuickTower({
             : "Opening progress. Use the save panel below to retry or download a preserved copy if unavailable."}
         </p>
       )}
-      <div ref={root} inert={cloud.locked} className={content ? undefined : styles.session} />
+      <div ref={root} inert={!embed && cloud.locked} className={content ? undefined : styles.session} />
     </section>
   )
 }

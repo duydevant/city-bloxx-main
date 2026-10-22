@@ -7,10 +7,10 @@
   "assets": [
     {
       "path": "bg/default/bg_downtown_default_map.png",
-      "width": 1536,
-      "height": 1024,
-      "bytes": 1838848,
-      "sha256": "6fa26695c6551034d962678bb1a04c9e84b19f4210e0e568d3de87c8d80b51e1",
+      "width": 768,
+      "height": 512,
+      "bytes": 222951,
+      "sha256": "490a33d2a07f01c86104195835d7f3ebe56a46fac33cfb09b1f67a7bc8d6236d",
       "targets": [
         "web",
         "playable"
@@ -18,10 +18,10 @@
     },
     {
       "path": "bg/default/bg_stack_default_sky.png",
-      "width": 1024,
-      "height": 1536,
-      "bytes": 1154674,
-      "sha256": "27ac62eef6dbfd0038e4905a64256a4bd420c691d01d9f1f2672d8b397120ff4",
+      "width": 512,
+      "height": 768,
+      "bytes": 79500,
+      "sha256": "f83ee3f495759648bb5fa21af23cf93c2cccb73ddf181fe8230e7aaa489f61e1",
       "targets": [
         "web",
         "playable"
@@ -31,8 +31,8 @@
       "path": "city/default/city_highrise_default_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 77077,
-      "sha256": "0533401d5b8f08f4bfda75ee768f951b5c596df92257257a005fd3b58a36f3d2",
+      "bytes": 26309,
+      "sha256": "46910702dc1bfa0c541569a5ab59c90bd32878a2eea34ef64817bbea5a938d4b",
       "targets": [
         "web",
         "playable"
@@ -42,8 +42,8 @@
       "path": "city/default/city_industrial_default_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 83504,
-      "sha256": "929ad49940b0be22c4bc680ab21158f755711c885f9026af0db9c26ba069e1a8",
+      "bytes": 28019,
+      "sha256": "59f9601ca9c11685f7bc42c9485c28cea6b497b9d1ed4ebb4c7702cf7de4b15b",
       "targets": [
         "web",
         "playable"
@@ -53,8 +53,8 @@
       "path": "city/default/city_office_default_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 91837,
-      "sha256": "b94111ec2589209ecbafa8abf2f1ca44672c273999a79fc025da19fc58bae8da",
+      "bytes": 27985,
+      "sha256": "b5d03bde1b03af472eea823b5a79707bfdb33633a69b6e7e9fe039061fd50871",
       "targets": [
         "web",
         "playable"
@@ -64,8 +64,8 @@
       "path": "city/default/city_residential_default_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 77327,
-      "sha256": "9c6fa274e10a5cd130ad8ffd9292d731ef42a059267c12e294154223f378a49a",
+      "bytes": 24075,
+      "sha256": "0ea85a91eaef0a7e9d70a9b6d7270d07e858500fce2b060773e31bea7e8eaeaf",
       "targets": [
         "web",
         "playable"
@@ -75,8 +75,8 @@
       "path": "city/default/lot_empty_default_tile.png",
       "width": 256,
       "height": 128,
-      "bytes": 27709,
-      "sha256": "8caa072827427721834f48e865f8bacdf42f4ee67f5fc27827934d678be12b59",
+      "bytes": 5429,
+      "sha256": "3aa89a5b967f8c57f03ee36e05192eca3f1596000bef711d5de461b0e6632846",
       "targets": [
         "web",
         "playable"
@@ -86,8 +86,8 @@
       "path": "stack/default/bldg_highrise_default_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 59795,
-      "sha256": "198b916c7faad9a18d5b1692e9f5ea28986a30d65b1db2f0c109c97a2dca9df4",
+      "bytes": 18450,
+      "sha256": "cdabb099dbe61cadff83751e55cc81230074816469b8751e9b3371665f411029",
       "targets": [
         "web",
         "playable"
@@ -97,8 +97,8 @@
       "path": "stack/default/bldg_highrise_default_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 50580,
-      "sha256": "41aafc9e1ec54bb6d5898a5e531156578f146ff173a4c3510c0e4d0dc70e3bba",
+      "bytes": 15621,
+      "sha256": "620715fe93412526dcf5c50b15497071257948afc2440a647f24b11c94f11816",
       "targets": [
         "web",
         "playable"
@@ -108,8 +108,8 @@
       "path": "stack/default/bldg_highrise_default_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 36364,
-      "sha256": "f9532bf7915d3228945cba58b27ec722ecb1138c9a3732618fe41309c3d1395a",
+      "bytes": 11536,
+      "sha256": "da223532ac5fc0c52b79819acab3002b0111157769202769ea079c8d21ae1b0f",
       "targets": [
         "web",
         "playable"
@@ -119,8 +119,8 @@
       "path": "stack/default/bldg_industrial_default_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 55975,
-      "sha256": "f534e48a78a32ca9076c3134238c2116846ec6ece7d1e36525f4923bd3ca96d1",
+      "bytes": 19107,
+      "sha256": "5908b9ca9cb61379ab0a7eb02eea2e7c283339fbfbfd9ff02cdcbc017dd41690",
       "targets": [
         "web",
         "playable"
@@ -130,8 +130,8 @@
       "path": "stack/default/bldg_industrial_default_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 58092,
-      "sha256": "db9999160d5909f84873b7fc84b2b26464a81488249b90881c1a347cd975263a",
+      "bytes": 20216,
+      "sha256": "4bf65f71224be8c4e4635ef7d4f3190debd8f93e14e17a0d9c9bd6be38994a57",
       "targets": [
         "web",
         "playable"
@@ -141,8 +141,8 @@
       "path": "stack/default/bldg_industrial_default_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 38886,
-      "sha256": "79e8cec9bea6162e091f45f1e2d97cff986b055cc9fe694830244186bbd2e57b",
+      "bytes": 14178,
+      "sha256": "a56803a7562b90a6802165e39632b0a6b3f921ae8995165579be97a6412245ef",
       "targets": [
         "web",
         "playable"
@@ -152,8 +152,8 @@
       "path": "stack/default/bldg_office_default_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 51577,
-      "sha256": "8994a206a37e5fab808f0c0d376e987a20ffc9de32cbfe7e4e79d23a131f130e",
+      "bytes": 17461,
+      "sha256": "decefa166922d5d97eead7400a05e41e1e7e59f382314352b9c893279a9a4d4c",
       "targets": [
         "web",
         "playable"
@@ -163,8 +163,8 @@
       "path": "stack/default/bldg_office_default_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 45974,
-      "sha256": "2408671c3c4340cbb18282bf7b095c9702e15dc385522fff3b00353f8fea11a6",
+      "bytes": 13308,
+      "sha256": "0d647a27f2f06a6a998905758a5f8f542082fd5b002ffd0ad7787f4b9b2c04ca",
       "targets": [
         "web",
         "playable"
@@ -174,8 +174,8 @@
       "path": "stack/default/bldg_office_default_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 35179,
-      "sha256": "2f64d59201e7df7209ca8bbbcc0925e09b330d5a3c3cc008cc87b17a08446045",
+      "bytes": 11233,
+      "sha256": "7461777a55e1422cbd3281f05139fb4351ab1e6e9beeee63b33c391d918c6f92",
       "targets": [
         "web",
         "playable"
@@ -185,8 +185,8 @@
       "path": "stack/default/bldg_residential_default_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 59353,
-      "sha256": "91ae633bc2d8a60fb1cfe6ed7cfa927fbd58d401135ddf6bd8132f9fddb6e023",
+      "bytes": 19314,
+      "sha256": "b7c24c91398a2df220f4159a77ead466f055be44162a0e637424770711e286f9",
       "targets": [
         "web",
         "playable"
@@ -196,8 +196,8 @@
       "path": "stack/default/bldg_residential_default_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 54392,
-      "sha256": "55443766d970ff00dabaae9005cfa653f9cf8fc83d33a58c7d24b1ea5ed795df",
+      "bytes": 18577,
+      "sha256": "e40c0e00273154cfd1f0d822f3ee9894ee2748683c6722c3e3f1fcd85ae7a233",
       "targets": [
         "web",
         "playable"
@@ -207,8 +207,8 @@
       "path": "stack/default/bldg_residential_default_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 32469,
-      "sha256": "f6467e6c453fb7286b354fc933a3bb32256906053a1e99c5237e18e226fb6b2a",
+      "bytes": 10755,
+      "sha256": "c01a6b91f90653669ee19b4089f23677a812918b78790c12f24bb366413c38dd",
       "targets": [
         "web",
         "playable"
@@ -218,8 +218,8 @@
       "path": "stack/default/crane_hook_default_sprite.png",
       "width": 128,
       "height": 128,
-      "bytes": 12652,
-      "sha256": "ca53dcd0114ccc72a85b046b1d4e5ea636b280e4d7e268ef433d0633c8496127",
+      "bytes": 4945,
+      "sha256": "d11cb9b95c38fc491a34bde1725f9d1619eadac80c927a6e3c1aa5c74b16fd5d",
       "targets": [
         "web",
         "playable"
@@ -229,8 +229,8 @@
       "path": "stack/default/crane_rig_default_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 170639,
-      "sha256": "53ef899001830a8e92459b796ca51aaf00ef879fed1737bcfaa9428b82e13231",
+      "bytes": 49099,
+      "sha256": "ab8ff847c7f23004a20b74b2fb8fe87caf1ff21decb3ced747c1bc8a4cb69b83",
       "targets": [
         "web",
         "playable"
@@ -238,10 +238,10 @@
     },
     {
       "path": "fx/population/default/parachute_highrise_default_open.png",
-      "width": 1448,
-      "height": 1086,
-      "bytes": 1144958,
-      "sha256": "0d54377bebfefb7466fcb9700fd4dff394b23b8a7eae0a5c9198e72abb85df12",
+      "width": 320,
+      "height": 240,
+      "bytes": 23947,
+      "sha256": "881dc0a1460b418b909265ac21608e4e20ab9abb870dbc22c38d7ba6c7fcc2a1",
       "targets": [
         "web",
         "playable"
@@ -249,10 +249,10 @@
     },
     {
       "path": "fx/population/default/parachute_industrial_default_open.png",
-      "width": 1448,
-      "height": 1086,
-      "bytes": 1022629,
-      "sha256": "6e7169389a9071e6c954597c960e47ac36da6fb3e9f32b514e5d104390c6426c",
+      "width": 320,
+      "height": 240,
+      "bytes": 21994,
+      "sha256": "38572d88d5aae6cb8bc2f68385affe599f42f346f5e847cc70036b618b170d12",
       "targets": [
         "web",
         "playable"
@@ -260,10 +260,10 @@
     },
     {
       "path": "fx/population/default/parachute_office_default_open.png",
-      "width": 1448,
-      "height": 1086,
-      "bytes": 925188,
-      "sha256": "b1358eb82026c65365468da622a4f0022f60d9a58335b8d4d38ade5e7d92eaf4",
+      "width": 320,
+      "height": 240,
+      "bytes": 18886,
+      "sha256": "b7bb22a0e24390afaf167288713402b5d7d93d424e954c66e71401596e0df792",
       "targets": [
         "web",
         "playable"
@@ -271,10 +271,10 @@
     },
     {
       "path": "fx/population/default/parachute_residential_default_open.png",
-      "width": 1448,
-      "height": 1086,
-      "bytes": 832682,
-      "sha256": "ff54f1418319147910f5762263ca24a584edb8257d447dd56235476ee361e76a",
+      "width": 320,
+      "height": 240,
+      "bytes": 16486,
+      "sha256": "452b4903f6af3a15c336b3d4c954de08516f7999b12edf7618a2d58347bf82f8",
       "targets": [
         "web",
         "playable"
@@ -282,10 +282,10 @@
     },
     {
       "path": "fx/population/default/person_highrise_default_fall.png",
-      "width": 1024,
-      "height": 1536,
-      "bytes": 1220740,
-      "sha256": "7d9ef6539aa49737eb63c8147014d15c0a0e029a368bd2f2f0e50fe04c572dab",
+      "width": 256,
+      "height": 384,
+      "bytes": 15560,
+      "sha256": "7feeaf452582eed690b68ce0ba1ca1f887d16fbcf68b2e0dd92a9b80513dba2f",
       "targets": [
         "web",
         "playable"
@@ -293,10 +293,10 @@
     },
     {
       "path": "fx/population/default/person_industrial_default_fall.png",
-      "width": 1024,
-      "height": 1536,
-      "bytes": 1424828,
-      "sha256": "6a3ff058fea690bce303f9679791798f8799e164e463384af16f7edf3ac29b8b",
+      "width": 256,
+      "height": 384,
+      "bytes": 22526,
+      "sha256": "0ffb97037412557c9d8b2a85310deb9e41d711b1345fd966764e8796f6b49ef9",
       "targets": [
         "web",
         "playable"
@@ -304,10 +304,10 @@
     },
     {
       "path": "fx/population/default/person_office_default_fall.png",
-      "width": 1024,
-      "height": 1536,
-      "bytes": 1137107,
-      "sha256": "0d0683f92240c1f677b12f16df3097093f4eb964be83853f7b091ffb063fc025",
+      "width": 256,
+      "height": 384,
+      "bytes": 15188,
+      "sha256": "cce0754d7d90595b9ea6290ca6f4b288ed1f47064f26b0c054ef1ef9f1441f3e",
       "targets": [
         "web",
         "playable"
@@ -315,10 +315,10 @@
     },
     {
       "path": "fx/population/default/person_residential_default_fall.png",
-      "width": 1024,
-      "height": 1536,
-      "bytes": 1291691,
-      "sha256": "ff866f4c433ad487c86f001f2a71ec0b43ce0efc4d976170b3413e7913fec4b6",
+      "width": 256,
+      "height": 384,
+      "bytes": 18114,
+      "sha256": "2a9fb91fec1b6b8a8c103bc75bae1eccc022209c92ac6f1673ccc132a5894e9b",
       "targets": [
         "web",
         "playable"
@@ -328,8 +328,8 @@
       "path": "stack/brick/bldg_residential_brick_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 56316,
-      "sha256": "cba8d8604de16b4fdc185e9e77ac643cebc59d2e97871455a3536fe06a9cee36",
+      "bytes": 18481,
+      "sha256": "565374dae12f5bb16f0f05d27af2f2d5fa3a0a61648f1d9263173ceaf949c686",
       "targets": [
         "web",
         "playable"
@@ -339,8 +339,8 @@
       "path": "stack/brick/bldg_residential_brick_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 59015,
-      "sha256": "ededd1dbe9b3a81316fb5f3cbfecf2a25ee40175ad05df4f66c38845aac12b8e",
+      "bytes": 19026,
+      "sha256": "afc33957e3682ed24b3d1d053c3198cfa97bd4fc9d85ca83ce7bc214d959e334",
       "targets": [
         "web",
         "playable"
@@ -350,8 +350,8 @@
       "path": "stack/brick/bldg_residential_brick_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 28072,
-      "sha256": "7bfd5fe26192adb5fffd12ecfb7fb71d8997923e197b297e9da905dc559367cf",
+      "bytes": 8728,
+      "sha256": "a41cb0c9ca51275f2195476bc3e42c9b4dfd442d29bc8259ed5d5558d604d668",
       "targets": [
         "web",
         "playable"
@@ -361,8 +361,8 @@
       "path": "stack/brick/bldg_industrial_brick_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 56301,
-      "sha256": "b69ee191a59409b28b0be1b1e8c0846e71ca0848da369d91836c1a7ae5774b86",
+      "bytes": 17172,
+      "sha256": "d124b7dd021e00cb3e7328fd09c225973cfe01f927040cb3c3cd1f168566c704",
       "targets": [
         "web",
         "playable"
@@ -372,8 +372,8 @@
       "path": "stack/brick/bldg_industrial_brick_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 58518,
-      "sha256": "ac2cde768b6652ced42281d8a296ef426253e31ca6d31faf32d16e1af6d2b1f0",
+      "bytes": 19811,
+      "sha256": "81a45097f2e61a526ae9a07e10bef237c5de40fc0f599b2654b8d689cf67d9ef",
       "targets": [
         "web",
         "playable"
@@ -383,8 +383,8 @@
       "path": "stack/brick/bldg_industrial_brick_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 24301,
-      "sha256": "8633e9dd0961dbc4a72e75680b8179e1784e1f83e9029bc518bf66b10db162fe",
+      "bytes": 6061,
+      "sha256": "a9793309a0ab127da12267ffb70e81ff032a3f52eb199661e6899c929a99b260",
       "targets": [
         "web",
         "playable"
@@ -394,8 +394,8 @@
       "path": "stack/brick/bldg_office_brick_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 58209,
-      "sha256": "4750cdacae40155d175f44fb2755c0ba83af8147c1b4a6d38f601273287c78a4",
+      "bytes": 19207,
+      "sha256": "cee1244504dd10ef79196df0f831d82b4dfa68856300c3942a981371df52a43b",
       "targets": [
         "web",
         "playable"
@@ -405,8 +405,8 @@
       "path": "stack/brick/bldg_office_brick_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 57887,
-      "sha256": "d6ff7fe92eb397380a7a9f7fd149bfe143383c6df4648662e41763041161ae52",
+      "bytes": 18025,
+      "sha256": "cf4f822ff4240ff5638b03838e68dd59ace3295181071d72ec3a1cfcb37e7c78",
       "targets": [
         "web",
         "playable"
@@ -416,8 +416,8 @@
       "path": "stack/brick/bldg_office_brick_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 25395,
-      "sha256": "fd9be651809ca6814eef8a2d6c84fd1062ad1128baede8463f6c0b948d45509d",
+      "bytes": 7369,
+      "sha256": "cbc1ab0bd1ff0cf23f2153b821ef20b9b478eb5aabdf06b4fb134b459b5f186e",
       "targets": [
         "web",
         "playable"
@@ -427,8 +427,8 @@
       "path": "stack/brick/bldg_highrise_brick_base.png",
       "width": 512,
       "height": 256,
-      "bytes": 60517,
-      "sha256": "60d44f335c3cda08ea07a2957770afc839b685c7b020b2c5da1bd37b93fa5c31",
+      "bytes": 18666,
+      "sha256": "ac24e9db844e9b1aba7cffc0b602f186388bfc2cea47a93660c57ff41f6d4035",
       "targets": [
         "web",
         "playable"
@@ -438,8 +438,8 @@
       "path": "stack/brick/bldg_highrise_brick_mid.png",
       "width": 512,
       "height": 256,
-      "bytes": 58213,
-      "sha256": "df20ab0064ad4e23721e1ea82c13ee3a3434bbfda6689d3924c9d174b5c6d6c3",
+      "bytes": 17966,
+      "sha256": "28cef83f0a6845b22f9994e523d6525f586551c49fa8cb57f79b232538897894",
       "targets": [
         "web",
         "playable"
@@ -449,8 +449,8 @@
       "path": "stack/brick/bldg_highrise_brick_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 24505,
-      "sha256": "c86b1495d47a0c737f0690b6dedf47ec11d8923f4c790208368996987310bfb8",
+      "bytes": 6982,
+      "sha256": "4fa26b6778854200a9076f38dc1b714b7db7cd6e804d9fece6071b3bdb60e49b",
       "targets": [
         "web",
         "playable"
@@ -460,8 +460,8 @@
       "path": "city/brick/city_residential_brick_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 76595,
-      "sha256": "84d9663b5c62543e91ec6a076ddef77ed40eb0123ebbf4a70ef943ddde8e0cb8",
+      "bytes": 23284,
+      "sha256": "ed4fd26c998e3442833098f0de0f5d69a2947ecbe9be858bbb7ad9517829a82b",
       "targets": [
         "web",
         "playable"
@@ -471,8 +471,8 @@
       "path": "city/brick/city_industrial_brick_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 92855,
-      "sha256": "276e60a6ceb58440061f706f01e1ac1e0967dbf7db2a084c3dd9e61c4e481800",
+      "bytes": 27837,
+      "sha256": "7025c37048225a88e40c31ed7b5e3b06139edc67e038fefd4aff7b2f93024f80",
       "targets": [
         "web",
         "playable"
@@ -482,8 +482,8 @@
       "path": "city/brick/city_office_brick_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 89357,
-      "sha256": "0d1e931ee31055484c792faa6a12a4ae0a8c0521b18c3c65ddc1c97a6e4b9d40",
+      "bytes": 25907,
+      "sha256": "8fb09fc0c957f615e621573ee0d91133914226bf100f8c484ee79cb4e44d479e",
       "targets": [
         "web",
         "playable"
@@ -493,8 +493,8 @@
       "path": "city/brick/city_highrise_brick_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 65486,
-      "sha256": "dfa5776379161eaee51b1b7f3b154c1a468e7ff3cab67cfe7ef6d51a08a7d226",
+      "bytes": 19554,
+      "sha256": "2a220a4bdcc4ae4216e6b810ba3712ee41d78649e3dcb49a0596f8663eb0bb6e",
       "targets": [
         "web",
         "playable"
@@ -504,8 +504,8 @@
       "path": "rig/brick/crane_rig_brick_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 186984,
-      "sha256": "2bdbb7f35724fec5d1c78db5c1f0dc423c911af028be073d10a87d6eac600e14",
+      "bytes": 52130,
+      "sha256": "952307fcaedfc73ef81d5020e64d9dca63b8c6bd15021675ddba29782f7a0eb3",
       "targets": [
         "web",
         "playable"
@@ -515,8 +515,8 @@
       "path": "rig/brick/crane_hook_brick_sprite.png",
       "width": 128,
       "height": 128,
-      "bytes": 7469,
-      "sha256": "0a799d293da7ba2d9d24bf0fa428db5c39f7eddec3428fa0dc60435039bd58ce",
+      "bytes": 3491,
+      "sha256": "31d461e1fea7319d8e3ae1a75af9f2ca483d4f2e0a9c9af05a164a24cd81e752",
       "targets": [
         "web",
         "playable"
@@ -535,10 +535,10 @@
     },
     {
       "path": "bg/harbor/bg_harbor_default_map.png",
-      "width": 1536,
-      "height": 1024,
-      "bytes": 476545,
-      "sha256": "7c2c082a9c8dde301f9414617a62987d383552205b4b80ac15191f10f18ea7a3",
+      "width": 768,
+      "height": 512,
+      "bytes": 96660,
+      "sha256": "f7b6559452e3e06633897dbd1dedcba0dc867145d10db94f8199f1489d76f940",
       "targets": [
         "web",
         "playable"
@@ -546,10 +546,10 @@
     },
     {
       "path": "bg/harbor/bg_harbor_default_thumb.png",
-      "width": 512,
-      "height": 512,
-      "bytes": 74195,
-      "sha256": "2c69179df05bc7eee0df6229af63692dd7766942ffc0776dc428338f19011d1b",
+      "width": 256,
+      "height": 256,
+      "bytes": 15233,
+      "sha256": "2e4eb5e0cc8e10e266f1add632ab452e38a935ab965b76437aec0e77b5e0e6fc",
       "targets": [
         "web",
         "playable"
@@ -559,8 +559,8 @@
       "path": "city/harbor/landmark_dock_clock_tower_mini.png",
       "width": 256,
       "height": 384,
-      "bytes": 46803,
-      "sha256": "c6486aaf506397ae04958ae849b4fcc50aed6be3732af699f4ba338631413a57",
+      "bytes": 14968,
+      "sha256": "a0d9219403deef3f3e550726aa660bbcf1f18b1c0fe75d812b19e73abcde84dd",
       "targets": [
         "web",
         "playable"
@@ -570,8 +570,8 @@
       "path": "rig/winter/crane_rig_winter_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 171768,
-      "sha256": "590681a605ce116477129e27ba1d087043632456b157179a1b0457dfafc7f89b",
+      "bytes": 36228,
+      "sha256": "e170200d29f13900e1f5fceb82b422e8436641fc5663701859d94d86e0e323f3",
       "targets": [
         "web",
         "playable"
@@ -581,8 +581,8 @@
       "path": "rig/winter/crane_hook_winter_sprite.png",
       "width": 128,
       "height": 128,
-      "bytes": 7672,
-      "sha256": "9f9f44e2472a2f606c720f5c867f6a0685779be9dbc617b501c529f603454544",
+      "bytes": 2033,
+      "sha256": "797e78af45fea9d734da0808eef294d3ba0bc5be67d8cabfad03bbb53bf8b58f",
       "targets": [
         "web",
         "playable"
@@ -592,8 +592,8 @@
       "path": "stack/winter/bldg_residential_winter_roof.png",
       "width": 512,
       "height": 256,
-      "bytes": 23480,
-      "sha256": "4d46b83f953dcaa61f54032780c51909db035c9695a5c2d0db960a609dc10380",
+      "bytes": 5015,
+      "sha256": "a285f86bde7489ba98f2e1d3e4045f848816b85d6eb8342c6b960d3dafc94f97",
       "targets": [
         "web",
         "playable"
@@ -614,8 +614,8 @@
       "path": "rig/season/crane_rig_season_sprite.png",
       "width": 1024,
       "height": 512,
-      "bytes": 171298,
-      "sha256": "2b183c9c2bcae3bc201cd96962f3ce275a592891d8c1b3f6850b599ea33fec64",
+      "bytes": 36192,
+      "sha256": "9b71d54930865279b032b984200521a7db79e3dc6f4624ec2265c3f9a3866943",
       "targets": [
         "web",
         "playable"
@@ -625,8 +625,8 @@
       "path": "rig/season/crane_hook_season_sprite.png",
       "width": 128,
       "height": 128,
-      "bytes": 7732,
-      "sha256": "5f9c8416913f8565760123fd3a9cb4d9c1193376ad339bd30247979b0eb7538b",
+      "bytes": 2060,
+      "sha256": "3603d09947b56b755c40d941a4018e291f0848fe0e3cb03f9875e8bd924f047d",
       "targets": [
         "web",
         "playable"

@@ -132,8 +132,9 @@ export class QuickTowerRenderer {
         office:[315,194,407,1152,650,.923], highrise:[252,224,518,1100,678,.920]
       };
       const [x,y,w,h,harness,eye]=crops[id];
+      const sx=person.width/1024,sy=person.height/1536;
       const body=document.createElement("canvas");body.width=48;body.height=96;body.dataset.populationSprite="person";
-      body.getContext("2d")!.drawImage(person,x,y,w,h,0,0,48,96);
+      body.getContext("2d")!.drawImage(person,x*sx,y*sy,w*sx,h*sy,0,0,48,96);
       const canopy=document.createElement("canvas");canopy.width=160;canopy.height=120;canopy.dataset.populationSprite="parachute";
       canopy.getContext("2d")!.drawImage(parachute,0,0,160,120);
       this.populationImages.set(id,{person:body,parachute:canopy,harness:(harness-y)/h*48,eye:eye*60});

@@ -116,8 +116,14 @@ export function browserCloud() {
         void cloud.reloadLocal().finally(() => {
           autoResolving = false
         })
-      } else if (snap.ready && ["conflict", "storage", "incompatible"].includes(snap.status)) {
+      } else if (snap.ready) {
         cloud.continueLocal()
+      } else if (snap.status !== "loading") {
+        autoResolving = true
+        previous = "guest:false"
+        void cloud.identity("guest", false, true).finally(() => {
+          autoResolving = false
+        })
       }
     }
   })
