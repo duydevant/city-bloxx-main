@@ -336,6 +336,10 @@ export class QuickTowerGame {
       bestStreak: this.bestStreak, durationTicks: this.tickCount, misses,
       ranked: this.config.mode === "quick" && !this.config.assist, rating: cityRating, ratingVersion: this.config.mode !== "quick" ? CITY_RATING_VERSION : RATING_VERSION };
   }
+  /** Committed drop inputs so far; safe to call while the run is still in progress. */
+  getInputs(): RunRecord["inputs"] {
+    return this.drops.map(d => ({ ...d }));
+  }
   getRecord(): RunRecord {
     if (this.phase !== "ended") throw new Error("Cannot record unfinished run");
     return {

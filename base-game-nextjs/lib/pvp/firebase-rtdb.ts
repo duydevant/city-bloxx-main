@@ -152,7 +152,10 @@ export class InMemoryFirebaseRtdbEngine {
     const direct = this.tree.rooms[roomCodeOrId];
     if (direct) return clone(direct);
     const upper = roomCodeOrId.toUpperCase();
-    const byCode = Object.values(this.tree.rooms).find(r => r.roomCode === upper);
+    const matches = Object.values(this.tree.rooms)
+      .filter(r => r.roomCode === upper)
+      .sort((a, b) => Number(a.status === "completed") - Number(b.status === "completed") || b.createdAt - a.createdAt);
+    const byCode = matches[0];
     return byCode ? clone(byCode) : null;
   }
 
@@ -173,7 +176,20 @@ export class InMemoryFirebaseRtdbEngine {
     nowMs = Date.now(),
   ): { room: PvpRoomState; slot: PvpSlot } {
     const seed = params.seed ?? ((nowMs ^ 0x5f3759df) | 0);
-    const roomCode = generateRoomCode(seed ^ nowMs);
+    // Room codes must be unique among live rooms; the seed is client-chosen and
+    // correlated with wall-clock time, so it must not drive the code.
+    const liveCodes = new Set(
+      Object.values(this.tree.rooms)
+        .filter(r => r.status !== "completed")
+        .map(r => r.roomCode),
+    );
+    let roomCode = "";
+    for (let attempt = 0; attempt < 64 && (!roomCode || liveCodes.has(roomCode)); attempt++) {
+      const entropy = typeof crypto !== "undefined" && "getRandomValues" in crypto
+        ? crypto.getRandomValues(new Uint32Array(1))[0]
+        : Math.floor(Math.random() * 0xffffffff);
+      roomCode = generateRoomCode(entropy ^ nowMs ^ attempt);
+    }
     const roomId = `room_${roomCode.toLowerCase()}_${nowMs}`;
     const hostBoard = this.tree.stats.leaderboard[params.host.id];
     const room = createPvpRoomState({
@@ -634,13 +650,18 @@ export function createFirebasePvpPort(options?: {
       return result;
     },
     subscribeRoom(roomId, callback) {
-      const unsubLocal = engine.subscribeRoom(roomId, callback);
+      // In API mode the room lives on the server; the browser-local engine does not
+      // know it and would emit `null` immediately, which the UI treats as "room closed".
+      const apiMode = !options?.engine && typeof window !== "undefined";
+      const unsubLocal = engine.subscribeRoom(roomId, room => {
+        if (room || !apiMode) callback(room);
+      });
       let timer: ReturnType<typeof setInterval> | null = null;
       const pull = async () => {
         const apiRes = await callApi<{ room: PvpRoomState | null }>("getRoom", { roomCodeOrId: roomId });
-        if (apiRes?.room) callback(apiRes.room);
+        if (apiRes) callback(apiRes.room ?? null);
       };
-      if (!options?.engine && typeof window !== "undefined") {
+      if (apiMode) {
         void pull();
         timer = setInterval(() => {
           void pull();

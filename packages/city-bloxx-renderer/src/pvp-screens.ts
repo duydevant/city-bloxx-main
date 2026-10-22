@@ -140,12 +140,50 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     return deps.vi() ? viText : en;
   }
 
+  // Pin one identity per tab (survives reload, distinct across tabs): the Web
+  // installationId() provider may return a fresh random value on each call.
+  const TAB_ID_KEY = "city-bloxx.pvp.tab-id";
+  let pinnedInstallationId: string | null = null;
+  function stableInstallationId(): string {
+    if (pinnedInstallationId) return pinnedInstallationId;
+    try {
+      pinnedInstallationId = window.sessionStorage.getItem(TAB_ID_KEY);
+    } catch {
+      pinnedInstallationId = null;
+    }
+    if (!pinnedInstallationId) {
+      pinnedInstallationId = deps.installationId();
+      try {
+        window.sessionStorage.setItem(TAB_ID_KEY, pinnedInstallationId);
+      } catch {
+        // Storage unavailable: identity stays pinned for this page lifetime.
+      }
+    }
+    return pinnedInstallationId;
+  }
+
+  /** Mirror the active room code into the URL so reload/share lands back in the room. */
+  function syncRoomUrl(roomCode: string | null): void {
+    try {
+      const url = new URL(window.location.href);
+      if (roomCode) {
+        url.searchParams.set("screen", "pvp");
+        url.searchParams.set("room", roomCode);
+      } else {
+        url.searchParams.delete("room");
+      }
+      if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url.href);
+    } catch {
+      // Non-browser or sandboxed embed: URL sync is best-effort only.
+    }
+  }
+
   function localPlayerId(): string {
-    return `pvp-${deps.installationId().slice(0, 12)}`;
+    return `pvp-${stableInstallationId().slice(0, 12)}`;
   }
 
   function localPlayerName(): string {
-    const id = deps.installationId().slice(0, 4).toUpperCase();
+    const id = stableInstallationId().slice(0, 4).toUpperCase();
     return `Builder #${id}`;
   }
 
@@ -194,6 +232,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     }
     currentRoom = null;
     activeMatchRoomId = null;
+    syncRoomUrl(null);
     hideLiveOverlay();
   }
 
@@ -389,7 +428,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
             const forceMiss = snap.floors.length >= targetFloorsBeforeMiss && Math.abs(snap.current.x) > 120;
             if (nearCenter || forceMiss || snap.tick - botNextDropTick > 55) {
               if (botGame.drop(1)) {
-                const recInputs = botGame.getRecord().inputs;
+                const recInputs = botGame.getInputs();
                 const latestInput = recInputs[recInputs.length - 1];
                 const afterSnap = botGame.getSnapshot();
                 if (latestInput) {
@@ -459,6 +498,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     );
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "entry";
+    openMode = "entry"; // showPanel() calls clear(), which resets openMode
 
     const container = document.createElement("div");
     container.className = "cb-pvp-content";
@@ -547,6 +587,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
           .then(({ room, slot }) => {
             currentRoom = room;
             currentSlot = slot;
+            syncRoomUrl(room.roomCode);
             subscribeToRoom(room.roomId);
             renderRoomScreen();
           });
@@ -578,6 +619,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
           .then(({ room, slot }) => {
             currentRoom = room;
             currentSlot = slot;
+            syncRoomUrl(room.roomCode);
             subscribeToRoom(room.roomId);
             renderRoomScreen();
             startBotOpponent(room);
@@ -632,14 +674,16 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       roomList.append(emptyNote);
     } else {
       for (const item of waitingRooms.slice(0, 4)) {
+        const isOwnRoom = item.players.p1.id === localPlayerId();
         const row = document.createElement("div");
         row.className = "cb-pvp-room-item";
         const info = document.createElement("span");
-        info.textContent = `#${item.roomCode} · ${item.players.p1.name} · Pot ${item.totalPot} (${item.stakePerPlayer}/người)`;
-        const jBtn = deps.button(wt("Join", "Vào"), () => {
+        info.textContent = `#${item.roomCode} · ${item.players.p1.name}${isOwnRoom ? ` (${wt("You", "Bạn")})` : ""} · Pot ${item.totalPot} (${item.stakePerPlayer}/người)`;
+        const jBtn = deps.button(isOwnRoom ? wt("Back to my room", "Về phòng của tôi") : wt("Join", "Vào"), () => {
           void joinRoomByCode(item.roomCode);
         });
-        jBtn.dataset.pvpJoinRoom = item.roomCode;
+        if (isOwnRoom) jBtn.dataset.pvpOwnRoom = item.roomCode;
+        else jBtn.dataset.pvpJoinRoom = item.roomCode;
         row.append(info, jBtn);
         roomList.append(row);
       }
@@ -671,9 +715,11 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       }
       currentRoom = room;
       currentSlot = slot;
+      syncRoomUrl(room.roomCode);
       subscribeToRoom(room.roomId);
       renderRoomScreen();
     } catch {
+      syncRoomUrl(null);
       deps.message(wt(`Could not join room ${normalized} (not found or full).`, `Không thể vào phòng ${normalized} (không tồn tại hoặc đã đầy).`));
     }
   }
@@ -820,6 +866,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     );
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "room";
+    openMode = "room"; // showPanel() calls clear(), which resets openMode
 
     const container = document.createElement("div");
     container.className = "cb-pvp-room-container";
@@ -925,6 +972,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     ]);
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "result";
+    openMode = "result"; // showPanel() calls clear(), which resets openMode
 
     const card = document.createElement("div");
     card.className = "cb-pvp-result-summary";
@@ -960,6 +1008,11 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       void joinRoomByCode(joinCodeInput);
       return;
     }
+    if (currentRoom && currentRoom.status === "waiting") {
+      if (!unsubscribeRoom) subscribeToRoom(currentRoom.roomId);
+      renderRoomScreen();
+      return;
+    }
     refreshWaitingRooms();
     renderEntryScreen();
   }
@@ -981,7 +1034,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     onLocalFrame(game: QuickTowerGame): void {
       if (!deps.pvp || !currentRoom || !activeMatchRoomId) return;
       const snap = game.getSnapshot();
-      const recInputs = game.getRecord().inputs;
+      const recInputs = game.getInputs();
       const telemetry = extractLiveTelemetryFromSnapshot(snap, deps.now());
 
       // Broadcast any newly committed drop events immediately
