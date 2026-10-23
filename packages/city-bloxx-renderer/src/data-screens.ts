@@ -354,10 +354,12 @@ export function createDataScreens(o: DataScreenOptions) {
       const card = document.createElement("div");
       card.dataset.albumSlot = String(i);
       card.dataset.occupied = String(!!snap);
-      card.style.padding = "5px";
-      card.style.borderRadius = "6px";
-      card.style.background = "rgba(15, 23, 42, 0.55)";
-      card.style.fontSize = "10px";
+      card.style.padding = "7px";
+      card.style.borderRadius = "11px";
+      card.style.background = "var(--cb-card-bg)";
+      card.style.border = "1px solid var(--cb-border)";
+      card.style.color = "var(--cb-text)";
+      card.style.fontSize = "10.5px";
       const title = document.createElement("strong");
       title.textContent = snap
         ? `#${i + 1} · ${snap.districtId === "harbor" ? tr("Harbor", "Bến cảng") : t("Downtown")}`
@@ -370,18 +372,18 @@ export function createDataScreens(o: DataScreenOptions) {
         const miniGrid = document.createElement("div");
         miniGrid.style.display = "grid";
         miniGrid.style.gridTemplateColumns = "repeat(5, 1fr)";
-        miniGrid.style.gap = "1px";
-        miniGrid.style.marginTop = "3px";
+        miniGrid.style.gap = "1.5px";
+        miniGrid.style.marginTop = "4px";
         for (const lot of snap.lots) {
           const cell = document.createElement("span");
           cell.style.height = "6px";
-          cell.style.borderRadius = "1px";
+          cell.style.borderRadius = "2px";
           if (lot) {
             const set = renderCosmetic(lot.skin, "building", lot.classId).set;
             cell.dataset.skinSet = set;
             cell.style.backgroundColor = BUILDINGS[lot.classId].color;
           } else {
-            cell.style.backgroundColor = "rgba(255,255,255,0.12)";
+            cell.style.backgroundColor = "rgba(148, 163, 184, 0.28)";
           }
           miniGrid.append(cell);
         }

@@ -91,50 +91,52 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let utilitiesMenuOpen = false;
   let settingsMenuOpen = false;
   let homeMenuOpen = false;
+  let toolbarOpen = false;
 
   root.classList.add("cb-game");
   root.classList.toggle("cb-content-session",options.presentation === "content");
   root.lang=vi?"vi":"en";
   root.innerHTML = `
-    <div class="cb-toolbar">
-      <div class="cb-toolbar-title">
-        <span class="cb-toolbar-brand-icon">${lucideSvg("building-2", 16)}</span>
-        <strong>${quickName()}</strong>
-        <span data-mode class="cb-mode-badge"></span>
-      </div>
-      <div class="cb-toolbar-controls">
-        <button type="button" data-home-nav class="cb-toolbar-btn" title="${t("Home")}">${lucideSvg("home", 14)}<span>${t("Home")}</span></button>
-        <button type="button" data-pause class="cb-toolbar-btn">${lucideSvg("pause", 14)}<span data-pause-label>${t("Pause")}</span></button>
-        <button type="button" data-sound class="cb-toolbar-btn" aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${lucideSvg("volume-2", 14)}<span data-sound-label>${t("Sound on")}</span></button>
-        <button type="button" data-motion class="cb-toolbar-btn" aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}" hidden>${lucideSvg("sparkles", 14)}<span>${t("Reduced motion")}</span></button>
-        ${options.showLanguageSwitch === false ? "" : `<button type="button" data-language class="cb-toolbar-btn" aria-label="${t("Language")}">${lucideSvg("globe", 14)}<span data-language-label>${vi?"EN":"VI"}</span></button>`}
-        <button type="button" data-settings-open class="cb-toolbar-btn" title="${vi ? "Cài đặt" : "Settings"}">${lucideSvg("settings", 14)}<span data-settings-label>${vi ? "Cài đặt" : "Settings"}</span></button>
-      </div>
-    </div>
-    <div class="cb-hud">
-      <div class="cb-hud-item">
-        <span class="cb-hud-label">${lucideSvg("users", 13)}<span>${t("Population")}</span></span>
-        <strong data-population>0</strong>
-      </div>
-      <div class="cb-hud-item">
-        <span class="cb-hud-label">${lucideSvg("layers", 13)}<span>${t("Floors")}</span></span>
-        <strong data-floors>0</strong>
-      </div>
-      <div class="cb-hud-item cb-hud-lives">
-        <span class="cb-hud-label">${lucideSvg("heart", 13)}<span>${t("Lives")}</span></span>
-        <strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong>
-      </div>
-      <div class="cb-hud-item">
-        <span class="cb-hud-label">${lucideSvg("trophy", 13)}<span>${t("Best")}</span></span>
-        <strong data-best>0</strong>
-      </div>
-      <div class="cb-hud-item cb-hud-coins">
-        <span class="cb-hud-label">${lucideSvg("coins", 13)}<span>Coins</span></span>
-        <strong data-coins>200</strong>
-      </div>
-    </div>
     <div class="cb-arena" tabindex="0" role="application" aria-label="${quickName()}">
       <canvas aria-label="${t("Tower")}"></canvas>
+      <div class="cb-hud">
+        <div class="cb-hud-item" title="${t("Population")}">
+          <span class="cb-hud-label">${lucideSvg("users", 14)}<span>${t("Population")}</span></span>
+          <strong data-population>0</strong>
+        </div>
+        <div class="cb-hud-item" title="${t("Floors")}">
+          <span class="cb-hud-label">${lucideSvg("layers", 14)}<span>${t("Floors")}</span></span>
+          <strong data-floors>0</strong>
+        </div>
+        <div class="cb-hud-item cb-hud-lives" title="${t("Lives")}">
+          <span class="cb-hud-label">${lucideSvg("heart", 14)}<span>${t("Lives")}</span></span>
+          <strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong>
+        </div>
+        <div class="cb-hud-item" title="${t("Best")}">
+          <span class="cb-hud-label">${lucideSvg("trophy", 14)}<span>${t("Best")}</span></span>
+          <strong data-best>0</strong>
+        </div>
+        <div class="cb-hud-item cb-hud-coins" title="Coins">
+          <span class="cb-hud-label">${lucideSvg("coins", 14)}<span>Coins</span></span>
+          <strong data-coins>200</strong>
+        </div>
+      </div>
+      <button type="button" data-toolbar-toggle class="cb-menu-toggle" aria-expanded="false" aria-label="${vi ? "Mở thanh điều khiển" : "Toggle menu"}" title="${vi ? "Mở thanh điều khiển" : "Toggle menu"}">${lucideSvg("menu", 18)}</button>
+      <div class="cb-toolbar" data-toolbar-open="false">
+        <div class="cb-toolbar-title">
+          <span class="cb-toolbar-brand-icon">${lucideSvg("building-2", 16)}</span>
+          <strong>${quickName()}</strong>
+          <span data-mode class="cb-mode-badge"></span>
+        </div>
+        <div class="cb-toolbar-controls">
+          <button type="button" data-home-nav class="cb-toolbar-btn" title="${t("Home")}">${lucideSvg("home", 14)}<span>${t("Home")}</span></button>
+          <button type="button" data-pause class="cb-toolbar-btn">${lucideSvg("pause", 14)}<span data-pause-label>${t("Pause")}</span></button>
+          <button type="button" data-sound class="cb-toolbar-btn" aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${lucideSvg("volume-2", 14)}<span data-sound-label>${t("Sound on")}</span></button>
+          <button type="button" data-motion class="cb-toolbar-btn" aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}" hidden>${lucideSvg("sparkles", 14)}<span>${t("Reduced motion")}</span></button>
+          ${options.showLanguageSwitch === false ? "" : `<button type="button" data-language class="cb-toolbar-btn" aria-label="${t("Language")}">${lucideSvg("globe", 14)}<span data-language-label>${vi?"EN":"VI"}</span></button>`}
+          <button type="button" data-settings-open class="cb-toolbar-btn" title="${vi ? "Cài đặt" : "Settings"}">${lucideSvg("settings", 14)}<span data-settings-label>${vi ? "Cài đặt" : "Settings"}</span></button>
+        </div>
+      </div>
       <div class="cb-replay-controls" data-replay-controls hidden></div>
       <div class="cb-panel" role="dialog" aria-label="${t("Game menu")}"></div>
       <div class="cb-combo" aria-label="${t("Combo")}" hidden><span></span></div>
@@ -144,11 +146,19 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const el = <T extends HTMLElement = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const arena = el(".cb-arena");
   const panel = el(".cb-panel");
+  const toolbar = el(".cb-toolbar");
+  const menuToggleBtn = el<HTMLButtonElement>("[data-toolbar-toggle]");
   const replayControls = el("[data-replay-controls]");
   const hint = el(".cb-hint");
   const notice = el(".cb-notice");
   const tutorial=el(".cb-tutorial");let tutorialMode:keyof TutorialState="quick";
   const wt=(en:string,translation:string)=>{translations.set(en,translation);return vi?translation:en;};
+  function setToolbarOpen(open: boolean): void {
+    toolbarOpen = open;
+    toolbar.dataset.toolbarOpen = String(open);
+    menuToggleBtn.setAttribute("aria-expanded", String(open));
+    menuToggleBtn.innerHTML = lucideSvg(open ? "x" : "menu", 18);
+  }
   function tutorialHint(mode:keyof TutorialState, text:string):void {
     tutorialMode=mode;tutorial.hidden=save.tutorials[mode];
     tutorial.querySelector("span")!.textContent=text;
@@ -1637,6 +1647,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
         showPanel(t("Paused"), t("Your game clock is stopped."), actions);
       }
     } else {
+      setToolbarOpen(false);
       if ((run || replay) && (current().phase !== "ended" || celebrating)) { panel.hidden = true; arena.focus(); syncReplayControls(); }
       lastTime = 0; schedule();
     }
@@ -1914,16 +1925,25 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       [t("Best streak"),String(result.bestStreak)],[t("Duration"),`${(result.durationTicks/60).toFixed(1)}s`]]);paint();
   }
   listen(arena, "pointerdown", ((event: PointerEvent) => {
-    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,input,a,.cb-panel,.cb-replay-controls")) return;
+    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,input,a,.cb-panel,.cb-replay-controls,.cb-toolbar")) return;
     event.preventDefault(); arena.focus(); drop();
   }) as EventListener);
   listen(arena, "keydown", ((event: KeyboardEvent) => {
-    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,input,a,.cb-replay-controls")) return;
+    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,input,a,.cb-replay-controls,.cb-toolbar")) return;
     event.preventDefault(); drop();
   }) as EventListener);
+  listen(menuToggleBtn, "click", () => {
+    const nextOpen = !toolbarOpen;
+    setToolbarOpen(nextOpen);
+    if (nextOpen && (run || replay) && (current().phase !== "ended" || celebrating) && !userPaused) {
+      userPaused = true;
+      syncPause();
+    }
+  });
   listen(pauseButton, "click", () => { userPaused = !userPaused; syncPause(); });
-  listen(el("[data-home-nav]"), "click", () => { navigate("quick"); });
+  listen(el("[data-home-nav]"), "click", () => { setToolbarOpen(false); navigate("quick"); });
   listen(el("[data-settings-open]"), "click", () => {
+    setToolbarOpen(false);
     if (run && !replay && run.getPhase() !== "ended") {
       userPaused = true;
       syncPause();

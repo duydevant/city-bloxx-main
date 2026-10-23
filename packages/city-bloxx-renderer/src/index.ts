@@ -96,7 +96,7 @@ export class QuickTowerRenderer {
     if(rig)ctx.drawImage(rig,a.x,a.y,a.width,a.height,100,16,130,a.height/a.width*130);
     if(rig&&hook){ctx.strokeStyle="#263540";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,76);ctx.stroke();}
     if(hook)ctx.drawImage(hook,0,0,128,128,px-13.5,73,27,27);
-    if(locked) {ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,112,240,24);ctx.fillStyle="#ffdf78";ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.fillText(this.vi?"XEM TRƯỚC · CHƯA MỞ":"LOCKED PREVIEW",120,128);}
+    if(locked) {ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,112,240,24);ctx.fillStyle="#ffdf78";ctx.font='800 11px "Baloo 2", "Nunito", system-ui, sans-serif';ctx.textAlign="center";ctx.fillText(this.vi?"XEM TRƯỚC · CHƯA MỞ":"LOCKED PREVIEW",120,128);}
   }
   async loadEquipment(id: BuildingId, value: RunEquipment): Promise<void> {
     const sets = new Set([renderCosmetic(value.building, "building", id).set, renderCosmetic(value.roof, "roof", id).set]);
@@ -255,7 +255,7 @@ export class QuickTowerRenderer {
     ctx.setLineDash([]);
     ctx.fillStyle = "rgba(25, 36, 48, 0.85)";
     const badgeText = `${this.opponentTower.label}: ${this.opponentTower.height}F`;
-    ctx.font = `700 ${Math.max(10, Math.round(12 * scale))}px system-ui`;
+    ctx.font = `800 ${Math.max(10, Math.round(12 * scale))}px "Baloo 2", "Nunito", system-ui, sans-serif`;
     const metrics = ctx.measureText(badgeText);
     const bw = metrics.width + 14;
     const bh = Math.max(18, Math.round(20 * scale));
@@ -298,7 +298,7 @@ export class QuickTowerRenderer {
         ctx.stroke();
       }
     }
-    ctx.font = `700 ${Math.max(10, 13 * scale)}px system-ui`;
+    ctx.font = `800 ${Math.max(10, 13 * scale)}px "Baloo 2", "Nunito", system-ui, sans-serif`;
     ctx.textAlign = "center";
     const diff = marker.releaseTick - snapshot.tick;
     const timingLabel = diff > 0 ? `GHOST -${(diff / R.tickRate).toFixed(1)}s` : diff === 0 ? "GHOST DROP" : `GHOST T${marker.releaseTick}`;
@@ -329,7 +329,7 @@ export class QuickTowerRenderer {
     const fx=this.populationFx;if(!fx)return;
     const ctx=this.context, images=this.populationImages.get(fx.building);
     const target=project({x:fx.x+snapshot.swayOffset,y:fx.y},snapshot,this.cssWidth,this.cssHeight);
-    ctx.save();ctx.textAlign="center";ctx.font=`700 ${Math.max(12,24*scale)}px system-ui`;
+    ctx.save();ctx.textAlign="center";ctx.font=`800 ${Math.max(12,24*scale)}px "Baloo 2", "Nunito", system-ui, sans-serif`;
     ctx.fillStyle="#ffffff";ctx.strokeStyle="#24343e";ctx.lineWidth=3;
     const label=`+${fx.population} ${this.vi?"dân":"residents"}`;
     ctx.strokeText(label,target.x,target.y+45*scale);ctx.fillText(label,target.x,target.y+45*scale);
@@ -418,7 +418,7 @@ export class QuickTowerRenderer {
     ctx.save();ctx.globalAlpha=Math.min(1,ratio*2);ctx.textAlign="center";
     const pulse = reducedMotion ? 1 : 1 + Math.sin((1-ratio)*Math.PI)*Math.min(.15,level*.025);
     const size = Math.min(this.cssWidth / Math.max(8, label.length) * 1.45, Math.max(20,34*scale)*pulse);
-    ctx.font=`800 ${size}px system-ui`;ctx.lineWidth=Math.max(3,6*scale);
+    ctx.font=`800 ${size}px "Baloo 2", "Nunito", system-ui, sans-serif`;ctx.lineWidth=Math.max(3,6*scale);
     ctx.strokeStyle="rgba(22,31,40,.72)";ctx.fillStyle=quality==="miss"?"#ff6b6b":quality==="perfect"?"#ffdb6c":"#ffffff";
     const x=this.cssWidth/2, y=this.cssHeight*.22;
     ctx.strokeText(label,x,y); ctx.fillText(label,x,y);

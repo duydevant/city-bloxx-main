@@ -9,10 +9,10 @@
   --color-foreground: var(--foreground);
 
   /* Fonts */
-  --font-sans: var(--font-inter), "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-nunito), "Nunito", "Quicksand", "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-heading: var(--font-inter), "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
-  --font-base: var(--font-inter), "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-heading: var(--font-baloo), "Baloo 2", "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-base: var(--font-nunito), "Nunito", "Quicksand", "Plus Jakarta Sans", system-ui, sans-serif;
 
   /* Sidebar */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -59,59 +59,69 @@
 
 :root {
   /* ===========================================================
-   * 🌤️ DEFAULT THEME: Playful Sky (Modern Playful Casual Game)
+   * ☀️ LIGHT MODE (DEFAULT): Crisp Daylight Sky & Frosted Glass
    * =========================================================== */
-  --hue: 208;
+  --hue: 204;
+
+  --font-game-display: var(--font-baloo), "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-game-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
 
   --layout-px: 5%;
-  --background: #eff8ff;
-  --foreground: #0f2942;
+  --background: #eef6ff;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0f2942;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #0f2942;
+  --popover-foreground: #0f172a;
   --primary: #0284c7;
   --primary-foreground: #ffffff;
   --secondary: #e0f2fe;
   --secondary-foreground: #0c4a6e;
-  --muted: #e6f4fe;
-  --muted-foreground: #476785;
-  --accent: #fef08a;
-  --accent-foreground: #422006;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --accent: #f59e0b;
+  --accent-foreground: #1c1917;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #bae6fd;
-  --input: #bae6fd;
+  --border: rgba(14, 116, 144, 0.16);
+  --input: rgba(14, 116, 144, 0.22);
   --ring: #0284c7;
 
-  /* Game Design System Semantic Tokens */
-  --game-bg-gradient: radial-gradient(circle at 50% 0%, #ffffff 0%, #eff8ff 52%, #dff1ff 100%);
-  --game-surface: #ffffff;
-  --game-surface-elevated: #f8fcff;
-  --game-surface-subtle: #f0f9ff;
-  --game-border: #bae6fd;
-  --game-border-strong: #7dd3fc;
-  --game-text: #0f2942;
-  --game-text-muted: #476785;
+  /* Game Design System Semantic Tokens (Light Mode) */
+  --game-bg-gradient:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.24), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 85% 15%, rgba(251, 191, 36, 0.12), transparent 65%),
+    linear-gradient(180deg, #f5f9ff 0%, #e8f2fd 55%, #ddebfb 100%);
+  --game-header-bg: rgba(255, 255, 255, 0.86);
+  --game-surface: rgba(255, 255, 255, 0.88);
+  --game-surface-elevated: rgba(255, 255, 255, 0.96);
+  --game-surface-subtle: rgba(240, 249, 255, 0.85);
+  --game-pill-bg: rgba(255, 255, 255, 0.85);
+  --game-pill-hover: rgba(224, 242, 254, 0.95);
+  --game-border: rgba(14, 116, 144, 0.16);
+  --game-border-strong: rgba(2, 132, 199, 0.45);
+  --game-board-lip: rgba(14, 116, 144, 0.2);
+  --game-text: #0f172a;
+  --game-text-muted: #475569;
   --game-primary: #0284c7;
   --game-primary-hover: #0369a1;
   --game-primary-depth: #075985;
-  --game-gold: #facc15;
-  --game-gold-hover: #eab308;
-  --game-gold-depth: #ca8a04;
-  --game-gold-text: #3b1d06;
+  --game-gold: #f59e0b;
+  --game-gold-hover: #fbbf24;
+  --game-gold-depth: #b45309;
+  --game-gold-text: #1c1917;
   --game-success: #16a34a;
-  --game-success-bg: #dcfce7;
-  --game-success-text: #14532d;
+  --game-success-bg: rgba(22, 163, 74, 0.12);
+  --game-success-text: #15803d;
   --game-warning: #d97706;
-  --game-warning-bg: #fef3c7;
-  --game-warning-text: #78350f;
+  --game-warning-bg: rgba(217, 119, 6, 0.12);
+  --game-warning-text: #b45309;
   --game-danger: #dc2626;
-  --game-danger-bg: #fee2e2;
-  --game-danger-text: #7f1d1d;
-  --game-shadow-sm: 0 2px 8px rgba(2, 132, 199, 0.08);
-  --game-shadow-md: 0 8px 24px rgba(15, 41, 66, 0.08), 0 2px 6px rgba(2, 132, 199, 0.06);
-  --game-shadow-lg: 0 18px 42px rgba(15, 41, 66, 0.14), 0 4px 12px rgba(2, 132, 199, 0.08);
+  --game-danger-bg: rgba(220, 38, 38, 0.1);
+  --game-danger-text: #b91c1c;
+  --game-shadow-sm: 0 4px 12px -2px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --game-shadow-md: 0 12px 28px -8px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --game-shadow-lg: 0 20px 44px -12px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -119,81 +129,88 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.875rem;
-  --sidebar: #f0f9ff;
-  --sidebar-foreground: #0f2942;
+  --sidebar: #f0f7ff;
+  --sidebar-foreground: #0f172a;
   --sidebar-primary: #0284c7;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #e0f2fe;
   --sidebar-accent-foreground: #0c4a6e;
-  --sidebar-border: #bae6fd;
+  --sidebar-border: rgba(14, 116, 144, 0.16);
   --sidebar-ring: #0284c7;
 }
 
 .dark {
   /* ===========================================================
-   * 🌙 OPTIONAL THEME: Arcade Midnight
+   * 🌙 DARK MODE: Sleek Atmospheric Midnight-Sky Game UI
    * =========================================================== */
-  --background: #0b1528;
-  --foreground: #f0f9ff;
-  --card: #12223d;
-  --card-foreground: #f0f9ff;
-  --popover: #12223d;
-  --popover-foreground: #f0f9ff;
+  --background: #0b1120;
+  --foreground: #f1f5f9;
+  --card: #111b30;
+  --card-foreground: #f1f5f9;
+  --popover: #111b30;
+  --popover-foreground: #f1f5f9;
   --primary: #38bdf8;
-  --primary-foreground: #081426;
-  --secondary: #1b3154;
-  --secondary-foreground: #e0f2fe;
-  --muted: #162947;
-  --muted-foreground: #93b8d9;
-  --accent: #facc15;
-  --accent-foreground: #1e1b04;
+  --primary-foreground: #081221;
+  --secondary: #172540;
+  --secondary-foreground: #e2e8f0;
+  --muted: #15213a;
+  --muted-foreground: #94a3b8;
+  --accent: #f59e0b;
+  --accent-foreground: #1c1917;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #233b63;
-  --input: #233b63;
+  --border: rgba(148, 163, 184, 0.18);
+  --input: rgba(148, 163, 184, 0.24);
   --ring: #38bdf8;
 
-  /* Game Design System Semantic Tokens (Arcade Midnight) */
-  --game-bg-gradient: radial-gradient(circle at 50% 0%, #162b4d 0%, #0b1528 60%, #070e1b 100%);
-  --game-surface: #12223d;
-  --game-surface-elevated: #172b4d;
-  --game-surface-subtle: #0f1d35;
-  --game-border: #233b63;
-  --game-border-strong: #38bdf8;
-  --game-text: #f0f9ff;
-  --game-text-muted: #93b8d9;
+  /* Game Design System Semantic Tokens (Dark Mode) */
+  --game-bg-gradient:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.16), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 85% 15%, rgba(245, 158, 11, 0.08), transparent 65%),
+    linear-gradient(180deg, #090f1d 0%, #0d1629 55%, #09101e 100%);
+  --game-header-bg: rgba(11, 18, 33, 0.85);
+  --game-surface: rgba(17, 27, 48, 0.82);
+  --game-surface-elevated: rgba(23, 37, 64, 0.9);
+  --game-surface-subtle: rgba(13, 21, 38, 0.72);
+  --game-pill-bg: rgba(255, 255, 255, 0.06);
+  --game-pill-hover: rgba(255, 255, 255, 0.12);
+  --game-border: rgba(148, 163, 184, 0.18);
+  --game-border-strong: rgba(56, 189, 248, 0.45);
+  --game-board-lip: rgba(2, 6, 23, 0.6);
+  --game-text: #f1f5f9;
+  --game-text-muted: #94a3b8;
   --game-primary: #0ea5e9;
   --game-primary-hover: #38bdf8;
   --game-primary-depth: #0369a1;
-  --game-gold: #facc15;
-  --game-gold-hover: #fde047;
-  --game-gold-depth: #ca8a04;
-  --game-gold-text: #2a1503;
-  --game-success: #22c55e;
-  --game-success-bg: rgba(34, 197, 94, 0.16);
-  --game-success-text: #86efac;
+  --game-gold: #f59e0b;
+  --game-gold-hover: #fbbf24;
+  --game-gold-depth: #b45309;
+  --game-gold-text: #1c1917;
+  --game-success: #10b981;
+  --game-success-bg: rgba(16, 185, 129, 0.14);
+  --game-success-text: #6ee7b7;
   --game-warning: #f59e0b;
-  --game-warning-bg: rgba(245, 158, 11, 0.16);
-  --game-warning-text: #fde68a;
+  --game-warning-bg: rgba(245, 158, 11, 0.14);
+  --game-warning-text: #fcd34d;
   --game-danger: #ef4444;
-  --game-danger-bg: rgba(239, 68, 68, 0.18);
+  --game-danger-bg: rgba(239, 68, 68, 0.15);
   --game-danger-text: #fca5a5;
-  --game-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
-  --game-shadow-md: 0 10px 28px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.25);
-  --game-shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.52), 0 4px 14px rgba(0, 0, 0, 0.32);
+  --game-shadow-sm: 0 4px 12px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --game-shadow-md: 0 14px 32px -8px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --game-shadow-lg: 0 24px 54px -12px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #0f1d35;
-  --sidebar-foreground: #f0f9ff;
+  --sidebar: #0d1629;
+  --sidebar-foreground: #f1f5f9;
   --sidebar-primary: #38bdf8;
-  --sidebar-primary-foreground: #081426;
-  --sidebar-accent: #1b3154;
-  --sidebar-accent-foreground: #e0f2fe;
-  --sidebar-border: #233b63;
+  --sidebar-primary-foreground: #081221;
+  --sidebar-accent: #172540;
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: rgba(148, 163, 184, 0.18);
   --sidebar-ring: #38bdf8;
 }
 
