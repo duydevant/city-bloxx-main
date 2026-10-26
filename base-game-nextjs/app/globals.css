@@ -219,7 +219,9 @@
     @apply border-border outline-ring/50;
   }
   html {
-    scrollbar-gutter: stable;
+    @apply bg-background text-foreground;
+    background-image: var(--game-bg-gradient);
+    background-attachment: fixed;
   }
   body {
     @apply bg-background text-foreground;

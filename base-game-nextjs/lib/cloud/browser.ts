@@ -43,7 +43,14 @@ export function browserCloud() {
   } catch {}
   const cloud = new CloudCoordinator({
     storage,
-    guest: { read: guestRaw, write: (raw) => localStorage.setItem(GUEST_SAVE_KEY, raw) },
+    guest: {
+      read: guestRaw,
+      write: (raw) => {
+        try {
+          localStorage.setItem(GUEST_SAVE_KEY, raw)
+        } catch {}
+      },
+    },
     request: async <T>(owner: string, path: string, options?: RequestInit) => {
       if (auth.snapshot().user?.id !== owner) throw new ApiError("account-changed")
       const result = await auth.request<T>(path, options)
@@ -118,7 +125,7 @@ export function browserCloud() {
         })
       } else if (snap.ready) {
         cloud.continueLocal()
-      } else if (snap.status !== "loading") {
+      } else if (["auth", "storage", "incompatible", "conflict", "rejected", "offline"].includes(snap.status)) {
         autoResolving = true
         previous = "guest:false"
         void cloud.identity("guest", false, true).finally(() => {

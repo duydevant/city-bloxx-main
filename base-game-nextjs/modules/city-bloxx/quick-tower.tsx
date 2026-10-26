@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { emptySave, type GameSave } from "../../../packages/city-bloxx-core/src/index"
 import { createTowerAudio } from "../../../packages/city-bloxx-renderer/src/audio"
 import {
   mountQuickTower,
@@ -72,7 +73,7 @@ export function QuickTower({
 
   useEffect(() => {
     if (!root.current || !available) return
-    const binding = browserCloud().attach()
+    let binding = browserCloud().attach()
     const portalAudio = embed
       ? createPortalAudio(portalQuery.current.muted, createTowerAudio, (muted) => {
           bridgeRef.current?.send("audioChange", { muted })
@@ -98,13 +99,30 @@ export function QuickTower({
         ...binding.port,
         load: async () => {
           await waitLocalDrain()
-          const loaded = await binding.port.load()
+          let loaded: GameSave
+          try {
+            loaded = await binding.port.load()
+          } catch {
+            binding.close()
+            binding = browserCloud().attach()
+            try {
+              loaded = await binding.port.load()
+            } catch {
+              loaded = emptySave()
+              await binding.port.save(loaded).catch(() => {})
+            }
+          }
           portalScore?.reconcileSave(loaded)
           bridgeRef.current?.notifySaveState(loaded)
           return loaded
         },
         save: async (value) => {
-          const ok = await binding.port.save(value)
+          let ok = await binding.port.save(value)
+          if (!ok && browserCloud().snapshot().ready) {
+            binding.close()
+            binding = browserCloud().attach()
+            ok = await binding.port.save(value)
+          }
           if (ok) {
             portalScore?.reconcileSave(value)
             bridgeRef.current?.notifySaveState(value)

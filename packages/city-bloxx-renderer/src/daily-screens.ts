@@ -1,5 +1,10 @@
-import { currentDailyStreak, dailyCountdown, dailyPerfectRate, isSettled, shiftUTCDate, utcDate, type GameSave, type RunRecord, type RunSummary } from "../../city-bloxx-core/src/index";
+import { currentDailyStreak, dailyCountdown, isSettled, shiftUTCDate, utcDate, type GameSave, type RunRecord, type RunSummary } from "../../city-bloxx-core/src/index";
 import { type SessionTextKey } from "../../city-bloxx-content/session-locales";
+import { bigButton, formatNumber, icon, node, pill, roundButton, type ResultCardOptions } from "./ui-kit";
+
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const WEEKDAYS_EN = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAYS_VI = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 interface DailyScreenOptions {
   panel: HTMLElement; save(): GameSave; now(): number; t(key: SessionTextKey): string;
@@ -8,6 +13,10 @@ interface DailyScreenOptions {
   showStats(rows: [string, string][]): void;
   start(dateUTC: string): void; resume(): void; discard(): void; home(): void; replay(record: RunRecord): void;
   online?: {label():string;start():void};
+  vi(): boolean;
+  screen(title: string, className: string): HTMLElement;
+  resultScreen(title: string, card: ResultCardOptions, primary: HTMLButtonElement, secondary: (HTMLButtonElement | null)[], extra?: HTMLElement[]): void;
+  coins(): string | undefined;
 }
 export function createDailyScreens(o: DailyScreenOptions) {
   const { t, button } = o;
@@ -16,26 +25,59 @@ export function createDailyScreens(o: DailyScreenOptions) {
   let shownDate = "";
   function clear() { refresh = null; countdown = null; o.panel.classList.remove("cb-daily-panel"); }
   function entry(): void {
-    const date = utcDate(o.now()), daily = o.save().daily, day = daily.days.find(d => d.dateUTC === date), pending = daily.pending;
-    const actions = [button(t("Play Daily"), () => chooseStart(date))];
-    if(o.online)actions.unshift(button(o.online.label(),o.online.start));
-    if (pending) actions.push(button(t("Resume Daily"), o.resume));
-    actions.push(button(t("Daily guide"), () => guide()), button(t("History"), () => history()), button(t("Home"), o.home));
-    o.showPanel(t("Daily Tower"), `${date} UTC · ${t("Industrial")} · 20 ${t("floors")}\n${t("Personal result · not server verified")}`, actions);
-    o.showStats([[t("Best complete population"), day?.bestComplete ? String(day.bestComplete.result.population) : "—"], [t("Attempts"), String(day?.attempts ?? 0)],
-      [t("Daily streak"), String(currentDailyStreak(daily, date))], [t("Next Daily in"), clock()]]);
-    countdown = o.panel.querySelector(".cb-stats>div:last-child dd"); shownDate = date;
-    const strip = document.createElement("div"); strip.className = "cb-daily-strip"; strip.setAttribute("aria-label", t("Last seven UTC days"));
+    const date = utcDate(o.now()), daily = o.save().daily, day = daily.days.find(d => d.dateUTC === date), pending = daily.pending, vi = o.vi();
+    const panel = o.screen(t("Daily Tower"), "cb-daily-panel");
+    const wrap = node("div", "cb-daily");
+    const best = day?.bestComplete ? formatNumber(day.bestComplete.result.population, vi) : "—";
+    const top = node("div", "cb-top");
+    top.append(roundButton("chevron-left", t("Home"), o.home), pill("trophy", best, t("Best complete population"), "cb-best-pill"), roundButton("history", t("History"), () => history()));
+
+    const [, month, dayOfMonth] = date.split("-").map(Number);
+    const calendar = node("div", "cb-daily-cal");
+    calendar.title = `${date} UTC`;
+    calendar.append(node("span", "cb-daily-month", vi ? `T${month}` : MONTHS[month - 1]), node("strong", "cb-daily-date", String(dayOfMonth)));
+
+    const streakDays = currentDailyStreak(daily, date);
+    const streak = node("div", "cb-daily-streak");
+    streak.setAttribute("role", "img"); streak.setAttribute("aria-label", `${t("Daily streak")}: ${streakDays}`); streak.title = t("Daily streak");
+    streak.append(icon("flame", 40), node("strong", "", String(streakDays)));
+
+    const strip = node("div", "cb-daily-strip"); strip.setAttribute("aria-label", t("Last seven UTC days"));
     for (let offset = -6; offset <= 0; offset++) {
-      const d = shiftUTCDate(date, offset), played = daily.creditedDates.includes(d), cell = document.createElement("span");
-      cell.textContent = `${d.slice(8)} ${played ? "✓" : "·"}`; cell.dataset.date = d; cell.dataset.credited = String(played);
-      cell.title = `${d} UTC · ${played ? t("Played") : t("Not played")}`; cell.setAttribute("aria-label", cell.title); strip.append(cell);
+      const d = shiftUTCDate(date, offset), played = daily.creditedDates.includes(d), cell = node("span", "cb-daily-cell");
+      cell.dataset.date = d; cell.dataset.credited = String(played); cell.dataset.today = String(offset === 0);
+      cell.title = `${d} UTC · ${played ? t("Played") : t("Not played")}`; cell.setAttribute("aria-label", cell.title);
+      const dot = node("span", "cb-daily-dot");
+      if (played) dot.append(icon("check", 18));
+      cell.append(dot, node("small", "", (vi ? WEEKDAYS_VI : WEEKDAYS_EN)[new Date(`${d}T00:00:00Z`).getUTCDay()]));
+      strip.append(cell);
     }
-    o.panel.querySelector(".cb-actions")!.before(strip); o.panel.classList.add("cb-daily-panel"); refresh = entry;
+
+    const target = node("div", "cb-daily-target");
+    target.setAttribute("role", "img"); target.setAttribute("aria-label", `${t("Industrial")} · 20 ${t("floors")}`); target.title = target.getAttribute("aria-label")!;
+    target.append(icon("building-2", 22, "cb-daily-target-chip"), icon("layers", 18), node("strong", "", "20"));
+
+    const primary = pending ? bigButton("play", t("Resume Daily"), o.resume) : bigButton("play", t("Play Daily"), () => chooseStart(date));
+    const row = node("div", "cb-result-row");
+    if (pending) row.append(roundButton("plus", t("Discard and play today"), () => chooseStart(date), "cb-round-lg"));
+    if (o.online) row.append(roundButton("crown", o.online.label(), o.online.start, "cb-round-lg"));
+    row.append(roundButton("help-circle", t("Daily guide"), () => guide(), "cb-round-lg"));
+    const actions = node("div", "cb-result-actions");
+    actions.append(primary, row);
+
+    const next = node("p", "cb-daily-clock");
+    next.title = t("Next Daily in"); next.setAttribute("aria-label", t("Next Daily in"));
+    countdown = node("span", "", clock());
+    next.append(icon("clock", 16), countdown);
+
+    wrap.append(top, calendar, streak, strip, target, actions, next);
+    panel.append(wrap);
+    primary.focus({ preventScroll: true });
+    shownDate = date; refresh = entry;
   }
   function clock() {
     const seconds = dailyCountdown(o.now());
-    return `${Math.floor(seconds / 3600).toString().padStart(2, "0")}:${Math.floor(seconds % 3600 / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")} UTC`;
+    return `${Math.floor(seconds / 3600).toString().padStart(2, "0")}:${Math.floor(seconds % 3600 / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
   }
   function chooseStart(date: string): void {
     const pending = o.save().daily.pending;
@@ -81,13 +123,23 @@ export function createDailyScreens(o: DailyScreenOptions) {
     o.panel.querySelector(".cb-actions")!.before(list); o.panel.classList.add("cb-data-panel", "cb-history-panel"); refresh = () => history(page);
   }
   function result(summary: RunSummary, previousBest: number, record: RunRecord, isReplay: boolean): void {
-    const date = summary.daily!.dateUTC, actions = [button(t("Retry this Daily"), () => retry(date)), button(t("Replay / restart"), () => o.replay(record)), button(t("Home"), o.home)];
-    const credited = o.save().daily.creditedDates.includes(date), delta = summary.complete ? Math.max(0, summary.result.population - previousBest) : 0;
-    o.showPanel(`${isReplay ? t("Replay complete") : summary.complete ? t("Daily complete") : t("Daily incomplete")} · ${summary.result.rating}`, `${date} UTC · ${t("Personal result · not server verified")}`, actions);
+    const date = summary.daily!.dateUTC, vi = o.vi();
+    const credited = o.save().daily.creditedDates.includes(date);
     const roof = summary.metrics?.roof, quality = roof ? t(({ perfect: "Perfect", great: "Great", good: "Good", risky: "Risky", miss: "Miss" } as const)[roof]) : "—";
-    o.showStats([[t("Population"), String(summary.result.population)], [t("Floors"), `${summary.result.height}/20 · ${summary.complete ? t("Complete") : t("Incomplete")}`],
-      [t("Roof"), quality], [t("Perfect rate"), `${dailyPerfectRate(summary).toFixed(1)}%`],
-      [credited ? t("UTC day credited") : t("Day not credited yet"), String(currentDailyStreak(o.save().daily, utcDate(o.now())))], [t("Personal-best delta"), summary.complete ? `+${delta}` : "—"]]);
+    const primary = bigButton("rotate-ccw", t("Retry this Daily"), () => retry(date));
+    const note = node("p", "cb-result-note", `${date} UTC · ${summary.complete ? t("Daily complete") : t("Daily incomplete")}${credited ? ` · ${t("UTC day credited")}` : ""}`);
+    o.resultScreen(`${isReplay ? t("Replay complete") : summary.complete ? t("Daily complete") : t("Daily incomplete")} · ${summary.result.rating}`, {
+      rating: summary.result.rating,
+      value: formatNumber(summary.result.population, vi),
+      valueLabel: t("Population"),
+      ribbon: !isReplay && summary.complete && summary.result.population > previousBest ? (vi ? "Kỷ lục mới" : "New best") : undefined,
+      coins: isReplay ? undefined : o.coins(),
+      stats: [
+        { icon: "layers", value: `${summary.result.height}/20`, label: t("Floors") },
+        { icon: "crown", value: quality, label: t("Roof") },
+        { icon: "flame", value: String(currentDailyStreak(o.save().daily, utcDate(o.now()))), label: t("Daily streak") },
+      ],
+    }, primary, [roundButton("home", t("Home"), o.home, "cb-round-lg"), roundButton("eye", t("Replay / restart"), () => o.replay(record), "cb-round-lg")], [note]);
     refresh = () => result(summary, previousBest, record, isReplay);
   }
   function retry(date: string): void {

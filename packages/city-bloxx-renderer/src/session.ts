@@ -4,7 +4,7 @@ import { QuickTowerRenderer } from "./index";
 import { cityGuide } from "./city-guide";
 import { createDataScreens } from "./data-screens";
 import { createSaveController } from "./save-controller";
-import { beginDaily, checkpointDaily, resolveDaily, utcDate } from "../../city-bloxx-core/src/index";
+import { beginDaily, checkpointDaily, currentDailyStreak, resolveDaily, utcDate } from "../../city-bloxx-core/src/index";
 import { createDailyScreens } from "./daily-screens";
 import { acceptTrackedCity, claimMission, ensureMissions, recordRunProgress, rerollSaveMission } from "../../city-bloxx-core/src/index";
 import { createProgressionScreens, type RewardSaveStatus } from "./progression-screens";
@@ -13,6 +13,7 @@ import { createBookScreens } from "./book-screens";
 import { createDistrictScreens, preloadDistrictBackground } from "./district-screens";
 import { createPvpScreens } from "./pvp-screens";
 import { lucideSvg, type LucideIconName } from "./lucide-icons";
+import { bigButton, formatNumber, icon, node, pill, resultCard, roundButton, tile, type ResultStat } from "./ui-kit";
 import { completeTutorial, type TutorialState } from "../../city-bloxx-core/src/save-state";
 import type { PvpPort, RankedPort } from "../../city-bloxx-core/src/ports";
 
@@ -87,82 +88,51 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   let oneDropMenuOpen = false;
   let perfectRushMenuOpen = false;
   let skylineSprintMenuOpen = false;
-  let modesMenuOpen = false;
-  let utilitiesMenuOpen = false;
-  let settingsMenuOpen = false;
-  let homeMenuOpen = false;
-  let toolbarOpen = false;
+  let gameMenuOpen = false;
 
   root.classList.add("cb-game");
   root.classList.toggle("cb-content-session",options.presentation === "content");
   root.lang=vi?"vi":"en";
+  // Minimal HUD: score + floors on the left, lives + pause on the right. Everything else lives in menus.
   root.innerHTML = `
     <div class="cb-arena" tabindex="0" role="application" aria-label="${quickName()}">
       <canvas aria-label="${t("Tower")}"></canvas>
       <div class="cb-hud">
-        <div class="cb-hud-item" title="${t("Population")}">
-          <span class="cb-hud-label">${lucideSvg("users", 14)}<span>${t("Population")}</span></span>
-          <strong data-population>0</strong>
+        <div class="cb-hud-left">
+          <div class="cb-hud-item cb-hud-score" title="${t("Population")}">
+            <span class="cb-hud-label">${lucideSvg("users", 22)}<span>${t("Population")}</span></span>
+            <strong data-population>0</strong>
+          </div>
+          <div class="cb-hud-item cb-hud-floors" title="${t("Floors")}">
+            <span class="cb-hud-label">${lucideSvg("layers", 16)}<span>${t("Floors")}</span></span>
+            <strong data-floors>0</strong>
+          </div>
+          <span data-mode class="cb-hud-mode"></span>
         </div>
-        <div class="cb-hud-item" title="${t("Floors")}">
-          <span class="cb-hud-label">${lucideSvg("layers", 14)}<span>${t("Floors")}</span></span>
-          <strong data-floors>0</strong>
+        <div class="cb-hud-right">
+          <strong class="cb-hud-lives" data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong>
+          <button type="button" data-pause class="cb-round-btn cb-pause-btn" aria-label="${t("Pause")}" title="${t("Pause")}">${lucideSvg("pause", 22)}</button>
         </div>
-        <div class="cb-hud-item cb-hud-lives" title="${t("Lives")}">
-          <span class="cb-hud-label">${lucideSvg("heart", 14)}<span>${t("Lives")}</span></span>
-          <strong data-lives role="img" aria-label="${t("Lives")}: 3/3">${[0,1,2].map(index=>`<svg data-life="${index}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C9 18.7 2 13.5 2 7.9C2 2.8 8.3 1.2 12 5.7C15.7 1.2 22 2.8 22 7.9C22 13.5 15 18.7 12 21Z"/><path class="cb-heart-shine" d="M5.1 7.9C5.1 5.9 7 5.4 8.3 6.4"/></svg>`).join("")}</strong>
-        </div>
-        <div class="cb-hud-item" title="${t("Best")}">
-          <span class="cb-hud-label">${lucideSvg("trophy", 14)}<span>${t("Best")}</span></span>
-          <strong data-best>0</strong>
-        </div>
-        <div class="cb-hud-item cb-hud-coins" title="Coins">
-          <span class="cb-hud-label">${lucideSvg("coins", 14)}<span>Coins</span></span>
-          <strong data-coins>200</strong>
-        </div>
+        <span class="cb-sr-only"><span data-best>0</span><span data-coins>200</span></span>
       </div>
-      <button type="button" data-toolbar-toggle class="cb-menu-toggle" aria-expanded="false" aria-label="${vi ? "Mở thanh điều khiển" : "Toggle menu"}" title="${vi ? "Mở thanh điều khiển" : "Toggle menu"}">${lucideSvg("menu", 18)}</button>
-      <div class="cb-toolbar" data-toolbar-open="false">
-        <div class="cb-toolbar-title">
-          <span class="cb-toolbar-brand-icon">${lucideSvg("building-2", 16)}</span>
-          <strong>${quickName()}</strong>
-          <span data-mode class="cb-mode-badge"></span>
-        </div>
-        <div class="cb-toolbar-controls">
-          <button type="button" data-home-nav class="cb-toolbar-btn" title="${t("Home")}">${lucideSvg("home", 14)}<span>${t("Home")}</span></button>
-          <button type="button" data-pause class="cb-toolbar-btn">${lucideSvg("pause", 14)}<span data-pause-label>${t("Pause")}</span></button>
-          <button type="button" data-sound class="cb-toolbar-btn" aria-pressed="false"${options.showSoundControl === false ? " hidden" : ""}>${lucideSvg("volume-2", 14)}<span data-sound-label>${t("Sound on")}</span></button>
-          <button type="button" data-motion class="cb-toolbar-btn" aria-pressed="${reducedMotion}" title="${t("Limit decorative motion; scoring stays the same.")}" hidden>${lucideSvg("sparkles", 14)}<span>${t("Reduced motion")}</span></button>
-          ${options.showLanguageSwitch === false ? "" : `<button type="button" data-language class="cb-toolbar-btn" aria-label="${t("Language")}">${lucideSvg("globe", 14)}<span data-language-label>${vi?"EN":"VI"}</span></button>`}
-          <button type="button" data-settings-open class="cb-toolbar-btn" title="${vi ? "Cài đặt" : "Settings"}">${lucideSvg("settings", 14)}<span data-settings-label>${vi ? "Cài đặt" : "Settings"}</span></button>
-        </div>
-      </div>
+      <div class="cb-combo" aria-label="${t("Combo")}" hidden><span></span></div>
       <div class="cb-replay-controls" data-replay-controls hidden></div>
       <div class="cb-panel" role="dialog" aria-label="${t("Game menu")}"></div>
-      <div class="cb-combo" aria-label="${t("Combo")}" hidden><span></span></div>
+      <div class="cb-tutorial" hidden>${lucideSvg("sparkles", 18)}<span></span><button type="button" data-tutorial-dismiss>${lucideSvg("x", 16)}</button></div>
     </div>
-    <div class="cb-tutorial" hidden><span></span><button data-tutorial-dismiss></button></div>
-    <p class="cb-hint"></p><p class="cb-notice" role="status" aria-live="polite"></p>`;
+    <p class="cb-hint cb-sr-only" aria-live="polite"></p><p class="cb-notice" role="status" aria-live="polite"></p>`;
   const el = <T extends HTMLElement = HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const arena = el(".cb-arena");
   const panel = el(".cb-panel");
-  const toolbar = el(".cb-toolbar");
-  const menuToggleBtn = el<HTMLButtonElement>("[data-toolbar-toggle]");
   const replayControls = el("[data-replay-controls]");
   const hint = el(".cb-hint");
   const notice = el(".cb-notice");
   const tutorial=el(".cb-tutorial");let tutorialMode:keyof TutorialState="quick";
   const wt=(en:string,translation:string)=>{translations.set(en,translation);return vi?translation:en;};
-  function setToolbarOpen(open: boolean): void {
-    toolbarOpen = open;
-    toolbar.dataset.toolbarOpen = String(open);
-    menuToggleBtn.setAttribute("aria-expanded", String(open));
-    menuToggleBtn.innerHTML = lucideSvg(open ? "x" : "menu", 18);
-  }
   function tutorialHint(mode:keyof TutorialState, text:string):void {
     tutorialMode=mode;tutorial.hidden=save.tutorials[mode];
     tutorial.querySelector("span")!.textContent=text;
-    el("[data-tutorial-dismiss]").textContent=wt("Dismiss tips","Ẩn mẹo");
+    const dismiss=el("[data-tutorial-dismiss]");dismiss.setAttribute("aria-label",wt("Dismiss tips","Ẩn mẹo"));dismiss.title=dismiss.getAttribute("aria-label")!;
   }
   const hud = new Map<string, HTMLElement>();
   function setText(selector: string, value: string): void {
@@ -172,16 +142,22 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
   const combo = el(".cb-combo span");
   const pauseButton = el<HTMLButtonElement>("[data-pause]");
   function updatePauseButtonUi(): void {
-    const iconName: LucideIconName = userPaused ? "play" : "pause";
-    const labelText = userPaused ? t("Resume") : t("Pause");
-    pauseButton.innerHTML = `${lucideSvg(iconName, 14)}<span data-pause-label>${labelText}</span>`;
+    const label = userPaused ? t("Resume") : t("Pause");
+    pauseButton.innerHTML = lucideSvg(userPaused ? "play" : "pause", 22);
+    pauseButton.setAttribute("aria-label", label); pauseButton.title = label;
   }
+  function soundLabel(): string { return muted ? t("Sound off") : t("Sound on"); }
   function updateSoundButtonUi(): void {
-    const soundBtn = el<HTMLButtonElement>("[data-sound]");
-    const iconName: LucideIconName = muted ? "volume-x" : "volume-2";
-    const labelText = muted ? t("Sound off") : t("Sound on");
-    soundBtn.innerHTML = `${lucideSvg(iconName, 14)}<span data-sound-label>${labelText}</span>`;
-    soundBtn.setAttribute("aria-pressed", String(muted));
+    for (const soundBtn of root.querySelectorAll<HTMLButtonElement>(".cb-round-btn[data-sound]")) {
+      soundBtn.innerHTML = lucideSvg(muted ? "volume-x" : "volume-2", 24);
+      soundBtn.setAttribute("aria-pressed", String(!muted));
+      soundBtn.setAttribute("aria-label", soundLabel()); soundBtn.title = soundLabel();
+    }
+  }
+  function toggleSound(): void {
+    muted = !muted; if (muted) options.audio.suspend();
+    updateSoundButtonUi();
+    save = { ...save, settings: { ...save.settings, muted } }; persist();
   }
   let shownLives = 3;
   function showLives(lives:number): void {
@@ -242,10 +218,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     oneDropMenuOpen=false;
     perfectRushMenuOpen=false;
     skylineSprintMenuOpen=false;
-    modesMenuOpen=false;
-    utilitiesMenuOpen=false;
-    settingsMenuOpen=false;
-    homeMenuOpen=false;
+    gameMenuOpen=false;
     delete panel.dataset.menuScreen;
     panel.removeAttribute("aria-modal");
     dataScreens.clear();
@@ -254,13 +227,25 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     bookScreens.clear();
     districtScreens.clear();
     pvpScreens.clear();
-    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel", "cb-pvp-panel", "cb-home-panel", "cb-modes-panel", "cb-utilities-panel", "cb-settings-panel");
+    panel.classList.remove("cb-city-panel", "cb-guide-panel", "cb-result-panel", "cb-data-panel", "cb-history-panel", "cb-districts-panel", "cb-pvp-panel", "cb-home-panel", "cb-screen", "cb-menu-panel", "cb-pause-panel", "cb-quick-result-panel", "cb-loading-panel");
     panel.replaceChildren(); panel.hidden = false;
     const heading = document.createElement("h2"); heading.textContent = title;
     const text = document.createElement("p"); text.textContent = body;
     const buttons = document.createElement("div"); buttons.className = "cb-actions"; buttons.append(...actions);
     panel.append(heading, text, buttons); panel.setAttribute("aria-label",title);panel.tabIndex=-1;
     const firstEnabled=actions.find(b=>!b.disabled);if(firstEnabled)firstEnabled.focus({preventScroll:true});else panel.focus({preventScroll:true});
+  }
+  /** Opens the panel as a custom minimal screen; the title stays for screen readers only. */
+  function screen(title: string, className: string): HTMLElement {
+    showPanel(title, "", []);
+    panel.classList.add("cb-screen", className);
+    panel.querySelector("h2")!.className = "cb-sr-only";
+    panel.querySelector("p")!.remove();
+    panel.querySelector(".cb-actions")!.remove();
+    return panel;
+  }
+  function showLoading(title: string): void {
+    screen(title, "cb-loading-panel").append(node("span", "cb-spinner"));
   }
   function showStats(stats: [string,string][]): void {
     panel.classList.add("cb-result-panel");
@@ -329,6 +314,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     assets: options.assets,
     now });
   const dailyScreens = createDailyScreens({ panel, save: () => save, now, t, button, showPanel, showStats, home,
+    vi: () => vi, screen, resultScreen: showResultScreen, coins: runCoinsLabel,
     online:options.ranked ? {label:()=>wt("Ranked Daily","Daily xếp hạng"),start:()=>{void startOnline("daily");}} : undefined,
     start: date => { void startDaily(date); }, resume: () => { void resumeDaily(); }, discard: discardDaily,
     replay: record => { void startReplay(record); } });
@@ -431,6 +417,32 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     try { await renderer.loadEquipment(id,equipment); }
     catch { message(t("Using fallback building art."));try{await renderer.loadBuilding(id);}catch{/* Colored fallback remains usable. */} }
     renderer.setEquipment(equipment);
+  }
+  function rewardRoundButton(back: () => void): HTMLButtonElement | null {
+    if (featureFlags.meta === false) return null;
+    const summary = save.history.find(h => h.identity.id === runContext?.identity.id);
+    return summary ? roundButton("sparkles", progressionResultLabel(), () => progressionScreens.result(summary, back), "cb-round-lg") : null;
+  }
+  function runCoinsLabel(): string | undefined {
+    const earned = save.history.find(h => h.identity.id === runContext?.identity.id)?.coinsEarned ?? 0;
+    return earned > 0 ? `+${formatNumber(earned, vi)}` : undefined;
+  }
+  function saveRetryButton(): HTMLButtonElement | null {
+    return rewardSaveStatus === "error" ? roundButton("alert-triangle", t("Retry save"), persist, "cb-round-lg cb-round-warn") : null;
+  }
+  /** Shared minimal result layout: one card, one big action, a row of round icon actions. */
+  function showResultScreen(title: string, card: Parameters<typeof resultCard>[0], primary: HTMLButtonElement, secondary: (HTMLButtonElement | null)[], extra: HTMLElement[] = []): void {
+    screen(title, "cb-quick-result-panel");
+    const wrap = node("div", "cb-result");
+    const resultCardEl = resultCard(card);
+    resultCardEl.append(...extra);
+    const row = node("div", "cb-result-row");
+    row.append(...secondary.filter((b): b is HTMLButtonElement => !!b));
+    const actions = node("div", "cb-result-actions");
+    actions.append(primary, row);
+    wrap.append(resultCardEl, actions);
+    panel.append(wrap);
+    primary.focus({ preventScroll: true });
   }
   function rewardButton(back: () => void): HTMLButtonElement | null {
     if (featureFlags.meta === false) return null;
@@ -592,7 +604,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if(mapView&&!run&&!replay) {
       const activeDistrict = save.districts.activeDistrict;
       const districtState = activeDistrict === "harbor" ? save.districts.harbor : save.districts.downtown;
-      setText(".cb-toolbar strong",cityName());setText("[data-mode]",activeDistrict === "harbor" ? wt("Harbor","Bến cảng") : t("Downtown"));
+      setText("[data-mode]","");
       showLives(3);
       setText("[data-population]",String(totalCityPopulation(save)));
       setText("[data-floors]",String(districtState.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0)));
@@ -604,7 +616,6 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const oneDrop = replay?.record.config.oneDrop ?? run?.config.oneDrop;
     const perfectRush = replay?.record.config.perfectRush ?? run?.config.perfectRush;
     const skylineSprint = replay?.record.config.skylineSprint ?? run?.config.skylineSprint;
-    setText(".cb-toolbar strong", oneDrop ? "One Drop" : perfectRush ? "Perfect Rush" : skylineSprint ? "Skyline Sprint" : daily ? t("Daily Tower") : s.targetFloors ? cityName() : quickName());
     setText("[data-population]", String(s.population));
     setText("[data-floors]", oneDrop ? `${Math.max(0, s.floors.length - oneDrop.prebuiltFloors)}/${oneDrop.targetBodyFloors}` : skylineSprint ? `${s.floors.length}/${skylineSprint.targetBodyFloors}` : s.targetFloors ? `${s.floors.length}/${s.targetFloors}${s.isRoof && !s.roof ? " ▲" : ""}` : String(s.floors.length));
     showLives(s.lives);
@@ -612,12 +623,13 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const prBest = perfectRush ? save.liveOps?.perfectRush?.best : null;
     const spBest = skylineSprint ? save.liveOps?.skylineSprint?.bestComplete : null;
     setText("[data-best]", oneDrop ? (odBest ? `${(odBest.absError * 100).toFixed(1)}%` : "0") : perfectRush ? `${prBest?.perfectCount ?? 0} P` : skylineSprint ? (spBest ? `${(spBest.sprintScoreTicks / 60).toFixed(1)}s` : "0") : String(daily ? save.daily.days.find(d => d.dateUTC === daily.dateUTC)?.bestComplete?.result.population ?? 0 : s.assist ? save.assistQuickBest : save.standardQuickBest));
-    const comboWidth = `${s.comboRatio * 100}%`;
-    combo.parentElement!.hidden = !(s.comboLevel > 0 && s.comboRatio > 0 && panel.hidden);
-    if (combo.style.width !== comboWidth) combo.style.width = comboWidth;
+    const comboOn = s.comboLevel > 0 && s.comboRatio > 0 && panel.hidden;
+    combo.parentElement!.hidden = !comboOn;
+    if (comboOn) { setText(".cb-combo span", `x${s.comboLevel}`); combo.parentElement!.style.setProperty("--cb-combo-ratio", s.comboRatio.toFixed(3)); }
     const rushSecondsLeft = perfectRush ? Math.max(0, Math.ceil((perfectRush.deadlineTick - Math.min(perfectRush.deadlineTick, s.tick)) / 60)) : 0;
     const sprintElapsedSec = skylineSprint ? ((s.tick + (3 - s.lives) * skylineSprint.missPenaltyTicks) / 60).toFixed(1) : "0.0";
-    setText("[data-mode]", replay ? t("Replay") : oneDrop ? `${oneDrop.dateUTC} · 1 Drop` : perfectRush ? `${rushSecondsLeft}s · ${s.perfectCount} Perfect` : skylineSprint ? `${sprintElapsedSec}s (+${(3 - s.lives) * 5}s)` : daily ? `${daily.dateUTC} UTC` : s.targetFloors ? className(s.building) : s.assist ? t("Assist · unranked") : t("Standard"));
+    // Only modes with a clock or a special state need a chip; plain runs stay clean.
+    setText("[data-mode]", replay ? t("Replay") : oneDrop ? "1 Drop" : perfectRush ? `${rushSecondsLeft}s · ${s.perfectCount} P` : skylineSprint ? `${sprintElapsedSec}s` : rankedId ? wt("Ranked", "Xếp hạng") : "");
     pauseButton.disabled = !run && !replay || s.phase === "ended" && !celebrating;
     let hintText = !replay ? oneDrop ? wt("One Drop · Land 1 block on the swaying 4-floor tower with minimal error.", "One Drop · Thả 1 khối lên tháp 4 tầng đang lắc với độ lệch nhỏ nhất.") : perfectRush ? wt("Perfect Rush · 60s clock, 3 lives, no roof. Maximize Perfect placements!", "Perfect Rush · 60 giây, 3 mạng, không mái. Tối đa hoá số lần Hoàn hảo!") : skylineSprint ? wt("Skyline Sprint · Reach 20 floors fastest (+5s per Miss, no roof).", "Skyline Sprint · Đạt 20 tầng nhanh nhất (+5 giây mỗi lần trượt, không mái).") : s.drops.length === 0 ? t("1/3 · Tap, click, Space or Enter to drop one floor.") :
       s.drops.length === 1 ? t("2/3 · Aim at the moving top of the tower. Three misses end the run.") :
@@ -626,7 +638,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     setText(".cb-hint", hintText);
     if(run?.config.mode === "quick" && !replay && panel.hidden && !save.tutorials.quick){
       if(s.drops.length>=3){save=completeTutorial(save,"quick");tutorial.hidden=true;persist();}
-      else tutorialHint("quick",hintText);
+      else tutorialHint("quick",s.drops.length === 0 ? wt("Tap to drop", "Chạm để thả") : s.drops.length === 1 ? wt("Aim at the tower top", "Canh đỉnh tháp") : wt("Perfect keeps the combo", "Perfect giữ combo"));
     }else if(panel.hidden || replay) tutorial.hidden=true;
     syncReplayControls();
   }
@@ -647,7 +659,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); replay = null; replayScrubPaused = false; finishedRecord = null;
     run = null;pauseButton.disabled=true;
     renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
-    showPanel(t("Preparing tower"),t("Loading artwork…"),[]);
+    showLoading(t("Preparing tower"));
     // Lazy assets still load only after Play, but decoding never competes with a moving crane.
     const buildingId = customConfig?.building ?? "residential";
     const equipment=equipmentFor(save,buildingId);await loadRunArtwork(buildingId,equipment);if(disposed||generation!==startGeneration)return;
@@ -677,467 +689,94 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     cancelFrame(); run = null; userPaused = false; replayScrubPaused = false; lastFeedback = 0;
     renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
     pauseButton.disabled=true;
-    showPanel(t("Preparing replay"),t("Loading artwork…"),[]);
+    showLoading(t("Preparing replay"));
     const entry=save.replays.find(r=>r.record===record||JSON.stringify(r.record)===JSON.stringify(record));
     const equipment=save.history.find(h=>h.identity.id===entry?.id)?.equipment??{...DEFAULT_EQUIPMENT};
     await loadRunArtwork(record.config.building ?? "residential",equipment);if(disposed)return;
     buildReplayControls();
     panel.hidden = true; updatePauseButtonUi(); paint(); syncPause(); schedule();
   }
-  function openModesMenu(): void {
+  function leaveRun(): void {
     startGeneration++;
     mapView = false;
     checkpointCity(); abandonQuick(); cityActive = false;
     cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
     renderer.setGhost(null); renderer.setOpponentTower(null); paint();
     rankedId = null; celebrating = false; renderer.resetEffects();
-
-    showPanel(
-      wt("Game Modes", "Chọn Chế Độ Chơi"),
-      wt("Choose a mode — each mode tracks its own Personal Best.", "Chọn chế độ chơi yêu thích — mỗi chế độ lưu kỷ lục riêng."),
-      [button(t("Home"), home, "home")],
-    );
-    modesMenuOpen = true;
-    panel.classList.add("cb-modes-panel");
-    panel.dataset.menuScreen = "modes";
-
-    const grid = document.createElement("div");
-    grid.className = "cb-mode-grid";
-
-    const addModeCard = (cfg: {
-      icon: LucideIconName;
-      title: string;
-      badge: string;
-      desc: string;
-      attr?: string;
-      onClick: () => void;
-    }) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "cb-mode-card";
-      if (cfg.attr) card.setAttribute(cfg.attr, "true");
-      card.innerHTML = `
-        <span class="cb-mode-card-icon">${lucideSvg(cfg.icon, 20)}</span>
-        <span class="cb-mode-card-body">
-          <span class="cb-mode-card-head">
-            <strong></strong>
-            <em class="cb-mode-card-badge"></em>
-          </span>
-          <small></small>
-        </span>
-      `;
-      card.querySelector("strong")!.textContent = cfg.title;
-      card.querySelector("em")!.textContent = cfg.badge;
-      card.querySelector("small")!.textContent = cfg.desc;
-      card.addEventListener("click", cfg.onClick);
-      grid.append(card);
-    };
-
-    addModeCard({
-      icon: "play",
-      title: t("Play Standard"),
-      badge: `${t("Best")}: ${save.standardQuickBest}`,
-      desc: wt("Endless skyscraper challenge · 3 lives", "Xây tháp vô tận · 3 mạng"),
-      onClick: () => { void start(); },
-    });
-
-    addModeCard({
-      icon: "shield-check",
-      title: t("Play Assist"),
-      badge: `${t("Best")}: ${save.assistQuickBest}`,
-      desc: wt("Slower crane swing · relaxed practice", "Cần cẩu lắc chậm hơn · kỷ lục riêng"),
-      onClick: () => { void start(true); },
-    });
-
-    addModeCard({
-      icon: "building-2",
-      title: t("Build City"),
-      badge: `${totalCityPopulation(save)} ${t("people")}`,
-      desc: wt("5×5 Downtown & Harbor districts", "Quy hoạch đô thị 5×5 & Bến cảng"),
-      onClick: cityMap,
-    });
-
-    if (options.pvp) {
-      addModeCard({
-        icon: "swords",
-        title: wt("Solo PvP 1v1", "Solo PvP 1v1"),
-        badge: `${save.coins ?? 200} Coins`,
-        desc: wt("Realtime 1v1 coin wager · Winner takes all", "Đấu 1v1 thời gian thực · Cao tầng hơn ăn trọn Pot"),
-        attr: "data-open-pvp",
-        onClick: () => openPvp(),
-      });
-    }
-
-    if (featureFlags.daily !== false || save.daily.pending) {
-      addModeCard({
-        icon: "calendar",
-        title: t("Daily Tower"),
-        badge: utcDate(now()),
-        desc: wt("20F Industrial daily seed + 1 roof attempt", "Thử thách 20 tầng Công nghiệp mỗi ngày"),
-        onClick: openDaily,
-      });
-    }
-
-    addModeCard({
-      icon: "target",
-      title: "One Drop",
-      badge: wt("1 Block", "1 Lần thả"),
-      desc: wt("Land 1 block on a swaying 4F tower", "Thả duy nhất 1 khối với độ lệch nhỏ nhất"),
-      attr: "data-open-one-drop",
-      onClick: openOneDrop,
-    });
-
-    if (!liveOpsManifest.killSwitch.rushDisabled) {
-      addModeCard({
-        icon: "zap",
-        title: "Perfect Rush",
-        badge: "60s",
-        desc: wt("Maximize Perfect drops in 60 seconds", "Tối đa số lần Hoàn hảo trong 60 giây"),
-        attr: "data-open-perfect-rush",
-        onClick: openPerfectRush,
-      });
-    }
-
-    if (!liveOpsManifest.killSwitch.sprintDisabled) {
-      addModeCard({
-        icon: "timer",
-        title: "Skyline Sprint",
-        badge: "20F",
-        desc: wt("Race to 20 floors fastest (+5s per Miss)", "Đua tốc độ xây đủ 20 tầng nhanh nhất"),
-        attr: "data-open-skyline-sprint",
-        onClick: openSkylineSprint,
-      });
-    }
-
-    if (options.ranked) {
-      addModeCard({
-        icon: "trophy",
-        title: wt("Ranked Quick", "Quick xếp hạng"),
-        badge: "Online",
-        desc: wt("Verified online leaderboard run", "Đấu tính điểm bảng xếp hạng trực tuyến"),
-        onClick: () => { void startOnline("quick"); },
-      });
-    }
-
-    panel.querySelector(".cb-actions")!.before(grid);
   }
-
-  function openUtilitiesMenu(): void {
-    startGeneration++;
-    mapView = false;
-    checkpointCity(); abandonQuick(); cityActive = false;
-    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
-    renderer.setGhost(null); renderer.setOpponentTower(null); paint();
-    rankedId = null; celebrating = false; renderer.resetEffects();
-
-    showPanel(
-      wt("Player Hub & Utilities", "Tiện Ích & Hồ Sơ"),
-      wt("View your stats, match history, progression rewards, cosmetics, and guides.", "Xem thống kê, lịch sử tháp, nhiệm vụ, sổ kiến trúc và hướng dẫn chơi."),
-      [button(t("Home"), home, "home")],
-    );
-    utilitiesMenuOpen = true;
-    panel.classList.add("cb-utilities-panel");
-    panel.dataset.menuScreen = "utilities";
-
-    const grid = document.createElement("div");
-    grid.className = "cb-mode-grid";
-
-    const addUtilCard = (icon: LucideIconName, title: string, desc: string, onClick: () => void) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "cb-mode-card";
-      card.innerHTML = `
-        <span class="cb-mode-card-icon">${lucideSvg(icon, 20)}</span>
-        <span class="cb-mode-card-body">
-          <span class="cb-mode-card-head"><strong></strong></span>
-          <small></small>
-        </span>
-      `;
-      card.querySelector("strong")!.textContent = title;
-      card.querySelector("small")!.textContent = desc;
-      card.addEventListener("click", onClick);
-      grid.append(card);
-    };
-
-    if (featureFlags.meta !== false) {
-      addUtilCard("sparkles", progressionLabel(), wt("Daily missions, weekly contracts & season pass", "Nhiệm vụ ngày, hợp đồng tuần & mùa giải"), openProgression);
-    }
-    if (featureFlags.cosmetics !== false) {
-      addUtilCard("book-open", bookLabel(), wt("Unlock & equip building, roof and crane skins", "Mở khóa & trang bị skin nhà, mái, cần cẩu"), openBook);
-    }
-    addUtilCard("bar-chart-3", t("Statistics"), wt("Accuracy heatmap, personal records & career totals", "Biểu đồ độ chính xác & thống kê sự nghiệp"), () => openData(false));
-    addUtilCard("history", t("History"), wt("Saved towers, Hall of Fame & Skyline Album", "Lịch sử các tháp đã xây & Phòng truyền thống"), () => openData(true));
-    if (save.lastReplay) {
-      addUtilCard("rotate-ccw", t("Last replay"), wt("Watch your most recent tower run", "Xem lại lượt thả tháp gần nhất"), () => { void startReplay(save.lastReplay!); });
-    }
-    addUtilCard("help-circle", t("Build City guide"), wt("Learn lot placement, adjacency & district rules", "Hướng dẫn quy tắc xây dựng thành phố & quận"), () => showGuide(0, home));
-    if (!storageWritable) {
-      addUtilCard("rotate-ccw", t("Recover saved progress"), wt("Retry reading saved progress from storage", "Thử đọc lại dữ liệu lưu"), confirmRecovery);
-    }
-
-    panel.querySelector(".cb-actions")!.before(grid);
-  }
-
-  function openSettingsMenu(): void {
-    startGeneration++;
-    mapView = false;
-    checkpointCity(); abandonQuick(); cityActive = false;
-    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false;
-    renderer.setGhost(null); renderer.setOpponentTower(null); paint();
-    rankedId = null; celebrating = false; renderer.resetEffects();
-
-    showPanel(
-      wt("Game Settings", "Cài Đặt Trò Chơi"),
-      wt("Customize audio, visual comfort, ghost preview, and language.", "Tùy chỉnh âm thanh, hiệu ứng chuyển động, bóng Ghost và ngôn ngữ."),
-      [button(t("Home"), home, "home")],
-    );
-    settingsMenuOpen = true;
-    panel.classList.add("cb-settings-panel");
-    panel.dataset.menuScreen = "settings";
-
-    const list = document.createElement("div");
-    list.className = "cb-settings-list";
-
-    const makeToggleRow = (
-      icon: LucideIconName,
-      title: string,
-      subtitle: string,
-      active: boolean,
-      onToggle: () => void,
-      settingKey: string,
-    ) => {
-      const row = document.createElement("div");
-      row.className = "cb-setting-row";
-      row.dataset.settingRow = settingKey;
-
-      const info = document.createElement("div");
-      info.className = "cb-setting-info";
-
-      const iconWrap = document.createElement("span");
-      iconWrap.className = "cb-setting-icon";
-      iconWrap.innerHTML = lucideSvg(icon, 18);
-
-      const copy = document.createElement("div");
-      copy.className = "cb-setting-copy";
-      const titleEl = document.createElement("strong");
-      titleEl.className = "cb-setting-title";
-      titleEl.textContent = title;
-      const subEl = document.createElement("small");
-      subEl.className = "cb-setting-desc";
-      subEl.textContent = subtitle;
-      copy.append(titleEl, subEl);
-      info.append(iconWrap, copy);
-
-      const toggleBtn = document.createElement("button");
-      toggleBtn.type = "button";
-      toggleBtn.className = "cb-toggle-switch";
-      toggleBtn.setAttribute("role", "switch");
-      toggleBtn.setAttribute("aria-checked", String(active));
-      toggleBtn.setAttribute("aria-pressed", String(active));
-      toggleBtn.setAttribute("aria-label", title);
-      toggleBtn.dataset.settingToggle = settingKey;
-      const thumb = document.createElement("span");
-      thumb.className = "cb-toggle-thumb";
-      toggleBtn.append(thumb);
-      toggleBtn.addEventListener("click", onToggle);
-
-      row.append(info, toggleBtn);
-      list.append(row);
-    };
-
+  // One sheet replaces the old Utilities + Settings screens: big tiles, one or two words each.
+  function openMenu(): void {
+    leaveRun();
+    screen(wt("Menu", "Menu"), "cb-menu-panel");
+    gameMenuOpen = true;
+    panel.dataset.menuScreen = "menu";
+    const sheet = node("div", "cb-sheet");
+    const head = node("div", "cb-sheet-head");
+    head.append(node("span", "cb-sheet-grip"), roundButton("x", t("Home"), home, "cb-sheet-close"));
+    const grid = node("div", "cb-tile-grid");
+    if (featureFlags.cosmetics !== false) grid.append(tile({ icon: "palette", tone: "green", label: wt("Skins", "Skin"), value: formatNumber(save.coins ?? 0, vi), valueIcon: "coins", action: openBook }));
+    if (featureFlags.meta !== false) grid.append(tile({ icon: "sparkles", tone: "gold", label: wt("Missions", "Nhiệm vụ"), action: openProgression }));
+    grid.append(tile({ icon: "bar-chart-3", tone: "blue", label: t("Statistics"), action: () => openData(false) }));
+    grid.append(tile({ icon: "history", tone: "slate", label: t("History"), action: () => openData(true) }));
+    if (save.lastReplay) grid.append(tile({ icon: "rotate-ccw", tone: "purple", label: wt("Replay", "Xem lại"), action: () => { void startReplay(save.lastReplay!); } }));
+    grid.append(tile({ icon: "help-circle", tone: "slate", label: t("Guide"), action: () => showGuide(0, openMenu) }));
     if (options.showSoundControl !== false) {
-      makeToggleRow(
-        muted ? "volume-x" : "volume-2",
-        wt("Sound Effects & Adaptive Audio", "Âm thanh & Nhạc hiệu ứng"),
-        wt("Toggle crane, placement, and combo sound effects", "Bật hoặc tắt tiếng thả tầng và hiệu ứng combo"),
-        !muted,
-        () => {
-          el<HTMLButtonElement>("[data-sound]").click();
-          openSettingsMenu();
-        },
-        "sound",
-      );
+      const sound = tile({ icon: muted ? "volume-x" : "volume-2", tone: muted ? "slate" : "red", label: wt("Sound", "Âm thanh"), pressed: !muted, action: () => { toggleSound(); openMenu(); } });
+      sound.dataset.settingToggle = "sound";
+      grid.append(sound);
     }
-
-    makeToggleRow(
-      "sparkles",
-      t("Reduced motion"),
-      t("Limit decorative motion; scoring stays the same."),
-      reducedMotion,
-      () => {
-        el<HTMLButtonElement>("[data-motion]").click();
-        openSettingsMenu();
-      },
-      "motion",
-    );
-
-    makeToggleRow(
-      "eye",
-      wt("Personal Ghost Preview", "Bóng Kỷ Lục Cá Nhân (Ghost)"),
-      wt("Show your Personal Best ghost outline when seeds match", "Hiển thị bóng mờ kỷ lục cá nhân khi trùng seed"),
-      ghostEnabled,
-      () => {
-        ghostEnabled = !ghostEnabled;
-        openSettingsMenu();
-      },
-      "ghost",
-    );
-
-    // Language row with clean compact switch
-    const langRow = document.createElement("div");
-    langRow.className = "cb-setting-row";
-    langRow.dataset.settingRow = "language";
-    const langInfo = document.createElement("div");
-    langInfo.className = "cb-setting-info";
-    const langIcon = document.createElement("span");
-    langIcon.className = "cb-setting-icon";
-    langIcon.innerHTML = lucideSvg("globe", 18);
-    const langCopy = document.createElement("div");
-    langCopy.className = "cb-setting-copy";
-    const langTitle = document.createElement("strong");
-    langTitle.className = "cb-setting-title";
-    langTitle.textContent = t("Language");
-    const langDesc = document.createElement("small");
-    langDesc.className = "cb-setting-desc";
-    langDesc.textContent = vi ? "Tiếng Việt (VI)" : "English (EN)";
-    langCopy.append(langTitle, langDesc);
-    langInfo.append(langIcon, langCopy);
-
-    const langSwitch = document.createElement("button");
-    langSwitch.type = "button";
-    langSwitch.className = "cb-toggle-switch";
-    langSwitch.setAttribute("role", "switch");
-    langSwitch.setAttribute("aria-checked", String(vi));
-    langSwitch.setAttribute("aria-pressed", String(vi));
-    langSwitch.setAttribute("aria-label", t("Language"));
-    langSwitch.dataset.settingToggle = "language";
-    const langThumb = document.createElement("span");
-    langThumb.className = "cb-toggle-thumb";
-    langSwitch.append(langThumb);
-    langSwitch.addEventListener("click", () => {
-      const nextLocale = vi ? "en" : "vi";
-      setLocale(nextLocale);
-      options.onLocaleChange?.(nextLocale);
-      openSettingsMenu();
-    });
-    langRow.append(langInfo, langSwitch);
-    list.append(langRow);
-
-    panel.querySelector(".cb-actions")!.before(list);
+    const language = tile({ icon: "globe", tone: "blue", label: vi ? "Tiếng Việt" : "English", value: vi ? "VI" : "EN", action: () => { const next = vi ? "en" : "vi"; setLocale(next); options.onLocaleChange?.(next); openMenu(); } });
+    language.dataset.settingToggle = "language";
+    const ghost = tile({ icon: "eye", tone: ghostEnabled ? "purple" : "slate", label: "Ghost", pressed: ghostEnabled, action: () => { ghostEnabled = !ghostEnabled; openMenu(); } });
+    ghost.dataset.settingToggle = "ghost";
+    grid.append(language, ghost);
+    if (!storageWritable) grid.append(tile({ icon: "alert-triangle", tone: "red", label: t("Recover saved progress"), action: confirmRecovery }));
+    sheet.append(head, grid);
+    panel.append(sheet);
+    grid.querySelector("button")?.focus({ preventScroll: true });
   }
 
   function home(): void {
-    startGeneration++;
-    if(options.presentation === "content" && ready && options.onNavigate){options.onNavigate("quick");return;}
-    mapView=false;
-    checkpointCity(); abandonQuick(); cityActive = false;
-    cancelFrame(); run = null; replay = null; replayScrubPaused = false; userPaused = false; renderer.setGhost(null); renderer.setOpponentTower(null); paint();
-    rankedId=null;
-    celebrating=false; renderer.resetEffects();
-
-    const playPrimary = button(t("Play Standard"), () => start(), "play", "cb-btn-hero");
-    playPrimary.dataset.playStandard = "true";
-
-    showPanel(
-      quickName(),
-      t("Build as high as you can. Three misses end your run. Assist swings slower and has its own best score."),
-      [playPrimary],
-    );
-    homeMenuOpen = true;
-    panel.classList.add("cb-home-panel");
+    if(options.presentation === "content" && ready && options.onNavigate){startGeneration++;options.onNavigate("quick");return;}
+    leaveRun();
+    screen(quickName(), "cb-home-panel");
     panel.dataset.menuScreen = "home";
-
-    // Build structured casual-game hub layout inside panel
-    const hub = document.createElement("div");
-    hub.className = "cb-home-hub";
-
-    // 1. Primary Hero Button: Play Standard (line 1) + Quick Tower · 3 Lives · Best (line 2), margin-bottom: 15px
-    const heroBtn = document.createElement("button");
-    heroBtn.type = "button";
-    heroBtn.className = "cb-hero-play-btn";
-    heroBtn.dataset.heroPlay = "true";
-    heroBtn.innerHTML = `
-      <span class="cb-hero-play-icon">${lucideSvg("play", 22)}</span>
-      <span class="cb-hero-play-copy">
-        <strong class="cb-hero-play-title">${t("Play Standard")}</strong>
-        <small class="cb-hero-play-sub">${wt("Quick Tower · 3 Lives", "Xây Tháp Nhanh · 3 Mạng")} · ${t("Best")}: ${save.standardQuickBest}</small>
-      </span>
-    `;
-    heroBtn.addEventListener("click", () => { void start(); });
-    hub.append(heroBtn);
-
-    // 2. Equal-sized Action Buttons Grid: Play Assist, Last replay, Game Modes, Build City, Solo PvP 1v1
-    const equalGrid = document.createElement("div");
-    equalGrid.className = "cb-home-action-grid";
-
-    const assistBtn = button(t("Play Assist"), () => { void start(true); }, "shield-check", "cb-home-equal-btn");
-    equalGrid.append(assistBtn);
-
-    if (save.lastReplay) {
-      const replayBtn = button(t("Last replay"), () => { void startReplay(save.lastReplay!); }, "rotate-ccw", "cb-home-equal-btn");
-      equalGrid.append(replayBtn);
-    }
-
-    const allModesBtn = button(wt("Game Modes", "Tất Cả Chế Độ"), openModesMenu, "gamepad-2", "cb-home-equal-btn");
-    allModesBtn.dataset.openModes = "true";
-    equalGrid.append(allModesBtn);
-
-    const quickCityBtn = button(t("Build City"), cityMap, "building-2", "cb-home-equal-btn");
-    equalGrid.append(quickCityBtn);
-
-    if (options.pvp) {
-      const quickPvpBtn = button(wt("Solo PvP 1v1", "Solo PvP 1v1"), () => openPvp(), "swords", "cb-home-equal-btn");
-      quickPvpBtn.dataset.openPvp = "true";
-      equalGrid.append(quickPvpBtn);
-    }
-
-    if (options.ranked) {
-      const rankedBtn = button(wt("Ranked Quick", "Quick xếp hạng"), () => { void startOnline("quick"); }, "trophy", "cb-home-equal-btn");
-      equalGrid.append(rankedBtn);
-    }
-
-    hub.append(equalGrid);
-
-    // 3. Quick Mode Chips Strip (Daily, One Drop, Perfect Rush, Skyline Sprint)
-    const modeChips = document.createElement("div");
-    modeChips.className = "cb-home-chips";
+    const wrap = node("div", "cb-home");
+    const top = node("div", "cb-home-top");
+    const coins = node("button", "cb-coin-pill");
+    coins.type = "button"; coins.dataset.coinPill = "true";
+    coins.append(icon("coins", 22), node("strong", "", formatNumber(save.coins ?? 0, vi)));
+    coins.setAttribute("aria-label", `${wt("Coins", "Xu")}: ${save.coins ?? 0}`);
+    coins.title = wt("Coins", "Xu");
+    coins.addEventListener("click", featureFlags.cosmetics !== false ? openBook : openMenu);
+    const menuBtn = roundButton("menu", wt("Menu", "Menu"), openMenu);
+    menuBtn.dataset.openMenu = "true";
+    top.append(coins, menuBtn);
+    const mark = node("h2", "cb-wordmark");
+    mark.setAttribute("aria-label", "City Bloxx");
+    mark.append(node("span", "", "CITY"), node("span", "", "BLOXX"));
+    const play = node("button", "cb-play-big");
+    play.type = "button"; play.innerHTML = lucideSvg("play", 64);
+    play.setAttribute("aria-label", t("Play Standard")); play.title = t("Play Standard");
+    play.dataset.heroPlay = "true"; play.dataset.playStandard = "true";
+    play.addEventListener("click", () => { void start(); });
+    const best = pill("trophy", formatNumber(save.standardQuickBest, vi), t("Best"), "cb-best-pill");
+    const tiles = node("div", "cb-home-tiles");
+    tiles.append(tile({ icon: "building-2", tone: "blue", label: wt("City", "Thành phố"), value: formatNumber(totalCityPopulation(save), vi), valueIcon: "users", dot: !!save.city.pending, action: cityMap }));
     if (featureFlags.daily !== false || save.daily.pending) {
-      const dBtn = button(t("Daily Tower"), openDaily, "calendar", "cb-chip-btn");
-      modeChips.append(dBtn);
+      const today = utcDate(now());
+      tiles.append(tile({ icon: "calendar", tone: "red", label: wt("Daily", "Hằng ngày"), value: String(currentDailyStreak(save.daily, today)), valueIcon: "flame", dot: !save.daily.creditedDates.includes(today), action: openDaily }));
     }
-    const odBtn = button("One Drop", openOneDrop, "target", "cb-chip-btn");
-    odBtn.dataset.openOneDrop = "true";
-    modeChips.append(odBtn);
-    if (!liveOpsManifest.killSwitch.rushDisabled) {
-      const prBtn = button("Perfect Rush", openPerfectRush, "zap", "cb-chip-btn");
-      prBtn.dataset.openPerfectRush = "true";
-      modeChips.append(prBtn);
+    if (options.pvp) {
+      const pvp = tile({ icon: "swords", tone: "purple", label: "Solo 1v1", action: () => openPvp() });
+      pvp.dataset.openPvp = "true";
+      tiles.append(pvp);
     }
-    if (!liveOpsManifest.killSwitch.sprintDisabled) {
-      const spBtn = button("Skyline Sprint", openSkylineSprint, "timer", "cb-chip-btn");
-      spBtn.dataset.openSkylineSprint = "true";
-      modeChips.append(spBtn);
-    }
-    hub.append(modeChips);
-
-    // 4. Utilities & Settings Dock (Progression, Cosmetics/Book, Statistics, History, More, Settings)
-    const dock = document.createElement("div");
-    dock.className = "cb-home-dock";
-    if (featureFlags.meta !== false) {
-      dock.append(button(progressionLabel(), openProgression, "sparkles", "cb-dock-btn"));
-    }
-    if (featureFlags.cosmetics !== false) {
-      dock.append(button(bookLabel(), openBook, "book-open", "cb-dock-btn"));
-    }
-    dock.append(button(t("Statistics"), () => openData(false), "bar-chart-3", "cb-dock-btn"));
-    dock.append(button(t("History"), () => openData(true), "history", "cb-dock-btn"));
-    dock.append(button(wt("More", "Tiện ích"), openUtilitiesMenu, "compass", "cb-dock-btn"));
-    dock.append(button(wt("Settings", "Cài đặt"), openSettingsMenu, "settings", "cb-dock-btn"));
-    hub.append(dock);
-
-    const defaultActions = panel.querySelector<HTMLElement>(".cb-actions");
-    if (defaultActions) defaultActions.replaceWith(hub);
-    heroBtn.focus({ preventScroll: true });
+    if (options.ranked) tiles.append(tile({ icon: "crown", tone: "gold", label: wt("Ranked", "Xếp hạng"), action: () => { void startOnline("quick"); } }));
+    tiles.dataset.count = String(tiles.childElementCount);
+    wrap.append(top, mark, play, best, tiles);
+    panel.append(wrap);
+    play.focus({ preventScroll: true });
   }
   function openPerfectRush(): void {
     if (liveOpsManifest.killSwitch.rushDisabled) {
@@ -1208,7 +847,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; cityActive = false; mapView = false;
     rankedId = null;
     renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
-    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    showLoading(t("Preparing tower"));
     const equipment = equipmentFor(save, def.classId);
     await loadRunArtwork(def.classId, equipment);
     if (disposed || generation !== startGeneration) return;
@@ -1326,7 +965,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; cityActive = false; mapView = false;
     rankedId = null;
     renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
-    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    showLoading(t("Preparing tower"));
     const equipment = equipmentFor(save, def.classId);
     await loadRunArtwork(def.classId, equipment);
     if (disposed || generation !== startGeneration) return;
@@ -1459,7 +1098,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; replayScrubPaused = false; cityActive = false; mapView = false;
     rankedId = null;
     renderer.resetEffects(); renderer.setGhost(null); celebrating = false;
-    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    showLoading(t("Preparing tower"));
     const equipment = equipmentFor(save, def.classId);
     await loadRunArtwork(def.classId, equipment);
     if (disposed || generation !== startGeneration) return;
@@ -1548,7 +1187,6 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (muted) options.audio.suspend();
     updateSoundButtonUi();
     updatePauseButtonUi();
-    el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion));
     if (options.showLanguageSwitch !== false && save.settings.locale) setLocale(save.settings.locale);
     save = { ...save, settings: { ...save.settings, locale: vi ? "vi" : "en" } };
   }
@@ -1571,7 +1209,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       run = null; replay = null; runContext = null; cityActive = false; mapView = false;
       cancelFrame(); renderer.resetEffects(); applySettings(); home(); persist();
     } catch {
-      if (!disposed) { storageWritable = false; home(); message(t("Save could not be read. Playing without saving to protect your old progress.")); }
+      if (!disposed) { storageWritable = false; home(); message(""); }
     } finally { recovering = false; }
   }
   function results(isReplay = false): void {
@@ -1583,30 +1221,41 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if (activeMode === "daily") { dailyResults(isReplay); return; }
     if (cityActive && !isReplay) { cityResults(); return; }
     const result = isReplay ? replay!.getResult() : run!.getResult();
+    const previousBest = result.ranked ? save.standardQuickBest : save.assistQuickBest;
     if (!isReplay) {
       const wasSettled = !!runContext && isSettled(save, runContext.identity);
       settleCurrent();
       if (!wasSettled && result.ranked && options.capabilities?.standardScore !== false) void options.score?.submitStandardQuick(result.population).catch(() => message(t("Score submission failed.")));
     }
     const record = isReplay ? replay!.record : finishedRecord;
-    const actions = [button(rankedId&&!isReplay ? wt("Ranked again","Chơi xếp hạng lại") : t("Build again"), () => rankedId&&!isReplay ? startOnline("quick") : start(!result.ranked))];
-    if (record && record.endTick <= 432000 && record.inputs.length <= 4096) actions.push(button(t("Replay / restart"), () => startReplay(record)));
-    actions.push(button(t("Home"), home), button(t("Retry save"), persist));
-    const rewards = !isReplay ? rewardButton(() => results()) : null; if (rewards) actions.push(rewards);
-    const body = result.ranked ? t("Standard") : t("Assist · unranked");
-    showPanel(`${isReplay ? t("Replay complete") : t("Tower complete")} · ${result.rating}`, body, actions);
+    const ranked = !!rankedId && !isReplay;
+    const primary = bigButton("rotate-ccw", ranked ? wt("Ranked again", "Chơi xếp hạng lại") : wt("Play again", "Chơi lại"), () => { void (ranked ? startOnline("quick") : start(!result.ranked)); });
+    const secondary = [roundButton("home", t("Home"), home, "cb-round-lg")];
+    if (record && record.endTick <= 432000 && record.inputs.length <= 4096) secondary.push(roundButton("eye", t("Replay / restart"), () => { void startReplay(record); }, "cb-round-lg"));
+    secondary.push(roundButton("building-2", t("Build City"), cityMap, "cb-round-lg"));
+    const note = node("p", "cb-result-note");
+    note.textContent = isReplay ? t("Replay complete") : !result.ranked ? t("Assist · unranked") : ranked ? wt("Ranked · verifying online", "Xếp hạng · đang xác minh") : "";
     if (!isReplay && result.ranked && options.capabilities?.standardScore !== false && options.score?.getState) {
       scoreState = options.score.getState();
-      const badge = document.createElement("span");
+      const badge = node("span");
       badge.dataset.scoreStatus = scoreState.status;
       badge.textContent = scoreState.status === "idle" ? "" : ` · ${scoreBadgeText(scoreState)}`;
-      panel.querySelector("p")?.append(badge);
-      syncScoreUi();
+      note.append(badge);
     }
-    showStats([[t("Population"),String(result.population)],[t("Floors"),String(result.height)],
-      [t("Accuracy"),`${result.accuracy.toFixed(1)}%`],[t("Perfect"),String(result.perfectCount)],
-      [t("Best streak"),String(result.bestStreak)],[t("Duration"),`${(result.durationTicks/60).toFixed(1)}s`]]);
-    if(rankedId&&!isReplay){const status=document.createElement("p");status.textContent=wt("Online result: open Ranked for verification status. Local rewards are granted once.","Kết quả online: mở Xếp hạng xem xác minh. Thưởng cá nhân chỉ nhận một lần.");panel.append(status);}
+    showResultScreen(`${isReplay ? t("Replay complete") : t("Tower complete")} · ${result.rating}`, {
+      rating: result.rating,
+      value: formatNumber(result.population, vi),
+      valueLabel: t("people"),
+      ribbon: !isReplay && result.population > 0 && result.population > previousBest ? wt("New best", "Kỷ lục mới") : undefined,
+      coins: isReplay ? undefined : runCoinsLabel(),
+      coinsLabel: wt("Coins", "Xu"),
+      stats: [
+        { icon: "layers", value: String(result.height), label: t("Floors") },
+        { icon: "star", value: String(result.perfectCount), label: t("Perfect") },
+        { icon: "zap", value: String(result.bestStreak), label: wt("Combo", "Combo") },
+      ],
+    }, primary, [...secondary, isReplay ? null : rewardRoundButton(() => results()), saveRetryButton()], [note]);
+    if (note.textContent) syncScoreUi(); else note.remove();
     paint();
   }
   function frame(time: number): void {
@@ -1636,18 +1285,37 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       if (celebrating) schedule(); else results(!!replay);
     } else schedule();
   }
+  function showPauseScreen(): void {
+    screen(t("Paused"), "cb-pause-panel");
+    const wrap = node("div", "cb-pause");
+    wrap.append(node("strong", "cb-pause-title", t("Paused")));
+    if (!hostPaused) {
+      const row = node("div", "cb-pause-row");
+      const canRestart = !!replay || (!!run && !rankedId && !cityActive && run.config.mode === "quick" && !pvpScreens.isInActiveMatch());
+      if (canRestart) row.append(roundButton("rotate-ccw", replay ? t("Restart replay") : wt("Restart", "Chơi lại"), () => { if (replay) void startReplay(replay.record); else void start(run!.config.assist); }, "cb-round-lg"));
+      const resume = node("button", "cb-play-big cb-play-mid");
+      resume.type = "button"; resume.innerHTML = lucideSvg("play", 48);
+      resume.setAttribute("aria-label", t("Resume")); resume.title = t("Resume");
+      resume.addEventListener("click", () => { userPaused = false; syncPause(); });
+      row.append(resume, roundButton(cityActive ? "building-2" : "home", cityActive ? t("City map") : t("Home"), cityActive ? cityMap : home, "cb-round-lg"));
+      wrap.append(row);
+      if (options.showSoundControl !== false) {
+        const sound = roundButton(muted ? "volume-x" : "volume-2", soundLabel(), toggleSound, "cb-round-ghost");
+        sound.dataset.sound = "true"; sound.setAttribute("aria-pressed", String(!muted));
+        wrap.append(sound);
+      }
+    }
+    panel.append(wrap);
+    wrap.querySelector<HTMLElement>(".cb-play-big")?.focus({ preventScroll: true });
+  }
   function syncPause(): void {
     const paused = userPaused || hostPaused;
     run?.setPaused(paused); replay?.setPaused(paused || replayScrubPaused);
     if (paused) {
       checkpointCity();
       cancelFrame(); options.audio.suspend();
-      if ((run || replay) && (current().phase !== "ended" || celebrating)) {
-        const actions = hostPaused ? [] : [button(t("Resume"), () => { userPaused = false; syncPause(); }), ...(replay ? [button(t("Restart replay"), () => startReplay(replay!.record))] : []), button(cityActive ? t("City map") : t("Home"), cityActive ? cityMap : home)];
-        showPanel(t("Paused"), t("Your game clock is stopped."), actions);
-      }
+      if ((run || replay) && (current().phase !== "ended" || celebrating)) showPauseScreen();
     } else {
-      setToolbarOpen(false);
       if ((run || replay) && (current().phase !== "ended" || celebrating)) { panel.hidden = true; arena.focus(); syncReplayControls(); }
       lastTime = 0; schedule();
     }
@@ -1682,7 +1350,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; runContext = null; cityActive = false; mapView = false;
     rankedId=null;
     userPaused = false; celebrating = false; renderer.resetEffects(); paint(); dailyScreens.entry();
-    tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
+    tutorialHint("daily",wt("20 floors, then one roof drop","20 tầng, rồi 1 lần thả mái"));
   }
   function discardDaily(): void {
     const pending = save.daily.pending;
@@ -1703,7 +1371,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const definition = resolveDaily(dateUTC);
     const generation=++startGeneration;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
-    renderer.resetEffects(); celebrating = false; showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    renderer.resetEffects(); celebrating = false; showLoading(t("Preparing tower"));
     const equipment=equipmentFor(save,definition.classId);await loadRunArtwork(definition.classId,equipment);
     if(disposed||generation!==startGeneration){loadingDaily=false;return;}
     const ticket=ranked ? await options.ranked!.start("daily") : null;
@@ -1725,7 +1393,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     if(options.presentation === "content" && options.onNavigate){options.onNavigate("daily");return;}
     const pending = save.daily.pending; if (!pending || loadingDaily) return;
     checkpointCity(); abandonQuick(); cancelFrame(); run = null; replay = null; cityActive = false; mapView = false; loadingDaily = true;
-    showPanel(t("Preparing tower"), t("Loading artwork…"), []);
+    showLoading(t("Preparing tower"));
     await loadRunArtwork(pending.checkpoint.config.building!,pending.equipment??{...DEFAULT_EQUIPMENT});
     loadingDaily = false; if (disposed || generation!==startGeneration || save.daily.pending?.identity.id !== pending.identity.id) return;
     try{rankedId=await options.ranked?.resume(pending.identity.id,pending.checkpoint.config) ?? null;}catch{showOnlineError();return;}
@@ -1742,8 +1410,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const summary = makeSummary(game, context, now());
     const previousBest = isReplay ? save.daily.days.find(d => d.dateUTC === record.config.daily!.dateUTC)?.bestComplete?.result.population ?? 0 : save.daily.pending?.previousBest ?? 0;
     dailyScreens.result(summary, previousBest, record, isReplay);
-    if(rankedId&&!isReplay){const status=document.createElement("p");status.textContent=wt("Online result: open Ranked for verification status. Local rewards are granted once.","Kết quả online: mở Xếp hạng xem xác minh. Thưởng cá nhân chỉ nhận một lần.");panel.append(status);panel.querySelector(".cb-actions")?.append(button(wt("Ranked Daily again","Chơi Daily xếp hạng lại"),()=>{void startOnline("daily");}));}
-    const rewards = !isReplay ? rewardButton(() => dailyResults()) : null; if (rewards) panel.querySelector(".cb-actions")!.append(rewards);
+    if(rankedId&&!isReplay){panel.querySelector(".cb-result-card")?.append(node("p","cb-result-note",wt("Ranked · verifying online","Xếp hạng · đang xác minh")));panel.querySelector(".cb-result-row")?.append(roundButton("crown",wt("Ranked Daily again","Chơi Daily xếp hạng lại"),()=>{void startOnline("daily");},"cb-round-lg"));}
+    const rewards = !isReplay ? rewardRoundButton(() => dailyResults()) : null; if (rewards) panel.querySelector(".cb-result-row")?.append(rewards);
+    const retry = !isReplay ? saveRetryButton() : null; if (retry) panel.querySelector(".cb-result-row")?.append(retry);
     paint();
   }
   function className(id: BuildingId): string {
@@ -1762,6 +1431,18 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     content.className="cb-guide-content";heading.textContent=guide.sections[page].heading;
     for(const item of guide.sections[page].items) { const li=document.createElement("li");li.textContent=item;list.append(li); }
     content.append(heading,list);panel.querySelector("p")!.replaceWith(content);
+  }
+  function cityArt(classId: BuildingId, skin?: string): HTMLImageElement {
+    const set = skin ? renderCosmetic(skin, "building", classId).set : "default";
+    const image = node("img", "cb-building-art");
+    image.src = `${options.assets}/city/${set}/city_${classId}_${set}_mini.png`;
+    image.alt = ""; image.draggable = false;
+    let defaultTried = set === "default";
+    image.addEventListener("error", () => {
+      if (!defaultTried) { defaultTried = true; image.src = `${options.assets}/city/default/city_${classId}_default_mini.png`; }
+      else image.remove();
+    });
+    return image;
   }
   function cityMap(): void {
     startGeneration++;
@@ -1785,98 +1466,136 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const currentStageDef = deriveEvolutionStage(totalPop);
     const highestStageDef = CITY_EVOLUTION_STAGES.find(st => st.id === save.districts.evolution.highestStage) ?? currentStageDef;
     const goal = districtGoalProgress(save, activeDistrict);
-    const summary = `${totalPop} ${t("city population")} · ${districtState.lots.filter(Boolean).length}/25 ${t("lots")}\n${t("Select a lot and class. Green highlights legal locations.")}`;
-    const actions: HTMLButtonElement[] = [];
-    if (city.pending) {
-      actions.push(button(t("Resume tower"), () => { void resumeCity(); }), button(t("Cancel pending tower"), () => {
-        showPanel(t("Cancel construction?"), t("The old building, if any, will be kept. Pending progress will be discarded."), [button(t("Confirm cancel"), () => { discardPendingCity(); cityMap(); }), button(t("Back"), cityMap)]);
-      }));
-    } else {
-      const build = button(old ? t("Rebuild selected lot") : t("Build selected lot"), () => { void beginSelectedCity(); });
-      build.disabled = !status.valid || loadingCity; actions.push(build);
-      if (old) actions.push(button(t("Demolish"), () => {
-        showPanel(t("Demolish building?"), `${t("Population change")}: -${old.population}.\n${t("Existing neighbors and unlocked classes stay intact.")}`, [button(t("Confirm demolition"), () => { save = demolishDistrictBuilding(save, activeDistrict, selectedLot, now()); persist(); cityMap(); }), button(t("Back"), cityMap)]);
-      }));
-    }
-    const districtsBtn = button(wt("Districts", "Quận"), () => districtScreens.open(activeDistrict === "harbor" ? 1 : 0));
+    screen(activeDistrict === "harbor" ? wt("Build City · Harbor", "Xây thành phố · Bến cảng") : t("Build City · Downtown"), "cb-city-panel");
+    tutorialHint("city",wt("Pick a lot, pick a building, build.","Chọn ô, chọn loại nhà, rồi xây."));
+    const wrap = node("div", "cb-city");
+
+    const top = node("div", "cb-city-top");
+    const population = pill("users", formatNumber(totalPop, vi), t("city population"), "cb-city-pop");
+    population.dataset.evolutionStage = currentStageDef.id;
+    population.title = `${currentStageDef.title[vi ? "vi" : "en"]} · ${goal.completedTowers.current}/${goal.completedTowers.target}${goal.completedPreviously ? " ✓" : ""}`;
+    const districtsBtn = roundButton("map", wt("Districts", "Quận"), () => districtScreens.open(activeDistrict === "harbor" ? 1 : 0));
     districtsBtn.dataset.districtsOpen = "true";
-    actions.push(districtsBtn);
-    actions.push(button(t("Home"), home), button(t("Retry save"), persist));
-    actions.push(button(t("Guide"), () => showGuide(0,cityMap)));
-    const panelTitle = activeDistrict === "harbor" ? wt("Build City · Harbor", "Xây thành phố · Bến cảng") : t("Build City · Downtown");
-    showPanel(panelTitle, summary, actions);
-    tutorialHint("city",wt("Select the highlighted lot, then a class. Higher classes need completed neighbors sharing an edge.","Chọn ô được đánh dấu rồi chọn loại nhà. Loại cao hơn cần nhà hoàn thành kề cạnh."));
-    panel.classList.add("cb-city-panel");
-    if (save.districts.landmarks.dock_clock_tower.placed) {
-      const lmSlot = document.createElement("div");
-      lmSlot.className = "cb-landmark-slot";
-      lmSlot.dataset.landmarkSlot = "dock_clock_tower";
-      lmSlot.title = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
-      const lmImg = document.createElement("img");
-      lmImg.src = `${options.assets}/city/harbor/landmark_dock_clock_tower_mini.png`;
-      lmImg.alt = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
-      lmImg.width = 20;
-      lmImg.height = 30;
-      lmImg.addEventListener("error", () => lmImg.remove());
-      lmSlot.append(lmImg);
-      panel.append(lmSlot);
-    }
-    const classes = document.createElement("div"); classes.className = "cb-city-classes";
-    for (const id of BUILDING_IDS) {
-      const unlocked = city.unlocked.includes(id);
-      const b = button(`${className(id)} · ${BUILDINGS[id].floors}`, () => { selectedClass = id; cityMap(); }, unlocked ? "building-2" : "lock");
-      b.dataset.class = id; b.dataset.locked = String(!unlocked); b.style.borderColor = BUILDINGS[id].color; b.setAttribute("aria-pressed", String(id === selectedClass)); classes.append(b);
-    }
-    const grid = document.createElement("div"); grid.className = "cb-city-grid"; grid.setAttribute("role", "group");
+    top.append(roundButton("chevron-left", t("Home"), home), population, districtsBtn);
+
+    // Each lot shows the building artwork with its floor count as a corner badge.
+    const grid = node("div", "cb-city-grid"); grid.setAttribute("role", "group");
     grid.setAttribute("aria-label", activeDistrict === "harbor" ? wt("Harbor 5 by 5 lots", "Bến cảng: 5 hàng, 5 cột ô đất") : t("Downtown 5 by 5 lots"));
     grid.dataset.district = activeDistrict;
     grid.dataset.evolutionStage = currentStageDef.id;
     grid.dataset.highestStage = highestStageDef.id;
-    grid.style.border = `2px solid ${currentStageDef.accent}`;
     if (activeDistrict === "harbor") {
       grid.style.backgroundColor = "#c8d6df";
-      if (!harborBgFailed) {
-        grid.style.backgroundImage = `url('${options.assets}/bg/harbor/bg_harbor_default_map.png')`;
-      }
+      if (!harborBgFailed) grid.style.backgroundImage = `url('${options.assets}/bg/harbor/bg_harbor_default_map.png')`;
     } else {
-      grid.style.backgroundColor = "#d8e5cc";
+      grid.style.backgroundColor = "#8fcf8f";
       grid.style.backgroundImage = `url('${options.assets}/bg/default/bg_downtown_default_map.png')`;
     }
     for (let index = 0; index < 25; index++) {
       const lot = districtState.lots[index], lotStatus = districtPlacementStatus(save, activeDistrict, index, selectedClass), valid = lotStatus.valid;
-      const b = button("", () => { selectedLot = index; cityMap(); });
+      const b = node("button", "cb-lot"); b.type = "button";
+      b.addEventListener("click", () => { selectedLot = index; cityMap(); });
       b.dataset.lot = String(index); b.dataset.valid = String(valid); b.setAttribute("aria-pressed", String(index === selectedLot));
       b.title = `(${Math.floor(index / 5) + 1},${index % 5 + 1}) · ${lotStatus.locked ? t("Locked: complete and accept the previous tier.") : lotStatus.missing.length ? `${t("Needs edge-adjacent")}: ${lotStatus.missing.map(className).join(" + ")}` : t("Click to select this valid lot")}`;
       b.setAttribute("aria-label", `${t("Lot")} ${index + 1}: ${lot ? `${className(lot.classId)}, ${lot.floors} ${t("floors")}, ${lot.population} ${t("people")}` : t("empty")}`);
       if (lot) {
-        const image = document.createElement("img"),set=renderCosmetic(lot.skin,"building",lot.classId).set; image.src = `${options.assets}/city/${set}/city_${lot.classId}_${set}_mini.png`; image.alt = ""; image.draggable = false;
-        let defaultTried=set === "default";image.addEventListener("error", () => { if(!defaultTried){defaultTried=true;image.src=`${options.assets}/city/default/city_${lot.classId}_default_mini.png`;}else {image.remove();b.style.backgroundColor=BUILDINGS[lot.classId].color;} }); b.append(image);
-      }
-      const label = document.createElement("span"); label.textContent = lot ? `${lot.floors}${lot.roof ? " ▲" : ""}` : String(index + 1); b.append(label); grid.append(b);
+        b.dataset.built = "true"; b.dataset.class = lot.classId;
+        b.style.setProperty("--cb-class-color", BUILDINGS[lot.classId].color);
+        const badge = node("span", "cb-lot-badge", String(lot.floors));
+        if (lot.roof) badge.append(node("i", "cb-lot-roof"));
+        b.append(cityArt(lot.classId, lot.skin), badge);
+      } else if (valid && !city.pending) b.append(icon("plus", 22, "cb-lot-plus"));
+      grid.append(b);
     }
-    const detail = document.createElement("p"); detail.className = "cb-city-detail";
+
+    const detail = node("p", "cb-city-detail");
     detail.dataset.evolutionStage = currentStageDef.id;
     detail.dataset.highestStage = highestStageDef.id;
-    const stageLabel = `${currentStageDef.title[vi ? "vi" : "en"]} (${goal.completedTowers.current}/${goal.completedTowers.target}${goal.completedPreviously ? " ✓" : ""})`;
-    detail.textContent = `${t("Lot")} ${selectedLot + 1} · ${className(selectedClass)} · ${stageLabel}\n${old ? `${t("Current")}: ${old.population} ${t("people")} · ${old.rating}\n` : ""}${status.locked ? t("Locked: complete and accept the previous tier first.") : status.missing.length ? `${t("Needs adjacent")}: ${status.missing.map(className).join(" + ")}` : t("Valid placement. Only four-direction neighbors count.")}`;
-    detail.textContent += ` · (${Math.floor(selectedLot / 5) + 1},${selectedLot % 5 + 1})`;
-    detail.title = t("Click/tap selects a lot; hovering only previews its tooltip. Diagonals do not count.");
-    if (!status.locked && !districtState.lots.some((lot, index) => !lot && districtPlacementStatus(save, activeDistrict, index, selectedClass).valid)) {
-      detail.textContent += `\n${t("No valid empty lot. Add a supporting neighbor.")}`;
+    detail.title = status.locked ? t("Locked: complete and accept the previous tier first.") : status.missing.length ? `${t("Needs adjacent")}: ${status.missing.map(className).join(" + ")}` : t("Valid placement. Only four-direction neighbors count.");
+    if (city.pending) {
+      detail.dataset.state = "pending";
+      detail.append(icon("building-2", 18), node("span", "", wt("Tower in progress", "Đang xây dở")));
+    } else if (status.locked) {
+      detail.dataset.state = "locked";
+      detail.append(icon("lock", 18), node("span", "", wt("Finish the previous tier", "Hoàn thành hạng trước")));
+    } else if (status.missing.length) {
+      detail.dataset.state = "missing";
+      detail.append(icon("alert-triangle", 18), node("span", "", wt("Needs next to", "Cần kề")));
+      for (const need of status.missing) {
+        const chip = node("span", "cb-need-chip", String(BUILDINGS[need].floors));
+        chip.style.setProperty("--cb-class-color", BUILDINGS[need].color); chip.title = className(need);
+        detail.append(chip);
+      }
+    } else {
+      detail.dataset.state = "valid";
+      detail.append(icon("check", 18), node("span", "", old ? `${formatNumber(old.population, vi)} ${t("people")} → ${className(selectedClass)}` : className(selectedClass)));
     }
-    panel.insertBefore(classes, panel.querySelector(".cb-actions")); panel.insertBefore(grid, panel.querySelector(".cb-actions")); panel.insertBefore(detail, panel.querySelector(".cb-actions"));
+    if (!city.pending && !status.locked && !districtState.lots.some((lot, index) => !lot && districtPlacementStatus(save, activeDistrict, index, selectedClass).valid)) {
+      detail.title += `\n${t("No valid empty lot. Add a supporting neighbor.")}`;
+    }
+
+    const sheet = node("div", "cb-city-sheet");
+    const classes = node("div", "cb-city-classes");
+    for (const id of BUILDING_IDS) {
+      const unlocked = city.unlocked.includes(id);
+      const card = node("button", "cb-class-card"); card.type = "button";
+      card.dataset.class = id; card.dataset.locked = String(!unlocked);
+      card.setAttribute("aria-pressed", String(id === selectedClass));
+      card.setAttribute("aria-label", `${className(id)} · ${BUILDINGS[id].floors} ${t("floors")}${unlocked ? "" : ` · ${wt("Locked", "Đã khóa")}`}`);
+      card.title = card.getAttribute("aria-label")!;
+      card.style.setProperty("--cb-class-color", BUILDINGS[id].color);
+      card.append(cityArt(id, equipmentFor(save, id).building), node("span", "cb-class-floors", String(BUILDINGS[id].floors)));
+      if (!unlocked) card.append(icon("lock", 18, "cb-class-lock"));
+      card.addEventListener("click", () => { selectedClass = id; cityMap(); });
+      classes.append(card);
+    }
+    const actions = node("div", "cb-city-actions");
+    let primary: HTMLButtonElement;
+    if (city.pending) {
+      primary = bigButton("play", t("Resume tower"), () => { void resumeCity(); });
+      actions.append(primary, roundButton("x", t("Cancel pending tower"), () => {
+        showPanel(t("Cancel construction?"), t("The old building, if any, will be kept. Pending progress will be discarded."), [button(t("Confirm cancel"), () => { discardPendingCity(); cityMap(); }), button(t("Back"), cityMap)]);
+      }, "cb-round-lg"));
+    } else {
+      primary = bigButton("play", old ? wt("Rebuild", "Xây lại") : wt("Build", "Xây"), () => { void beginSelectedCity(); });
+      primary.disabled = !status.valid || loadingCity;
+      actions.append(primary);
+      if (old) actions.append(roundButton("trash-2", t("Demolish"), () => {
+        showPanel(t("Demolish building?"), `${t("Population change")}: -${old.population}.\n${t("Existing neighbors and unlocked classes stay intact.")}`, [button(t("Confirm demolition"), () => { save = demolishDistrictBuilding(save, activeDistrict, selectedLot, now()); persist(); cityMap(); }), button(t("Back"), cityMap)]);
+      }, "cb-round-lg"));
+    }
+    actions.append(roundButton("help-circle", t("Guide"), () => showGuide(0, cityMap), "cb-round-lg"));
+    const retry = saveRetryButton(); if (retry) actions.append(retry);
+    sheet.append(classes, actions);
+
+    const stage = node("div", "cb-city-stage");
+    stage.append(grid);
+    wrap.append(top, stage, detail, sheet);
+    if (save.districts.landmarks.dock_clock_tower.placed) {
+      const lmSlot = node("div", "cb-landmark-slot");
+      lmSlot.dataset.landmarkSlot = "dock_clock_tower";
+      lmSlot.title = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
+      const lmImg = node("img");
+      lmImg.src = `${options.assets}/city/harbor/landmark_dock_clock_tower_mini.png`;
+      lmImg.alt = DOCK_CLOCK_TOWER_LANDMARK.title[vi ? "vi" : "en"];
+      lmImg.width = 20; lmImg.height = 30;
+      lmImg.addEventListener("error", () => lmImg.remove());
+      lmSlot.append(lmImg);
+      grid.append(lmSlot);
+    }
+    panel.append(wrap);
+    (primary.disabled ? grid.querySelector<HTMLElement>("[aria-pressed=\"true\"]") : primary)?.focus({ preventScroll: true });
     hint.textContent = t("Complete a tier to unlock the next. A roof is a separate drop.");
     el("[data-population]").textContent = String(totalPop);
     el("[data-floors]").textContent = String(districtState.lots.reduce((sum,lot)=>sum+(lot?.floors??0),0));
-    el(".cb-toolbar strong").textContent = cityName();
-    el("[data-mode]").textContent = activeDistrict === "harbor" ? wt("Harbor", "Bến cảng") : t("Downtown");
+    el("[data-mode]").textContent = "";
   }
   async function beginSelectedCity(): Promise<void> {
     const activeDistrict = save.districts.activeDistrict;
     if (loadingCity || save.city.pending || !districtPlacementStatus(save, activeDistrict, selectedLot, selectedClass).valid) return;
     loadingCity = true;
     const lot = selectedLot, id = selectedClass;
-    showPanel(t("Preparing construction"), t("Loading building artwork…"), []);
+    showLoading(t("Preparing construction"));
     const equipment=equipmentFor(save,id);await loadRunArtwork(id,equipment);
     loadingCity = false; if (disposed) return;
     save = beginDistrictTower(save, activeDistrict, lot, id, options.seed(), now(), equipment); persist();
@@ -1900,9 +1619,9 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     const targetDistrict = pending.districtId ?? "downtown";
     const targetLots = targetDistrict === "harbor" ? save.districts.harbor.lots : save.districts.downtown.lots;
     const result = run.getResult(), s = run.getSnapshot(), old = targetLots[pending.lot];
-    const complete = result.height === BUILDINGS[pending.classId].floors;
-    const body = `${className(pending.classId)}\n${s.roof ? t("Roof placed") : complete ? t("Body complete, roof missed") : t("Unfinished tower · no completion unlock")}\n${old ? `${t("Old building stays until you accept")}: ${old.population}` : ""}`;
-    const actions = [button(result.height ? t("Accept building") : t("Return to city"), () => {
+    const target = BUILDINGS[pending.classId].floors;
+    const complete = result.height === target;
+    const accept = () => {
       const wasHarborUnlocked = save.districts.unlockedDistricts.includes("harbor");
       save = acceptTrackedCity(save, pending.runId, now()); cityActive = false; runContext = null; persist();
       if (!wasHarborUnlocked && save.districts.unlockedDistricts.includes("harbor")) {
@@ -1917,39 +1636,37 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
         return;
       }
       cityMap();
-    }), button(old ? t("Keep old building") : t("Discard tower"), () => { discardPendingCity(); cityMap(); }), button(t("Retry save"), persist)];
-    const rewards = rewardButton(cityResults); if (rewards) actions.push(rewards);
-    showPanel(`${t("City tower complete")} · ${result.rating}`, body, actions);
-    showStats([[t("Population"),String(result.population)],[t("Floors"),`${result.height}/${BUILDINGS[pending.classId].floors}`],
-      [t("Accuracy"),`${result.accuracy.toFixed(1)}%`],[t("Perfect"),String(result.perfectCount)],
-      [t("Best streak"),String(result.bestStreak)],[t("Duration"),`${(result.durationTicks/60).toFixed(1)}s`]]);paint();
+    };
+    const primary = bigButton("check", result.height ? t("Accept building") : t("Return to city"), accept);
+    const discard = roundButton("x", old ? t("Keep old building") : t("Discard tower"), () => { discardPendingCity(); cityMap(); }, "cb-round-lg");
+    const art = node("div", "cb-result-art");
+    art.style.setProperty("--cb-class-color", BUILDINGS[pending.classId].color);
+    art.append(cityArt(pending.classId, pending.equipment?.building), node("span", "cb-class-floors", `${result.height}/${target}`));
+    const note = node("p", "cb-result-note", `${className(pending.classId)} · ${s.roof ? t("Roof placed") : complete ? t("Body complete, roof missed") : t("Unfinished tower · no completion unlock")}`);
+    if (old) note.textContent += ` · ${t("Old building stays until you accept")}: ${old.population}`;
+    showResultScreen(`${t("City tower complete")} · ${result.rating}`, {
+      rating: result.rating,
+      value: formatNumber(result.population, vi),
+      valueLabel: t("people"),
+      coins: runCoinsLabel(),
+      coinsLabel: wt("Coins", "Xu"),
+      stats: [
+        { icon: "layers", value: `${result.height}/${target}`, label: t("Floors") },
+        { icon: "star", value: String(result.perfectCount), label: t("Perfect") },
+        { icon: s.roof ? "check" : "x", value: s.roof ? "✓" : "—", label: t("Roof") },
+      ],
+    }, primary, [discard, rewardRoundButton(cityResults), saveRetryButton()], [art, note]);
+    paint();
   }
   listen(arena, "pointerdown", ((event: PointerEvent) => {
-    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,input,a,.cb-panel,.cb-replay-controls,.cb-toolbar")) return;
+    if (event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("button,select,input,a,.cb-panel,.cb-replay-controls,.cb-tutorial")) return;
     event.preventDefault(); arena.focus(); drop();
   }) as EventListener);
   listen(arena, "keydown", ((event: KeyboardEvent) => {
-    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,input,a,.cb-replay-controls,.cb-toolbar")) return;
+    if ((event.key !== " " && event.key !== "Enter") || event.repeat || (event.target as HTMLElement).closest("button,select,input,a,.cb-replay-controls,.cb-tutorial")) return;
     event.preventDefault(); drop();
   }) as EventListener);
-  listen(menuToggleBtn, "click", () => {
-    const nextOpen = !toolbarOpen;
-    setToolbarOpen(nextOpen);
-    if (nextOpen && (run || replay) && (current().phase !== "ended" || celebrating) && !userPaused) {
-      userPaused = true;
-      syncPause();
-    }
-  });
   listen(pauseButton, "click", () => { userPaused = !userPaused; syncPause(); });
-  listen(el("[data-home-nav]"), "click", () => { setToolbarOpen(false); navigate("quick"); });
-  listen(el("[data-settings-open]"), "click", () => {
-    setToolbarOpen(false);
-    if (run && !replay && run.getPhase() !== "ended") {
-      userPaused = true;
-      syncPause();
-    }
-    openSettingsMenu();
-  });
   function setLocale(locale:string): void {
     const next=locale.startsWith("vi");if(next===vi)return;
     const shownTutorial=!tutorial.hidden;
@@ -1967,31 +1684,16 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     // Pause and Paused share a Vietnamese translation; restore controls from state, not reverse text.
     updatePauseButtonUi();
     updateSoundButtonUi();
-    el("[data-motion]").textContent=t("Reduced motion");
-    const languageButton=root.querySelector<HTMLElement>("[data-language]");
-    if(languageButton){
-      const lbl=languageButton.querySelector(".cb-btn-label");
-      if(lbl)lbl.textContent=vi?"EN":"VI";else languageButton.textContent=vi?"EN":"VI";
-    }
-    if(guidePage>=0)showGuide(guidePage,guideBack);else if(modesMenuOpen)openModesMenu();else if(utilitiesMenuOpen)openUtilitiesMenu();else if(settingsMenuOpen)openSettingsMenu();else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(pvpScreens.isOpen())pvpScreens.refresh();else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
+    if(guidePage>=0)showGuide(guidePage,guideBack);else if(gameMenuOpen)openMenu();else if(oneDropMenuOpen){if(panel.dataset.oneDropScreen==="guide")oneDropGuide();else openOneDrop();}else if(perfectRushMenuOpen){if(panel.dataset.perfectRushScreen==="guide")perfectRushGuide();else openPerfectRush();}else if(skylineSprintMenuOpen){if(panel.dataset.skylineSprintScreen==="guide")skylineSprintGuide();else openSkylineSprint();}else if(pvpScreens.isOpen())pvpScreens.refresh();else if(districtScreens.isOpen())districtScreens.refresh();else if(bookScreens.isOpen())bookScreens.refresh();else if(progressionScreens.isOpen())progressionScreens.refresh();else if(dataScreens.isOpen())dataScreens.refresh();else if(dailyScreens.isOpen()) {
       if(rankedId&&run?.config.mode==="daily"&&run.getPhase()==="ended"&&!replay){dailyResults();return;}
-      dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardButton(() => dailyResults()) : null;
-      if(rewards)panel.querySelector(".cb-actions")!.append(rewards);
-    }else if(run||replay){if(replay)buildReplayControls();paint();}else if(panel.classList.contains("cb-city-panel"))cityMap();else if(panel.classList.contains("cb-home-panel"))home();
-    if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("Daily keeps its starting UTC date. Build 20 Industrial bodies, then try the roof once.","Daily giữ ngày UTC lúc bắt đầu. Xây 20 tầng thân Công nghiệp rồi thử mái một lần."));
+      dailyScreens.refresh(); const rewards = run?.config.mode === "daily" && run.getPhase() === "ended" && !replay ? rewardRoundButton(() => dailyResults()) : null;
+      if(rewards)panel.querySelector(".cb-result-row")?.append(rewards);
+    }else if(run||replay){if(replay)buildReplayControls();paint();}else if(panel.classList.contains("cb-city-panel"))cityMap();else if(panel.classList.contains("cb-home-panel"))home();else if(panel.classList.contains("cb-pause-panel"))syncPause();
+    if(shownTutorial && tutorialMode==="daily")tutorialHint("daily",wt("20 floors, then one roof drop","20 tầng, rồi 1 lần thả mái"));
     persist();
     syncScoreUi();
   }
-  const languageButton=root.querySelector("[data-language]");
-  if(languageButton)listen(languageButton,"click",()=>{const locale=vi?"en":"vi";setLocale(locale);options.onLocaleChange?.(locale);});
   listen(window, "pagehide", () => { checkpointCity(); flushSave(); });
-  listen(el("[data-sound]"), "click", () => {
-    muted = !muted; if (muted) options.audio.suspend();
-    updateSoundButtonUi();
-    save = { ...save, settings: { ...save.settings, muted } }; persist();
-    if (settingsMenuOpen) openSettingsMenu();
-  });
-  listen(el("[data-motion]"), "click", () => { reducedMotion = !reducedMotion; el("[data-motion]").setAttribute("aria-pressed", String(reducedMotion)); save = { ...save, settings: { ...save.settings, reducedMotion } }; persist(); if(progressionScreens.isOpen())progressionScreens.refresh(); if(settingsMenuOpen)openSettingsMenu(); });
   if (options.lifecycle) {
     cleanups.push(options.lifecycle.onPause(() => { hostPaused = true; syncPause(); }), options.lifecycle.onResume(() => { hostPaused = false; syncPause(); }));
   } else listen(document, "visibilitychange", () => { hostPaused = document.hidden; syncPause(); });
@@ -2034,7 +1736,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
       try { initialRaw = JSON.stringify(prepareSave(value)); } catch { initialRaw = ""; }
       loadedSave(value);
     }
-    catch { storageWritable = false; message(t("Save could not be read. Playing without saving to protect your old progress.")); }
+    catch { storageWritable = false; message(""); }
     await load;
     if (disposed) return;
     applySettings();
