@@ -329,7 +329,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     liveOpsManifest: () => liveOpsManifest,
     retry: persist, status: () => rewardSaveStatus, paused: () => hostPaused || userPaused, reducedMotion: () => reducedMotion });
   const bookLabel = () => vi ? "Sổ kiến trúc" : "Architecture Book";
-  const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
+  const bookScreens = createBookScreens({ panel, renderer, assets:options.assets, save: () => save, vi: () => vi, className, showPanel, screen, button, home, saveStatus: () => rewardSaveStatus, retrySave: persist,
     equip: (id,equipment) => { if(rewardSaveStatus === "pending")return;let next=save;for(const item of [equipment.building,equipment.roof,equipment.crane])next=equipCosmetic(next,item,id);save=next;persist(); },
     buy: itemId => { if(rewardSaveStatus === "pending")return;try{save=buyCosmeticWithCoins(save,itemId,now());paint();persist();}catch{/* ignore */}} });
   let harborBgFailed = false;
@@ -367,6 +367,7 @@ export function mountQuickTower(root: HTMLElement, options: SessionOptions): Tow
     now,
     installationId,
     showPanel,
+    screen,
     button,
     home,
     openBook,

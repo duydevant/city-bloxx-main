@@ -1889,3 +1889,276 @@
   .cb-tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cb-game .cb-hud-score strong { font-size: 26px; }
 }
+
+/* ─── Shared bits for PvP + Shop ─── */
+.cb-top-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cb-game .cb-coin-chip { background: #fff4cc; color: #7a4f00; box-shadow: 0 4px 0 #e2c46a; }
+.cb-game .cb-coin-chip .cb-ico { color: #c99a22; }
+.cb-game .cb-online-chip .cb-ico { color: #3ba55c; }
+.cb-game .cb-collection-chip .cb-ico { color: #b45309; }
+.cb-game .cb-pill.cb-coin-chip strong,
+.cb-game .cb-pill.cb-online-chip strong,
+.cb-game .cb-pill.cb-collection-chip strong { font-size: 20px; }
+.cb-game .cb-pill.cb-online-chip,
+.cb-game .cb-pill.cb-collection-chip { padding: 8px 14px 8px 12px; }
+.cb-game a.cb-round-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.cb-game .cb-chip {
+  min-height: 40px; padding: 6px 14px; border-radius: 999px;
+  border: 2px solid var(--cb-line); background: var(--cb-surface); color: var(--cb-ink);
+  box-shadow: 0 3px 0 var(--cb-surface-edge);
+  font-family: var(--cb-font-display); font-size: 16px; font-weight: 800; line-height: 1;
+}
+.cb-game .cb-chip[aria-pressed="true"] { background: #13233f; border-color: #13233f; color: #ffffff; box-shadow: 0 3px 0 #000000; }
+.cb-game .cb-chip:disabled { opacity: 0.4; }
+.cb-game .cb-pvp-input {
+  min-height: 44px; padding: 8px 14px; border-radius: 14px;
+  border: 2px solid var(--cb-line); background: var(--cb-surface-soft); color: var(--cb-ink);
+  font: 800 16px var(--cb-font-body);
+}
+.cb-game .cb-pvp-input:focus { outline: 3px solid var(--cb-accent); outline-offset: 1px; border-color: transparent; }
+.cb-spinner-sm { width: 28px; height: 28px; border-width: 4px; }
+
+/* ─── PvP lobby ─── */
+.cb-pvp-screen.cb-screen { background: #2b2350; }
+.dark .cb-pvp-screen.cb-screen { background: #191433; }
+.cb-pvp { width: min(100%, 460px); min-height: 100%; display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.cb-pvp-hero { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 4px 0 0; }
+.cb-pvp-hero-vs {
+  font-family: var(--cb-font-display); font-size: clamp(40px, 7vh, 56px); font-weight: 800; line-height: 1; letter-spacing: 2px;
+  color: #ffffff; text-shadow: 0 4px 0 #13233f, 3px 0 0 #13233f, -3px 0 0 #13233f, 0 -3px 0 #13233f;
+}
+.cb-game .cb-pvp-hero-sub { margin: 0; color: #d8d0ff; font-size: 14px; font-weight: 800; }
+.cb-pvp-pot { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 24px; background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25); }
+.cb-pvp-pot-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cb-pvp-pot-value { display: inline-flex; align-items: center; gap: 8px; color: #7a4f00; }
+.cb-pvp-pot-value .cb-ico { color: #c99a22; }
+.cb-pvp-pot-value strong { font-family: var(--cb-font-display); font-size: 34px; line-height: 1; padding-top: 4px; color: var(--cb-ink); }
+.cb-pvp-pot-head small { font-size: 13px; font-weight: 800; color: var(--cb-muted); }
+.cb-pvp-pot-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cb-game .cb-pvp-custom { width: 96px; min-height: 40px; padding: 6px 12px; border-radius: 999px; }
+.cb-game .cb-pvp-warn { margin: 0; color: #b42318; font-size: 13px; font-weight: 800; }
+
+.cb-pvp-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cb-game .cb-pvp-mode {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px;
+  min-height: 150px; padding: 16px; border-radius: 26px; border: none; text-align: left; color: #ffffff;
+}
+.cb-game .cb-pvp-mode[data-mode="bot"] { background: #ff8a3d; box-shadow: 0 7px 0 #c4621f; }
+.cb-game .cb-pvp-mode[data-mode="bot"]:hover:not(:disabled) { background: #ff9a55; }
+.cb-game .cb-pvp-mode[data-mode="room"] { background: #7a5cc9; box-shadow: 0 7px 0 #523b96; }
+.cb-game .cb-pvp-mode[data-mode="room"]:hover:not(:disabled) { background: #8a6dd8; }
+.cb-game .cb-pvp-mode:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3); }
+.cb-game .cb-pvp-mode:disabled { opacity: 0.45; }
+.cb-pvp-mode-icon { width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.22); }
+.cb-pvp-mode-copy { display: flex; flex-direction: column; gap: 2px; }
+.cb-pvp-mode-copy strong { font-family: var(--cb-font-display); font-size: 22px; font-weight: 800; line-height: 1.05; }
+.cb-pvp-mode-copy small { font-size: 13px; font-weight: 800; opacity: 0.9; }
+.cb-pvp-mode-go { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #ffffff; }
+.cb-pvp-mode[data-mode="bot"] .cb-pvp-mode-go { color: #c4621f; }
+.cb-pvp-mode[data-mode="room"] .cb-pvp-mode-go { color: #523b96; }
+
+.cb-pvp-join { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 24px; background: rgba(255, 255, 255, 0.1); }
+.cb-pvp-join-row { display: flex; gap: 10px; }
+.cb-game .cb-pvp-code { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 3px; font-family: var(--cb-font-display); font-size: 20px; background: var(--cb-surface); }
+.cb-game .cb-pvp-join-btn { background: #ffffff; color: #523b96; }
+.cb-pvp-room-list { display: flex; flex-direction: column; gap: 8px; }
+.cb-game .cb-pvp-empty { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: #d8d0ff; font-size: 13px; font-weight: 800; }
+.cb-game .cb-pvp-room-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  min-height: 56px; padding: 8px 12px; border-radius: 18px; border: none; text-align: left;
+  background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+.cb-pvp-avatar { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #7a5cc9; color: #ffffff; font-family: var(--cb-font-display); font-size: 16px; font-weight: 800; padding-top: 2px; }
+.cb-pvp-room-who { display: flex; flex-direction: column; min-width: 0; }
+.cb-pvp-room-who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.cb-pvp-room-who small { color: var(--cb-muted); font-size: 12px; font-weight: 800; letter-spacing: 1px; }
+.cb-pvp-room-pot { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: #fff4cc; color: #7a4f00; }
+.cb-pvp-room-pot strong { font-family: var(--cb-font-display); font-size: 15px; line-height: 1; padding-top: 2px; }
+.cb-pvp-room-go { color: var(--cb-muted); }
+.cb-game .cb-pvp-skin-link {
+  align-self: center; min-height: 44px; padding: 8px 18px; gap: 8px; border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.4); background: transparent; color: #ffffff; box-shadow: none;
+}
+.cb-game .cb-pvp-skin-link:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); border-color: #ffffff; }
+
+/* ─── PvP room ─── */
+.cb-game .cb-pvp-code-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 6px 16px; border-radius: 999px; border: none;
+  background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+.cb-pvp-code-pill small { color: var(--cb-muted); font-weight: 900; }
+.cb-pvp-code-pill strong { font-family: var(--cb-font-display); font-size: 22px; letter-spacing: 3px; line-height: 1; padding-top: 3px; }
+.cb-pvp-copy-icon { color: #3ba55c; }
+.cb-pvp-versus { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cb-pvp-vs-badge {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg); z-index: 2;
+  width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; padding-top: 4px;
+  background: var(--cb-accent); color: #13233f; box-shadow: 0 4px 0 var(--cb-accent-edge);
+  font-family: var(--cb-font-display); font-size: 22px; font-weight: 800;
+}
+.cb-pvp-player {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0;
+  padding: 12px 10px; border-radius: 24px; background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25);
+  border: 3px solid transparent;
+}
+.cb-pvp-player[data-me="true"] { border-color: var(--cb-accent); }
+.cb-pvp-player[data-empty="true"] { justify-content: center; min-height: 240px; background: rgba(255, 255, 255, 0.08); border: 3px dashed rgba(255, 255, 255, 0.45); color: #ffffff; box-shadow: none; }
+.cb-pvp-player-head { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.cb-pvp-player-head strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--cb-font-display); font-size: 17px; }
+.cb-pvp-player-meta { display: inline-flex; align-items: center; gap: 4px; color: #7a4f00; font-size: 13px; font-weight: 800; }
+.cb-pvp-player-meta .cb-ico { color: #c99a22; }
+.cb-pvp-wl { margin-left: 4px; color: var(--cb-muted); }
+.cb-game .cb-pvp-preview-canvas { width: 100%; height: auto; aspect-ratio: 240 / 190; border-radius: 16px; background: #a9dcf6; border: none; }
+.cb-pvp-player-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--cb-surface-soft); color: var(--cb-muted); font-size: 13px; font-weight: 900; border: none; }
+.cb-pvp-player-status[data-pvp-ready-state="true"] { background: #3ba55c; color: #ffffff; }
+.cb-game .cb-pvp-emote-bubble { position: absolute; top: -14px; right: 8px; z-index: 3; padding: 6px 12px; border-radius: 14px 14px 14px 4px; background: #13233f; color: #ffffff; font-size: 13px; font-weight: 900; border: none; }
+.cb-pvp-waiting { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #d8d0ff; font-weight: 800; }
+.cb-pvp-waiting-code { font-family: var(--cb-font-display); font-size: 26px; letter-spacing: 3px; }
+.cb-game .cb-pvp-bot-fill { min-height: 44px; padding: 8px 16px; gap: 6px; border-radius: 999px; border: none; background: #ff8a3d; color: #ffffff; box-shadow: 0 4px 0 #c4621f; }
+.cb-game .cb-pvp-bot-fill:hover:not(:disabled) { background: #ff9a55; }
+.cb-game .cb-pvp-stake { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; max-width: none; color: #fff4cc; font-size: 14px; font-weight: 800; }
+.cb-pvp-emote-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.cb-game .cb-emote { min-height: 36px; font-family: var(--cb-font-body); font-size: 14px; background: rgba(255, 255, 255, 0.14); border-color: transparent; color: #ffffff; box-shadow: none; }
+.cb-game .cb-emote:hover:not(:disabled) { background: rgba(255, 255, 255, 0.24); border-color: transparent; }
+.cb-pvp > .cb-big-btn { margin-top: auto; }
+.cb-game .cb-pvp-unready { margin-top: auto; min-height: 60px; gap: 8px; border-radius: 22px; border: 3px solid rgba(255, 255, 255, 0.5); background: transparent; color: #ffffff; box-shadow: none; font-size: 16px; }
+.cb-game .cb-pvp-unready:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); border-color: #ffffff; }
+
+/* ─── PvP result ─── */
+.cb-pvp-result-banner { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cb-pvp-result-banner strong { font-family: var(--cb-font-display); font-size: 40px; font-weight: 800; line-height: 1; }
+.cb-pvp-result[data-outcome="win"] .cb-pvp-result-banner { color: #c99a22; }
+.cb-pvp-result[data-outcome="lose"] .cb-pvp-result-banner { color: #6b7a92; }
+.cb-pvp-result[data-outcome="draw"] .cb-pvp-result-banner { color: #7a5cc9; }
+.cb-pvp-result[data-outcome="lose"] .cb-pvp-payout { background: var(--cb-surface-soft); color: var(--cb-muted); }
+.cb-pvp-result-cols { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-top: 14px; border-top: 2px solid var(--cb-line); }
+.cb-pvp-result-col { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 18px; background: var(--cb-surface-soft); }
+.cb-pvp-result-col[data-winner="true"] { background: #fff4cc; }
+.cb-pvp-result-name { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; overflow: hidden; font-weight: 900; color: var(--cb-muted); white-space: nowrap; }
+.cb-pvp-result-name .cb-ico { color: #c99a22; }
+.cb-pvp-result-floors { font-family: var(--cb-font-display); font-size: 40px; font-weight: 800; line-height: 1; padding-top: 4px; }
+.cb-pvp-result-sub { display: inline-flex; align-items: center; gap: 3px; color: var(--cb-muted); font-size: 12px; font-weight: 800; }
+
+/* ─── PvP live match bar (in game) ─── */
+.cb-game .cb-pvp-live-overlay { top: 74px; }
+.cb-game .cb-pvp-vs-bar { border-radius: 18px; background: rgba(43, 35, 80, 0.92); border: none; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+.cb-game .cb-pvp-vs-pot { background: var(--cb-accent); color: #13233f; border: none; }
+.cb-game .cb-pvp-pip { border-radius: 18px; background: rgba(43, 35, 80, 0.92); border: none; }
+
+/* ─── Skin shop ─── */
+.cb-shop-panel.cb-screen { background: rgba(169, 220, 246, 0.9); }
+.dark .cb-shop-panel.cb-screen { background: rgba(9, 15, 28, 0.88); }
+.cb-shop { width: min(100%, 460px); min-height: 100%; display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+.cb-shop-stage { position: relative; display: flex; justify-content: center; padding: 10px; border-radius: 26px; background: var(--cb-surface); box-shadow: 0 6px 0 var(--cb-surface-edge); }
+.cb-game .cb-shop-preview { width: min(100%, 260px); height: auto; aspect-ratio: 240 / 190; border-radius: 18px; background: #a9dcf6; }
+.cb-shop-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.cb-shop-status[data-state="ready"] { display: none; }
+.cb-shop-status[data-state="error"] { pointer-events: auto; }
+.cb-shop-name { position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 6px 14px; border-radius: 999px; background: #13233f; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.cb-shop-classes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.cb-game .cb-shop-classes .cb-class-card { height: 84px; }
+.cb-segment { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 18px; background: rgba(19, 35, 63, 0.12); }
+.dark .cb-segment { background: rgba(255, 255, 255, 0.08); }
+.cb-game .cb-segment-btn { min-height: 44px; gap: 6px; border-radius: 14px; border: none; background: transparent; color: var(--cb-ink); box-shadow: none; font-size: 14px; }
+.cb-game .cb-segment-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.5); border-color: transparent; }
+.cb-game .cb-segment-btn[aria-selected="true"] { background: var(--cb-surface); box-shadow: 0 3px 0 var(--cb-surface-edge); }
+.cb-shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cb-game .cb-shop-item,
+.cb-game .cb-shop-item[aria-pressed] {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  padding: 8px 6px 10px; border-radius: 20px; border: 3px solid var(--cb-line);
+  background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 4px 0 var(--cb-surface-edge);
+}
+.cb-game .cb-shop-item[aria-pressed="true"] { border-color: #13233f; background: #fff6da; }
+.dark .cb-game .cb-shop-item[aria-pressed="true"] { border-color: var(--cb-accent); background: #2b3550; }
+.cb-shop-item-art { width: 100%; height: 64px; display: flex; align-items: flex-end; justify-content: center; }
+.cb-shop-item-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.cb-shop-item[data-set="brick"] .cb-shop-item-art { background: radial-gradient(circle at 50% 70%, rgba(196, 91, 78, 0.16), transparent 70%); }
+.cb-shop-item[data-set="winter"] .cb-shop-item-art { background: radial-gradient(circle at 50% 70%, rgba(75, 145, 209, 0.2), transparent 70%); }
+.cb-shop-item[data-set="season"] .cb-shop-item-art { background: radial-gradient(circle at 50% 70%, rgba(217, 179, 76, 0.28), transparent 70%); }
+.cb-shop-item-name { font-size: 13px; font-weight: 900; }
+.cb-shop-item-state { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; }
+.cb-shop-item-state[data-state="equipped"] { background: #3ba55c; color: #ffffff; }
+.cb-shop-item-state[data-state="owned"] { background: var(--cb-surface-soft); color: #2a7a43; }
+.cb-shop-item-state[data-state="price"] { background: #fff4cc; color: #7a4f00; }
+.cb-shop-item-state[data-state="locked"] { background: var(--cb-surface-soft); color: var(--cb-muted); }
+.cb-shop-progress {
+  position: relative; width: 100%; height: 18px; display: flex; align-items: center; justify-content: center; gap: 3px; overflow: hidden;
+  border-radius: 999px; background: var(--cb-surface-soft); color: var(--cb-muted); font-size: 11px; font-weight: 900;
+}
+.cb-shop-progress::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--ratio, 0) * 100%); background: rgba(59, 165, 92, 0.3); }
+.cb-shop-progress > * { position: relative; }
+.cb-shop-actions { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+.cb-game .cb-shop-note { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; max-width: none; color: var(--cb-muted); font-size: 13px; font-weight: 800; }
+.cb-shop-note[data-state="error"] { color: #b42318; }
+
+@media (max-width: 380px) {
+  .cb-pvp-modes { gap: 8px; }
+  .cb-game .cb-pvp-mode { min-height: 132px; padding: 12px; }
+  .cb-pvp-mode-copy strong { font-size: 19px; }
+}
+
+/* ─── Legacy panels (missions, stats, history, guides, districts, confirms) ───
+   Same ground, cards, type and buttons as the minimal screens. */
+.cb-game .cb-panel:not(.cb-screen) {
+  padding: 20px 16px 16px; gap: 10px; justify-content: flex-start;
+  background: rgba(169, 220, 246, 0.94); backdrop-filter: none;
+}
+.dark .cb-game .cb-panel:not(.cb-screen) { background: rgba(9, 15, 28, 0.92); }
+.cb-game .cb-panel:not(.cb-screen) > h2 {
+  margin: 4px 0 0; font-family: var(--cb-font-display); font-size: 24px; font-weight: 800; line-height: 1.15; color: var(--cb-ink);
+}
+.cb-game .cb-panel:not(.cb-screen) > p { margin: 0; max-width: 420px; font-size: 13px; font-weight: 700; color: var(--cb-muted); }
+.cb-game .cb-panel:not(.cb-screen) > .cb-actions {
+  width: min(100%, 460px); margin-top: auto; padding-top: 6px; gap: 10px; flex-wrap: wrap;
+}
+.cb-game .cb-panel:not(.cb-screen) > .cb-actions button { flex: 1 1 120px; min-height: 52px; border-radius: 18px; font-size: 15px; }
+.cb-game .cb-panel:not(.cb-screen) > .cb-actions button:first-child { flex-basis: 100%; min-height: 60px; font-family: var(--cb-font-display); font-size: 20px; box-shadow: 0 6px 0 var(--cb-accent-edge); }
+/* Short confirm dialogs stay centered. */
+.cb-game .cb-panel:not(.cb-screen):not(.cb-progression-panel):not(.cb-data-panel):not(.cb-guide-panel):not(.cb-districts-panel):not(.cb-result-panel):not(.cb-daily-panel) { justify-content: center; }
+.cb-game .cb-panel:not(.cb-screen):not(.cb-progression-panel):not(.cb-data-panel):not(.cb-guide-panel):not(.cb-districts-panel):not(.cb-result-panel):not(.cb-daily-panel) > .cb-actions { margin-top: 12px; }
+
+/* Cards */
+.cb-game .cb-progression-content,
+.cb-game .cb-stats,
+.cb-game .cb-guide-content,
+.cb-game .cb-history-list { width: min(100%, 460px); }
+.cb-game .cb-progression-content { gap: 10px; }
+.cb-game .cb-progression-content > div:not(.cb-actions),
+.cb-game .cb-progression-content > article,
+.cb-game .cb-stats > div,
+.cb-game .cb-guide-content,
+.cb-game .cb-book-cards article {
+  padding: 12px 14px; border: none; border-radius: 20px;
+  background: var(--cb-surface); color: var(--cb-ink); box-shadow: 0 5px 0 var(--cb-surface-edge);
+}
+.cb-game .cb-progression-content strong { font-size: 15px; color: var(--cb-ink); }
+.cb-game .cb-progression-content small { font-size: 12px; font-weight: 700; color: var(--cb-muted); }
+.cb-game .cb-progression-content article button,
+.cb-game .cb-progression-content article button:hover:not(:disabled) {
+  min-height: 40px; padding: 6px 14px; border: none; border-radius: 14px;
+  background: #3ba55c; color: #ffffff; box-shadow: 0 4px 0 #2a7a43;
+}
+.cb-game .cb-progression-content progress { height: 12px; accent-color: #3ba55c; }
+.cb-game .cb-stats { gap: 10px; margin: 0; }
+.cb-game .cb-stats dt { font-size: 11px; font-weight: 900; letter-spacing: 0.04em; color: var(--cb-muted); }
+.cb-game .cb-stats dd { font-size: 26px; font-weight: 800; color: var(--cb-ink); }
+.cb-game .cb-guide-content { margin: 0; }
+.cb-game .cb-guide-content h3 { color: #2b7fc4; font-size: 18px; }
+.cb-game .cb-guide-content ul { font-size: 14px; font-weight: 700; color: var(--cb-ink); }
+.cb-game .cb-history-list { gap: 10px; }
+.cb-game .cb-history-list button { min-height: 64px; padding: 10px 14px; border: none; border-radius: 18px; text-align: left; justify-content: flex-start; background: var(--cb-surface); box-shadow: 0 4px 0 var(--cb-surface-edge); }
+.cb-game .cb-data-select { min-height: 44px; padding: 8px 14px; border: 2px solid var(--cb-line); border-radius: 14px; background: var(--cb-surface); font-weight: 800; }
+.cb-game .cb-daily-strip span[data-date]:not(.cb-daily-cell) { border-radius: 12px; }
+
+/* PvP result centering + live bar spacing under the HUD */
+.cb-pvp-screen.cb-screen[data-pvp-screen="result"] { justify-content: center; }
+.cb-game .cb-pvp-live-overlay { top: 112px; }
+.cb-arena:has(> .cb-pvp-live-overlay:not([hidden])) > .cb-combo { top: 168px; }
+.cb-shop-actions { position: sticky; bottom: -12px; z-index: 2; margin: 0 -12px -12px; padding: 12px 12px 14px; background: linear-gradient(to top, rgba(169, 220, 246, 1) 70%, rgba(169, 220, 246, 0)); }
+.dark .cb-shop-actions { background: linear-gradient(to top, rgba(9, 15, 28, 1) 70%, rgba(9, 15, 28, 0)); }
+/* Paged content panels: equal white buttons; only confirm dialogs get the big yellow primary. */
+.cb-game :is(.cb-progression-panel, .cb-data-panel, .cb-guide-panel, .cb-districts-panel, .cb-history-panel):not(.cb-screen) > .cb-actions button:first-child {
+  flex-basis: 120px; min-height: 52px; font-family: var(--cb-font-body); font-size: 15px;
+  background: var(--cb-surface); border-color: var(--cb-line); color: var(--cb-ink); box-shadow: 0 4px 0 var(--cb-surface-edge);
+}

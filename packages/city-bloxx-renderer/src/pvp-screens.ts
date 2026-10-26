@@ -20,6 +20,7 @@ import {
 } from "../../city-bloxx-core/src/index";
 import { QuickTowerRenderer } from "./index";
 import { lucideSvg } from "./lucide-icons";
+import { bigButton, formatNumber, icon, node, pill, roundButton } from "./ui-kit";
 
 export interface PvpScreensDeps {
   arena: HTMLElement;
@@ -33,6 +34,7 @@ export interface PvpScreensDeps {
   now: () => number;
   installationId: () => string;
   showPanel: (title: string, body: string, actions: HTMLButtonElement[]) => void;
+  screen: (title: string, className: string) => HTMLElement;
   button: (label: string, action: () => void) => HTMLButtonElement;
   home: () => void;
   openBook: () => void;
@@ -217,7 +219,7 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
   function clear(): void {
     openMode = "none";
     delete deps.panel.dataset.pvpScreen;
-    deps.panel.classList.remove("cb-pvp-panel");
+    deps.panel.classList.remove("cb-pvp-panel", "cb-pvp-screen");
   }
 
   function leaveCurrentRoom(refundIfLocked = true): void {
@@ -475,225 +477,160 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
     }
   }
 
+  function createRoomAndEnter(withBot: boolean): void {
+    if (!deps.pvp) return;
+    const check = canAffordPot(selectedPot, deps.save().coins);
+    if (!check.valid) {
+      deps.message(wt(`Need at least ${check.stakePerPlayer} Coins for a ${selectedPot} Pot.`, `Cần tối thiểu ${check.stakePerPlayer} Xu cho tổng cược ${selectedPot}.`));
+      return;
+    }
+    void deps.pvp
+      .createRoom({
+        totalPot: selectedPot,
+        seed: (deps.now() & 0x7fffffff) || (withBot ? 54321 : 12345),
+        host: { id: localPlayerId(), name: localPlayerName(), coins: deps.save().coins, equipment: localEquipment() },
+      })
+      .then(({ room, slot }) => {
+        currentRoom = room;
+        currentSlot = slot;
+        syncRoomUrl(room.roomCode);
+        subscribeToRoom(room.roomId);
+        renderRoomScreen();
+        if (withBot) startBotOpponent(room);
+      });
+  }
+
+  /** Big colored mode card: the bot match and the private room must never look alike. */
+  function modeCard(kind: "bot" | "room", title: string, sub: string, disabled: boolean, action: () => void): HTMLButtonElement {
+    const card = node("button", "cb-pvp-mode");
+    card.type = "button";
+    card.dataset.mode = kind;
+    card.disabled = disabled;
+    const chip = node("span", "cb-pvp-mode-icon");
+    chip.innerHTML = lucideSvg(kind === "bot" ? "bot" : "users", 30);
+    const copy = node("span", "cb-pvp-mode-copy");
+    copy.append(node("strong", "", title), node("small", "", sub));
+    const go = node("span", "cb-pvp-mode-go");
+    go.innerHTML = lucideSvg(kind === "bot" ? "zap" : "plus", 22);
+    card.append(chip, copy, go);
+    card.addEventListener("click", action);
+    return card;
+  }
+
   function renderEntryScreen(): void {
-    openMode = "entry";
     const save = deps.save();
+    const vi = deps.vi();
     const potCheck = canAffordPot(selectedPot, save.coins);
-    deps.showPanel(
-      wt("Solo PvP 1v1 · Coin Wager", "Đấu Solo PvP 1v1 · Cược Xu"),
-      wt(
-        "Both players wager equal Coins into the Total Pot. Build simultaneously with 3 lives — once BOTH players lose all 3 lives, higher tower takes 100% of the Pot!",
-        "2 người chơi góp bằng nhau vào Tổng Quỹ Cược. Cùng xây với 3 mạng — khi CẢ 2 đều hết 3 mạng, ai xây số tầng cao hơn ăn trọn 100% quỹ cược!",
-      ),
-      [
-        deps.button(wt("Customize Skins", "Đổi Skin Cẩu/Nhà"), () => {
-          clear();
-          deps.openBook();
-        }),
-        deps.button(wt("Home", "Trang chủ"), () => {
-          clear();
-          deps.home();
-        }),
-      ],
-    );
+    deps.screen(wt("Solo PvP 1v1 · Coin Wager", "Đấu Solo PvP 1v1 · Cược Xu"), "cb-pvp-screen");
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "entry";
-    openMode = "entry"; // showPanel() calls clear(), which resets openMode
+    openMode = "entry"; // screen() calls clear(), which resets openMode
 
-    const container = document.createElement("div");
-    container.className = "cb-pvp-content";
+    const wrap = node("div", "cb-pvp");
+    const top = node("div", "cb-top");
+    const back = roundButton("chevron-left", wt("Home", "Trang chủ"), () => { clear(); deps.home(); });
+    const wallet = pill("coins", formatNumber(save.coins, vi), wt("Coins", "Xu"), "cb-coin-chip");
+    wallet.dataset.pvpWallet = "true";
+    const right = node("div", "cb-top-group");
+    const online = pill("users", String(onlinePlayersCount), "Online", "cb-online-chip");
+    online.querySelector("strong")!.dataset.pvpOnlineCount = "true";
+    const stats = node("a", "cb-round-btn cb-round-link");
+    stats.href = "/pvp"; stats.dataset.pvpDashboardLink = "true";
+    stats.innerHTML = lucideSvg("bar-chart-3", 22);
+    stats.setAttribute("aria-label", wt("Live stats", "Thống kê trực tiếp")); stats.title = stats.getAttribute("aria-label")!;
+    right.append(online, stats);
+    top.append(back, wallet, right);
 
-    // Wallet & Online Status Bar
-    const statusRow = document.createElement("div");
-    statusRow.className = "cb-pvp-wallet-bar";
-    statusRow.innerHTML = `
-      <span data-pvp-wallet>${lucideSvg("coins", 14)} <strong>${save.coins}</strong> Coins</span>
-      <span>${lucideSvg("users", 14)} <strong data-pvp-online-count>${onlinePlayersCount}</strong> Online</span>
-      <a href="/pvp" class="cb-pvp-stats-link" data-pvp-dashboard-link>${lucideSvg("bar-chart-3", 14)} <span>${wt("Live Firebase Stats", "Thống kê Realtime")}</span></a>
-    `;
+    const hero = node("div", "cb-pvp-hero");
+    hero.append(node("strong", "cb-pvp-hero-vs", "1 VS 1"), node("p", "cb-pvp-hero-sub", wt("Higher tower takes the pot", "Tháp cao hơn ăn trọn pot")));
 
-    // Total Pot Selector Card
-    const createCard = document.createElement("section");
-    createCard.className = "cb-pvp-card";
-    const stakeEach = Math.floor(selectedPot / 2);
-
-    const potTitle = document.createElement("strong");
-    potTitle.textContent = wt(
-      `1. Configure Total Pot: ${selectedPot} Coins (${stakeEach} Coins / player)`,
-      `1. Chọn Tổng Tiền Cược (Total Pot): ${selectedPot} Xu (Mỗi người góp ${stakeEach} Xu)`,
-    );
-    createCard.append(potTitle);
-
-    const potRow = document.createElement("div");
-    potRow.className = "cb-pvp-pot-row";
+    const potCard = node("section", "cb-pvp-pot");
+    const potHead = node("div", "cb-pvp-pot-head");
+    const potValue = node("span", "cb-pvp-pot-value");
+    potValue.append(icon("coins", 26), node("strong", "", formatNumber(selectedPot, vi)));
+    const each = node("small", "", wt(`${formatNumber(Math.floor(selectedPot / 2), vi)} each`, `Mỗi người ${formatNumber(Math.floor(selectedPot / 2), vi)}`));
+    potHead.append(potValue, each);
+    const potRow = node("div", "cb-pvp-pot-row");
     for (const preset of PVP_PRESET_POTS) {
-      const b = deps.button(`${preset} Coins`, () => {
-        selectedPot = preset;
-        customPotInput = String(preset);
-        renderEntryScreen();
-      });
+      const b = node("button", "cb-chip", formatNumber(preset, vi));
+      b.type = "button";
       b.dataset.pvpPot = String(preset);
       b.setAttribute("aria-pressed", String(selectedPot === preset));
+      b.disabled = !canAffordPot(preset, save.coins).valid;
+      b.addEventListener("click", () => { selectedPot = preset; customPotInput = String(preset); renderEntryScreen(); });
       potRow.append(b);
     }
-
-    const customInput = document.createElement("input");
-    customInput.type = "number";
-    customInput.min = "20";
-    customInput.step = "20";
-    customInput.placeholder = wt("Custom Pot (even)", "Nhập tổng cược chẵn");
-    customInput.className = "cb-pvp-input";
+    const customInput = node("input", "cb-pvp-input cb-pvp-custom");
+    customInput.type = "number"; customInput.min = "20"; customInput.step = "20"; customInput.inputMode = "numeric";
+    customInput.placeholder = wt("Other", "Khác");
+    customInput.setAttribute("aria-label", wt("Custom pot (even)", "Tổng cược tùy chọn (số chẵn)"));
     customInput.dataset.pvpCustomPot = "true";
-    customInput.value = customPotInput;
+    customInput.value = PVP_PRESET_POTS.includes(selectedPot as typeof PVP_PRESET_POTS[number]) ? "" : customPotInput;
     customInput.addEventListener("change", () => {
       customPotInput = customInput.value;
       const parsed = Number(customInput.value);
-      if (Number.isFinite(parsed) && parsed >= 20) {
-        selectedPot = Math.floor(parsed / 2) * 2;
-        renderEntryScreen();
-      }
+      if (Number.isFinite(parsed) && parsed >= 20) { selectedPot = Math.floor(parsed / 2) * 2; renderEntryScreen(); }
     });
     potRow.append(customInput);
-    createCard.append(potRow);
+    potCard.append(potHead, potRow);
+    if (!potCheck.valid) potCard.append(node("p", "cb-pvp-warn", wt(`Not enough coins · need ${potCheck.stakePerPlayer}`, `Không đủ xu · cần ${potCheck.stakePerPlayer}`)));
 
-    const actionRow = document.createElement("div");
-    actionRow.className = "cb-pvp-action-row";
-
-    const createBtn = deps.button(
-      wt(`Create Room (Pot ${selectedPot})`, `Tạo Phòng (Tổng cược ${selectedPot})`),
-      () => {
-        if (!deps.pvp) return;
-        const check = canAffordPot(selectedPot, deps.save().coins);
-        if (!check.valid) {
-          deps.message(
-            wt(
-              `Need at least ${check.stakePerPlayer} Coins to create a ${selectedPot} Pot room.`,
-              `Cần tối thiểu ${check.stakePerPlayer} Xu để tạo phòng tổng cược ${selectedPot}.`,
-            ),
-          );
-          return;
-        }
-        void deps.pvp
-          .createRoom({
-            totalPot: selectedPot,
-            seed: (deps.now() & 0x7fffffff) || 12345,
-            host: {
-              id: localPlayerId(),
-              name: localPlayerName(),
-              coins: deps.save().coins,
-              equipment: localEquipment(),
-            },
-          })
-          .then(({ room, slot }) => {
-            currentRoom = room;
-            currentSlot = slot;
-            syncRoomUrl(room.roomCode);
-            subscribeToRoom(room.roomId);
-            renderRoomScreen();
-          });
-      },
-    );
-    createBtn.dataset.pvpCreate = "true";
-    createBtn.disabled = !potCheck.valid;
-
-    const botBtn = deps.button(
-      wt(`Solo 1v1 vs Live Bot (Pot ${selectedPot})`, `Đấu Ngay vs Bot Cược Xu (${selectedPot})`),
-      () => {
-        if (!deps.pvp) return;
-        const check = canAffordPot(selectedPot, deps.save().coins);
-        if (!check.valid) {
-          deps.message(wt("Insufficient Coins for this stake.", "Không đủ Xu cho mức cược này."));
-          return;
-        }
-        void deps.pvp
-          .createRoom({
-            totalPot: selectedPot,
-            seed: (deps.now() & 0x7fffffff) || 54321,
-            host: {
-              id: localPlayerId(),
-              name: localPlayerName(),
-              coins: deps.save().coins,
-              equipment: localEquipment(),
-            },
-          })
-          .then(({ room, slot }) => {
-            currentRoom = room;
-            currentSlot = slot;
-            syncRoomUrl(room.roomCode);
-            subscribeToRoom(room.roomId);
-            renderRoomScreen();
-            startBotOpponent(room);
-          });
-      },
-    );
+    const modes = node("div", "cb-pvp-modes");
+    const botBtn = modeCard("bot", wt("Play bot now", "Đấu Bot ngay"), wt("Instant match", "Vào trận ngay"), !potCheck.valid, () => createRoomAndEnter(true));
     botBtn.dataset.pvpBot = "true";
-    botBtn.disabled = !potCheck.valid;
+    const createBtn = modeCard("room", wt("Create room", "Tạo phòng"), wt("Invite with a code", "Mời bạn bằng mã"), !potCheck.valid, () => createRoomAndEnter(false));
+    createBtn.dataset.pvpCreate = "true";
+    modes.append(botBtn, createBtn);
 
-    actionRow.append(createBtn, botBtn);
-    createCard.append(actionRow);
-
-    // Join by Room Code Card
-    const joinCard = document.createElement("section");
-    joinCard.className = "cb-pvp-card";
-    const joinTitle = document.createElement("strong");
-    joinTitle.textContent = wt("2. Join Room by Code or Waiting List", "2. Vào Phòng bằng Mã Code hoặc Danh sách chờ");
-    joinCard.append(joinTitle);
-
-    const joinRow = document.createElement("div");
-    joinRow.className = "cb-pvp-join-row";
-    const codeInput = document.createElement("input");
-    codeInput.type = "text";
-    codeInput.maxLength = 12;
-    codeInput.placeholder = wt("6-char Room Code (e.g. AB12CD)", "Mã phòng 6 ký tự");
-    codeInput.className = "cb-pvp-input";
+    const joinCard = node("section", "cb-pvp-join");
+    const joinRow = node("div", "cb-pvp-join-row");
+    const codeInput = node("input", "cb-pvp-input cb-pvp-code");
+    codeInput.type = "text"; codeInput.maxLength = 12; codeInput.autocomplete = "off";
+    codeInput.placeholder = wt("Room code", "Mã phòng");
+    codeInput.setAttribute("aria-label", wt("Room code", "Mã phòng"));
     codeInput.dataset.pvpJoinInput = "true";
     codeInput.value = joinCodeInput;
-    codeInput.addEventListener("input", () => {
-      joinCodeInput = codeInput.value.toUpperCase().trim();
-      codeInput.value = joinCodeInput;
-    });
-
-    const joinBtn = deps.button(wt("Join Room", "Vào Phòng"), () => {
-      if (!deps.pvp || !joinCodeInput) return;
-      void joinRoomByCode(joinCodeInput);
-    });
+    codeInput.addEventListener("input", () => { joinCodeInput = codeInput.value.toUpperCase().trim(); codeInput.value = joinCodeInput; });
+    codeInput.addEventListener("keydown", event => { if (event.key === "Enter" && joinCodeInput) void joinRoomByCode(joinCodeInput); });
+    const joinBtn = roundButton("chevron-right", wt("Join room", "Vào phòng"), () => { if (deps.pvp && joinCodeInput) void joinRoomByCode(joinCodeInput); }, "cb-pvp-join-btn");
     joinBtn.dataset.pvpJoinBtn = "true";
     joinRow.append(codeInput, joinBtn);
     joinCard.append(joinRow);
 
-    // Waiting Rooms List
-    const roomList = document.createElement("div");
-    roomList.className = "cb-pvp-room-list";
+    const roomList = node("div", "cb-pvp-room-list");
     roomList.dataset.pvpRoomList = "true";
     if (waitingRooms.length === 0) {
-      const emptyNote = document.createElement("small");
-      emptyNote.textContent = wt(
-        "No open waiting rooms right now — create one above or share a room code across 2 tabs!",
-        "Chưa có phòng đang chờ — hãy tạo phòng ở trên hoặc mở 2 tab để nhập mã phòng!",
-      );
-      roomList.append(emptyNote);
+      const empty = node("p", "cb-pvp-empty");
+      empty.append(icon("timer", 16), node("span", "", wt("No open rooms yet", "Chưa có phòng chờ")));
+      roomList.append(empty);
     } else {
       for (const item of waitingRooms.slice(0, 4)) {
         const isOwnRoom = item.players.p1.id === localPlayerId();
-        const row = document.createElement("div");
-        row.className = "cb-pvp-room-item";
-        const info = document.createElement("span");
-        info.textContent = `#${item.roomCode} · ${item.players.p1.name}${isOwnRoom ? ` (${wt("You", "Bạn")})` : ""} · Pot ${item.totalPot} (${item.stakePerPlayer}/người)`;
-        const jBtn = deps.button(isOwnRoom ? wt("Back to my room", "Về phòng của tôi") : wt("Join", "Vào"), () => {
-          void joinRoomByCode(item.roomCode);
-        });
-        if (isOwnRoom) jBtn.dataset.pvpOwnRoom = item.roomCode;
-        else jBtn.dataset.pvpJoinRoom = item.roomCode;
-        row.append(info, jBtn);
+        const row = node("button", "cb-pvp-room-item");
+        row.type = "button";
+        if (isOwnRoom) row.dataset.pvpOwnRoom = item.roomCode; else row.dataset.pvpJoinRoom = item.roomCode;
+        const avatar = node("span", "cb-pvp-avatar", item.players.p1.name.replace(/^Builder #/, "").slice(0, 2));
+        const who = node("span", "cb-pvp-room-who");
+        who.append(node("strong", "", isOwnRoom ? wt("Your room", "Phòng của bạn") : item.players.p1.name), node("small", "", `#${item.roomCode}`));
+        const pot = node("span", "cb-pvp-room-pot");
+        pot.append(icon("coins", 16), node("strong", "", formatNumber(item.totalPot, vi)));
+        const go = icon(isOwnRoom ? "rotate-ccw" : "chevron-right", 20, "cb-pvp-room-go");
+        row.setAttribute("aria-label", `${isOwnRoom ? wt("Back to my room", "Về phòng của tôi") : wt("Join", "Vào")} #${item.roomCode} · ${item.totalPot}`);
+        row.append(avatar, who, pot, go);
+        row.addEventListener("click", () => { void joinRoomByCode(item.roomCode); });
         roomList.append(row);
       }
     }
     joinCard.append(roomList);
 
-    container.append(statusRow, createCard, joinCard);
-    deps.panel.querySelector("p")!.replaceWith(container);
-  }
+    const skins = node("button", "cb-pvp-skin-link");
+    skins.type = "button";
+    skins.append(icon("palette", 18), node("span", "", wt("Skins", "Skin")));
+    skins.addEventListener("click", () => { clear(); deps.openBook(); });
 
+    wrap.append(top, hero, potCard, modes, joinCard, skins);
+    deps.panel.append(wrap);
+  }
   async function joinRoomByCode(code: string): Promise<void> {
     if (!deps.pvp) return;
     const normalized = code.trim().toUpperCase();
@@ -726,82 +663,58 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
 
   function renderPlayerLobbyCard(slot: PvpSlot, room: PvpRoomState): HTMLElement {
     const player = room.players[slot];
-    const card = document.createElement("article");
-    card.className = "cb-pvp-player-card";
+    const vi = deps.vi();
+    const card = node("article", "cb-pvp-player");
     card.dataset.pvpPlayerCard = slot;
 
     if (!player) {
-      card.innerHTML = `
-        <div class="cb-pvp-player-head">
-          <strong>${slot.toUpperCase()} · ${wt("Waiting for opponent...", "Đang chờ đối thủ vào phòng...")}</strong>
-        </div>
-        <div class="cb-pvp-empty-slot">
-          <span>${lucideSvg("timer", 14)} ${wt("Share Room Code", "Chia sẻ mã phòng")}: <strong>${room.roomCode}</strong></span>
-        </div>
-      `;
-      const botFillBtn = deps.button(wt("Fill with Live Bot", "Cho Bot vào đấu ngay"), () => {
-        startBotOpponent(room);
-      });
+      card.dataset.empty = "true";
+      const waiting = node("div", "cb-pvp-waiting");
+      waiting.append(icon("timer", 28), node("small", "", wt("Waiting…", "Đang chờ…")));
+      const code = node("strong", "cb-pvp-waiting-code", room.roomCode);
+      const botFillBtn = node("button", "cb-pvp-bot-fill");
+      botFillBtn.type = "button";
+      botFillBtn.append(icon("bot", 18), node("span", "", wt("Add bot", "Gọi Bot")));
       botFillBtn.dataset.pvpSpawnBot = "true";
-      card.append(botFillBtn);
+      botFillBtn.addEventListener("click", () => { startBotOpponent(room); });
+      card.append(waiting, code, botFillBtn);
       return card;
     }
 
     const isMe = player.id === localPlayerId();
+    const ready = player.ready && player.stakeLocked;
+    card.dataset.me = String(isMe);
+    card.dataset.ready = String(ready);
     const emoteObj = PVP_EMOTES.find(e => e.id === player.emote?.id);
     const showEmote = !!player.emote && deps.now() - player.emote.sentAt < 10000;
 
-    const head = document.createElement("div");
-    head.className = "cb-pvp-player-head";
-    head.innerHTML = `
-      <strong>${lucideSvg("users", 14)} ${player.name} ${isMe ? `(${wt("You", "Bạn")})` : ""}</strong>
-      <span class="cb-pvp-player-meta">${lucideSvg("coins", 13)} ${player.coins} · ${player.wins}W-${player.losses}L</span>
-    `;
+    const head = node("div", "cb-pvp-player-head");
+    head.append(node("strong", "", isMe ? wt("You", "Bạn") : player.name));
+    const meta = node("span", "cb-pvp-player-meta");
+    meta.append(icon("coins", 14), node("span", "", formatNumber(player.coins, vi)), node("span", "cb-pvp-wl", `${player.wins}W·${player.losses}L`));
+    head.append(meta);
 
-    const statusBadge = document.createElement("div");
-    statusBadge.className = "cb-pvp-player-status";
-    statusBadge.dataset.pvpReadyState = String(player.ready && player.stakeLocked);
-    statusBadge.innerHTML =
-      player.ready && player.stakeLocked
-        ? `${lucideSvg("check-circle-2", 14)} <span>${wt(`Ready & Locked ${room.stakePerPlayer} Coins`, `Đã Khóa Cược ${room.stakePerPlayer} Xu`)}</span>`
-        : `${lucideSvg("clock", 14)} <span>${wt("Inspecting / Preparing...", "Đang chuẩn bị...")}</span>`;
-
-    const emoteBubble = document.createElement("div");
-    emoteBubble.className = "cb-pvp-emote-bubble";
+    const emoteBubble = node("div", "cb-pvp-emote-bubble");
     emoteBubble.dataset.pvpEmoteBubble = slot;
-    if (showEmote && player.emote) {
-      emoteBubble.textContent = emoteObj
-        ? (deps.vi() ? emoteObj.vi : emoteObj.en)
-        : player.emote.text;
-    } else {
-      emoteBubble.hidden = true;
-    }
+    if (showEmote && player.emote) emoteBubble.textContent = emoteObj ? (vi ? emoteObj.vi : emoteObj.en) : player.emote.text;
+    else emoteBubble.hidden = true;
 
-    const previewCanvas = document.createElement("canvas");
-    previewCanvas.className = "cb-pvp-preview-canvas";
+    const previewCanvas = node("canvas", "cb-pvp-preview-canvas");
     previewCanvas.dataset.pvpPreview = slot;
     previewCanvas.width = 240;
     previewCanvas.height = 190;
-    previewCanvas.setAttribute(
-      "aria-label",
-      `${player.name} ${wt("equipped crane and building preview", "xem trước trang bị cần cẩu và tòa nhà")}`,
-    );
-
+    previewCanvas.setAttribute("role", "img");
+    previewCanvas.setAttribute("aria-label", `${player.name} · ${cosmeticName(player.equipment.crane, vi)} · ${cosmeticName(player.equipment.building, vi)} · ${cosmeticName(player.equipment.roof, vi)}`);
     void deps.renderer
       .loadEquipment(room.building, player.equipment)
-      .then(() => {
-        deps.renderer.drawPreview(previewCanvas, room.building, player.equipment, false);
-      })
-      .catch(() => {
-        deps.renderer.drawPreview(previewCanvas, room.building, player.equipment, false);
-      });
+      .then(() => { deps.renderer.drawPreview(previewCanvas, room.building, player.equipment, false); })
+      .catch(() => { deps.renderer.drawPreview(previewCanvas, room.building, player.equipment, false); });
 
-    const equipSummary = document.createElement("small");
-    equipSummary.className = "cb-pvp-equip-summary";
-    equipSummary.dataset.pvpEquipSummary = slot;
-    equipSummary.textContent = `${cosmeticName(player.equipment.crane, deps.vi())} · ${cosmeticName(player.equipment.building, deps.vi())} · ${cosmeticName(player.equipment.roof, deps.vi())}`;
+    const status = node("div", "cb-pvp-player-status");
+    status.dataset.pvpReadyState = String(ready);
+    status.append(icon(ready ? "check" : "clock", 16), node("span", "", ready ? wt("Ready", "Sẵn sàng") : wt("Preparing", "Đang chuẩn bị")));
 
-    card.append(head, statusBadge, emoteBubble, previewCanvas, equipSummary);
+    card.append(head, emoteBubble, previewCanvas, status);
     return card;
   }
 
@@ -810,192 +723,164 @@ export function createPvpScreens(deps: PvpScreensDeps): PvpScreensController {
       renderEntryScreen();
       return;
     }
-    openMode = "room";
     const room = currentRoom;
+    const vi = deps.vi();
     const me = room.players[currentSlot];
     const isHost = currentSlot === "p1";
     const isReady = !!me?.ready && !!me?.stakeLocked;
 
-    const readyBtn = deps.button(
-      isReady
-        ? wt(`Cancel Ready (Refund ${room.stakePerPlayer} Coins)`, `Hủy Sẵn Sàng (Hoàn ${room.stakePerPlayer} Xu)`)
-        : wt(`Ready & Lock Stake (${room.stakePerPlayer} Coins)`, `Sẵn Sàng & Khóa Cược (${room.stakePerPlayer} Xu)`),
-      () => {
-        if (!deps.pvp || !currentRoom) return;
-        const currentMe = currentRoom.players[currentSlot];
-        if (!currentMe) return;
-        const nextReady = !(currentMe.ready && currentMe.stakeLocked);
-        let nextSave = deps.save();
-        const balanceBeforeLock = nextSave.coins;
-        if (nextReady) {
-          try {
-            nextSave = lockPvpStake(nextSave, currentRoom.roomId, currentRoom.stakePerPlayer);
-            deps.updateSave(nextSave);
-          } catch {
-            deps.message(
-              wt(
-                `Insufficient Coins! You need ${currentRoom.stakePerPlayer} Coins to lock stake.`,
-                `Không đủ Xu! Cần ${currentRoom.stakePerPlayer} Xu để khóa cược.`,
-              ),
-            );
-            return;
-          }
-        } else {
-          nextSave = refundPvpStake(nextSave, currentRoom.roomId, currentRoom.stakePerPlayer);
+    const toggleReady = () => {
+      if (!deps.pvp || !currentRoom) return;
+      const currentMe = currentRoom.players[currentSlot];
+      if (!currentMe) return;
+      const nextReady = !(currentMe.ready && currentMe.stakeLocked);
+      let nextSave = deps.save();
+      const balanceBeforeLock = nextSave.coins;
+      if (nextReady) {
+        try {
+          nextSave = lockPvpStake(nextSave, currentRoom.roomId, currentRoom.stakePerPlayer);
           deps.updateSave(nextSave);
+        } catch {
+          deps.message(wt(`Insufficient Coins! You need ${currentRoom.stakePerPlayer} Coins to lock stake.`, `Không đủ Xu! Cần ${currentRoom.stakePerPlayer} Xu để khóa cược.`));
+          return;
         }
-        void deps.pvp.setReady(currentRoom.roomId, currentSlot, nextReady, Math.max(balanceBeforeLock, nextSave.coins));
-      },
-    );
-    readyBtn.dataset.pvpReady = "true";
-    readyBtn.setAttribute("aria-pressed", String(isReady));
+      } else {
+        nextSave = refundPvpStake(nextSave, currentRoom.roomId, currentRoom.stakePerPlayer);
+        deps.updateSave(nextSave);
+      }
+      void deps.pvp.setReady(currentRoom.roomId, currentSlot, nextReady, Math.max(balanceBeforeLock, nextSave.coins));
+    };
 
-    const leaveBtn = deps.button(wt("Leave Room", "Rời Phòng"), () => {
-      leaveCurrentRoom(true);
-      openLobby();
-    });
-    leaveBtn.dataset.pvpLeave = "true";
-
-    deps.showPanel(
-      `${wt("Room", "Phòng")} #${room.roomCode} · POT ${room.totalPot}`,
-      wt(
-        `Each player stakes ${room.stakePerPlayer} Coins · Winner takes all ${room.totalPot} Coins after both finish 3 lives`,
-        `Mỗi người cược ${room.stakePerPlayer} Xu · Người cao tầng hơn sau khi cả 2 hết 3 mạng nhận trọn ${room.totalPot} Xu`,
-      ),
-      [readyBtn, leaveBtn],
-    );
+    deps.screen(`${wt("Room", "Phòng")} #${room.roomCode} · POT ${room.totalPot}`, "cb-pvp-screen");
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "room";
-    openMode = "room"; // showPanel() calls clear(), which resets openMode
+    openMode = "room"; // screen() calls clear(), which resets openMode
 
-    const container = document.createElement("div");
-    container.className = "cb-pvp-room-container";
-
-    // Top Room Bar: Code + Copy + Pot Config (if host & not locked)
-    const topBar = document.createElement("div");
-    topBar.className = "cb-pvp-room-topbar";
-
-    const codeBadge = document.createElement("span");
-    codeBadge.dataset.pvpRoomCode = room.roomCode;
-    codeBadge.innerHTML = `${wt("Code", "Mã phòng")}: <strong>${room.roomCode}</strong>`;
-
-    const copyBtn = deps.button(wt("Copy Code", "Sao chép mã"), () => {
+    const wrap = node("div", "cb-pvp");
+    const top = node("div", "cb-top");
+    const leaveBtn = roundButton("x", wt("Leave room", "Rời phòng"), () => { leaveCurrentRoom(true); openLobby(); });
+    leaveBtn.dataset.pvpLeave = "true";
+    const code = node("button", "cb-pvp-code-pill");
+    code.type = "button";
+    code.dataset.pvpRoomCode = room.roomCode;
+    code.dataset.pvpCopyCode = "true";
+    code.setAttribute("aria-label", `${wt("Copy room code", "Sao chép mã phòng")} ${room.roomCode}`);
+    code.title = wt("Copy room code", "Sao chép mã phòng");
+    code.append(node("small", "", "#"), node("strong", "", room.roomCode), icon("check-circle-2", 18, "cb-pvp-copy-icon"));
+    code.addEventListener("click", () => {
       void navigator.clipboard?.writeText(room.roomCode).catch(() => {});
       deps.message(wt(`Copied room code ${room.roomCode}!`, `Đã sao chép mã phòng ${room.roomCode}!`));
     });
-    copyBtn.dataset.pvpCopyCode = "true";
+    const pot = pill("coins", formatNumber(room.totalPot, vi), "Pot", "cb-coin-chip");
+    pot.dataset.pvpRoomPot = String(room.totalPot);
+    top.append(leaveBtn, code, pot);
 
-    const potBadge = document.createElement("span");
-    potBadge.dataset.pvpRoomPot = String(room.totalPot);
-    potBadge.innerHTML = `${lucideSvg("coins", 14)} Total Pot: <strong>${room.totalPot}</strong> (${room.stakePerPlayer}/${wt("player", "người")})`;
+    const versus = node("div", "cb-pvp-versus");
+    versus.append(renderPlayerLobbyCard("p1", room), node("span", "cb-pvp-vs-badge", "VS"), renderPlayerLobbyCard("p2", room));
 
-    topBar.append(codeBadge, copyBtn, potBadge);
+    const stakeNote = node("p", "cb-pvp-stake");
+    stakeNote.append(icon("coins", 16), node("span", "", wt(`${formatNumber(room.stakePerPlayer, vi)} each · winner takes ${formatNumber(room.totalPot, vi)}`, `Mỗi người ${formatNumber(room.stakePerPlayer, vi)} · thắng nhận ${formatNumber(room.totalPot, vi)}`)));
 
+    const extras: HTMLElement[] = [];
     if (isHost && !isReady) {
-      const potConfigRow = document.createElement("div");
-      potConfigRow.className = "cb-pvp-pot-inline";
+      const potRow = node("div", "cb-pvp-pot-row");
       for (const preset of PVP_PRESET_POTS) {
-        const b = deps.button(`${preset} Coins`, () => {
+        const b = node("button", "cb-chip", formatNumber(preset, vi));
+        b.type = "button";
+        b.dataset.pvpRoomPotBtn = String(preset);
+        b.setAttribute("aria-pressed", String(room.totalPot === preset));
+        b.addEventListener("click", () => {
           if (!deps.pvp || !currentRoom) return;
           void deps.pvp.updateTotalPot(currentRoom.roomId, preset).catch(() => {
             deps.message(wt("Not enough Coins for that Total Pot.", "Không đủ Xu cho mức Tổng Cược này."));
           });
         });
-        b.dataset.pvpRoomPotBtn = String(preset);
-        b.setAttribute("aria-pressed", String(room.totalPot === preset));
-        potConfigRow.append(b);
+        potRow.append(b);
       }
-      topBar.append(potConfigRow);
+      extras.push(potRow);
     }
 
-    // Dual Player Live Cards (P1 vs P2)
-    const grid = document.createElement("div");
-    grid.className = "cb-pvp-vs-grid";
-    grid.append(renderPlayerLobbyCard("p1", room), renderPlayerLobbyCard("p2", room));
-
-    // Emote Bar
-    const emoteBar = document.createElement("div");
-    emoteBar.className = "cb-pvp-emote-bar";
+    const emoteBar = node("div", "cb-pvp-emote-bar");
     for (const emote of PVP_EMOTES) {
-      const eb = deps.button(deps.vi() ? emote.vi : emote.en, () => {
-        if (!deps.pvp || !currentRoom) return;
-        void deps.pvp.sendEmote(currentRoom.roomId, currentSlot, {
-          id: emote.id,
-          text: deps.vi() ? emote.vi : emote.en,
-          sentAt: deps.now(),
-        });
-      });
+      const eb = node("button", "cb-chip cb-emote", vi ? emote.vi : emote.en);
+      eb.type = "button";
       eb.dataset.pvpEmote = emote.id;
+      eb.addEventListener("click", () => {
+        if (!deps.pvp || !currentRoom) return;
+        void deps.pvp.sendEmote(currentRoom.roomId, currentSlot, { id: emote.id, text: vi ? emote.vi : emote.en, sentAt: deps.now() });
+      });
       emoteBar.append(eb);
     }
 
-    container.append(topBar, grid, emoteBar);
-    deps.panel.querySelector("p")!.replaceWith(container);
+    const readyBtn = isReady
+      ? node("button", "cb-pvp-unready")
+      : bigButton("check", wt(`Ready · lock ${formatNumber(room.stakePerPlayer, vi)}`, `Sẵn sàng · khóa ${formatNumber(room.stakePerPlayer, vi)}`), toggleReady);
+    if (isReady) {
+      readyBtn.type = "button";
+      readyBtn.append(icon("x", 18), node("span", "", wt(`Cancel ready · refund ${formatNumber(room.stakePerPlayer, vi)}`, `Hủy sẵn sàng · hoàn ${formatNumber(room.stakePerPlayer, vi)}`)));
+      readyBtn.addEventListener("click", toggleReady);
+    }
+    readyBtn.dataset.pvpReady = "true";
+    readyBtn.setAttribute("aria-pressed", String(isReady));
+
+    wrap.append(top, versus, stakeNote, ...extras, emoteBar, readyBtn);
+    deps.panel.append(wrap);
+    readyBtn.focus({ preventScroll: true });
   }
 
   function renderResultScreen(room: PvpRoomState): void {
-    openMode = "result";
     hideLiveOverlay();
     stopBot();
     const res = room.result;
     if (!res) return;
-
+    const vi = deps.vi();
     const isDraw = res.winnerSlot === "draw";
     const iWon = !isDraw && res.winnerSlot === currentSlot;
-    const p1Name = room.players.p1.name;
-    const p2Name = room.players.p2?.name ?? "P2";
+    const outcome = isDraw ? "draw" : iWon ? "win" : "lose";
+    const myPayout = res.payouts[currentSlot];
+    const title = isDraw ? wt("Draw", "Hòa") : iWon ? wt("Victory!", "Chiến thắng!") : wt("Defeat", "Thua cuộc");
 
-    const title = isDraw
-      ? wt(`Draw Match · Refunded ${res.stakePerPlayer} Coins`, `Hòa Số Tầng · Hoàn trả ${res.stakePerPlayer} Xu`)
-      : iWon
-        ? wt(`VICTORY! You Won +${res.totalPot} Coins!`, `CHIẾN THẮNG! Bạn nhận trọn +${res.totalPot} Xu!`)
-        : wt(`Defeat · Opponent Won ${res.totalPot} Coins`, `Thua Cuộc · Đối thủ nhận ${res.totalPot} Xu`);
-
-    const subtitle = wt(
-      `Both players exhausted all 3 lives · Final Towers: ${p1Name} (${res.p1Summary.height}F) vs ${p2Name} (${res.p2Summary.height}F)`,
-      `Cả 2 người chơi đã dùng hết 3 mạng · Số tầng cuối: ${p1Name} (${res.p1Summary.height} tầng) vs ${p2Name} (${res.p2Summary.height} tầng)`,
-    );
-
-    const playAgainBtn = deps.button(wt("Back to PvP Lobby", "Về Sảnh Solo PvP"), () => {
-      leaveCurrentRoom(false);
-      openLobby();
-    });
-    playAgainBtn.dataset.pvpPlayAgain = "true";
-
-    deps.showPanel(title, subtitle, [
-      playAgainBtn,
-      deps.button(wt("Home", "Trang chủ"), () => {
-        leaveCurrentRoom(false);
-        clear();
-        deps.home();
-      }),
-    ]);
+    deps.screen(title, "cb-pvp-screen");
     deps.panel.classList.add("cb-pvp-panel");
     deps.panel.dataset.pvpScreen = "result";
-    openMode = "result"; // showPanel() calls clear(), which resets openMode
+    openMode = "result"; // screen() calls clear(), which resets openMode
 
-    const card = document.createElement("div");
-    card.className = "cb-pvp-result-summary";
+    const wrap = node("div", "cb-result");
+    const card = node("section", "cb-result-card cb-pvp-result");
+    card.dataset.outcome = outcome;
     card.dataset.pvpResultWinner = res.winnerSlot;
-    card.innerHTML = `
-      <div class="cb-pvp-result-col" data-pvp-result-slot="p1">
-        <strong>${p1Name} ${res.winnerSlot === "p1" ? lucideSvg("crown", 14) : ""}</strong>
-        <span>${wt("Floors", "Số tầng")}: <strong>${res.p1Summary.height}F</strong></span>
-        <span>${wt("Population", "Dân số")}: ${res.p1Summary.population}</span>
-        <span>Perfect: ${res.p1Summary.perfectCount}</span>
-        <span class="cb-pvp-payout">${res.winnerSlot === "p1" ? `+${res.payouts.p1} Coins` : isDraw ? `+${res.payouts.p1} Coins` : `0 Coins (${res.netDelta.p1})`}</span>
-      </div>
-      <div class="cb-pvp-result-col" data-pvp-result-slot="p2">
-        <strong>${p2Name} ${res.winnerSlot === "p2" ? lucideSvg("crown", 14) : ""}</strong>
-        <span>${wt("Floors", "Số tầng")}: <strong>${res.p2Summary.height}F</strong></span>
-        <span>${wt("Population", "Dân số")}: ${res.p2Summary.population}</span>
-        <span>Perfect: ${res.p2Summary.perfectCount}</span>
-        <span class="cb-pvp-payout">${res.winnerSlot === "p2" ? `+${res.payouts.p2} Coins` : isDraw ? `+${res.payouts.p2} Coins` : `0 Coins (${res.netDelta.p2})`}</span>
-      </div>
-    `;
-    deps.panel.querySelector(".cb-actions")!.before(card);
-  }
+    const banner = node("div", "cb-pvp-result-banner");
+    banner.append(icon(isDraw ? "swords" : iWon ? "crown" : "x", 34), node("strong", "", title));
+    const coins = node("span", "cb-result-coins cb-pvp-payout");
+    coins.append(icon("coins", 20), node("strong", "", isDraw ? `±0` : iWon ? `+${formatNumber(myPayout, vi)}` : `-${formatNumber(res.stakePerPlayer, vi)}`));
+    const cols = node("div", "cb-pvp-result-cols");
+    for (const slot of ["p1", "p2"] as const) {
+      const summary = slot === "p1" ? res.p1Summary : res.p2Summary;
+      const name = slot === "p1" ? room.players.p1.name : room.players.p2?.name ?? "P2";
+      const col = node("div", "cb-pvp-result-col");
+      col.dataset.pvpResultSlot = slot;
+      col.dataset.winner = String(res.winnerSlot === slot);
+      const who = node("small", "cb-pvp-result-name");
+      if (res.winnerSlot === slot) who.append(icon("crown", 14));
+      who.append(node("span", "", slot === currentSlot ? wt("You", "Bạn") : name));
+      const floors = node("strong", "cb-pvp-result-floors", String(summary.height));
+      const sub = node("span", "cb-pvp-result-sub");
+      sub.append(icon("layers", 14), node("span", "", wt("Floors", "Tầng")), icon("star", 14), node("span", "", String(summary.perfectCount)));
+      col.append(who, floors, sub);
+      cols.append(col);
+    }
+    card.append(banner, coins, cols);
 
+    const again = bigButton("swords", wt("Play again", "Đấu tiếp"), () => { leaveCurrentRoom(false); openLobby(); });
+    again.dataset.pvpPlayAgain = "true";
+    const row = node("div", "cb-result-row");
+    row.append(roundButton("home", wt("Home", "Trang chủ"), () => { leaveCurrentRoom(false); clear(); deps.home(); }, "cb-round-lg"));
+    const actions = node("div", "cb-result-actions");
+    actions.append(again, row);
+    wrap.append(card, actions);
+    deps.panel.append(wrap);
+    again.focus({ preventScroll: true });
+  }
   function openLobby(initialRoomCode?: string): void {
     if (!deps.pvp) {
       deps.message(wt("Solo PvP is unavailable in this environment.", "Solo PvP không khả dụng trong môi trường này."));
