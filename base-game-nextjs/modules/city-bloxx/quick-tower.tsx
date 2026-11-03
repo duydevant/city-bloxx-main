@@ -140,7 +140,8 @@ export function QuickTower({
       pvp: createFirebasePvpPort(),
       seed: () => Date.now() & 0x7fffffff,
       locale: localeRef.current,
-      showLanguageSwitch: embed ? portalQuery.current.showLanguageSwitch : false,
+      // Portal đã truyền ?lang= thì giữ ngôn ngữ đó, không để ngôn ngữ lưu trong save đè lên.
+      showLanguageSwitch: embed ? portalQuery.current.showLanguageSwitch && !portalQuery.current.locale : false,
       showSoundControl: embed ? portalQuery.current.showSoundControl : true,
       featureFlags: {
         daily: process.env.NEXT_PUBLIC_FEATURE_DAILY !== "0",
@@ -285,6 +286,21 @@ export function QuickTower({
     localeRef.current = locale
     sessionRef.current?.setLocale(locale)
   }, [locale])
+  // Portal ANT Play đổi ngôn ngữ khi game đang mở: { type: "ant-play:locale", locale } từ trang cha.
+  useEffect(() => {
+    if (!embed) return
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return
+      const data = event.data as { type?: unknown; locale?: unknown } | null
+      if (data?.type !== "ant-play:locale") return
+      const next = data.locale === "vi" ? "vi" : data.locale === "en" ? "en" : null
+      if (!next) return
+      localeRef.current = next
+      setLocale(next)
+    }
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [embed, setLocale])
   useEffect(() => {
     if (lastQuery.current === query) return
     lastQuery.current = query
