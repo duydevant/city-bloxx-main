@@ -4,6 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Font tự host (Fontsource), thay cho biến do next/font/google sinh ra trước đây. */
+:root {
+  --font-baloo: "Baloo 2 Variable";
+  --font-nunito: "Nunito Variable";
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
