@@ -32,10 +32,13 @@ export function QuickTower({
   initialScreen,
   content = false,
   embed = false,
+  fullscreen = false,
 }: {
   initialScreen?: SessionScreen
   content?: boolean
   embed?: boolean
+  /** Standalone full-viewport game (site "/") without the portal bridge. */
+  fullscreen?: boolean
 }) {
   const { locale, setLocale } = useI18n()
   const router = useRouter(),
@@ -292,7 +295,7 @@ export function QuickTower({
   }, [query, params])
   return (
     <section
-      className={content ? styles.content : embed ? styles.embedShell : styles.shell}
+      className={content ? styles.content : embed ? styles.embedShell : fullscreen ? styles.fullShell : styles.shell}
       data-embed={embed ? "true" : undefined}
       aria-label={locale === "vi" ? "City Bloxx · tiến trình riêng" : "City Bloxx · personal progress"}
     >

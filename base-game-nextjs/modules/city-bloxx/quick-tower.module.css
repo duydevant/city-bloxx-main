@@ -10,7 +10,7 @@
   min-height: 0;
 }
 
-.embedShell {
+.embedShell, .fullShell {
   width: 100%;
   max-width: none;
   height: 100dvh;
@@ -23,12 +23,12 @@
   min-height: 0;
 }
 
-.embedShell :global(.cb-game) {
+.embedShell :global(.cb-game), .fullShell :global(.cb-game) {
   height: 100%;
   gap: 0;
 }
 
-.embedShell :global(.cb-arena) {
+.embedShell :global(.cb-arena), .fullShell :global(.cb-arena) {
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -44,12 +44,23 @@
 
 /* Scope the viewport lock to /play and /embed; other website pages keep normal scrolling. */
 :global(html):has(.shell), :global(body):has(.shell),
-:global(html):has(.embedShell), :global(body):has(.embedShell) {
+:global(html):has(.embedShell), :global(body):has(.embedShell),
+:global(html):has(.fullShell), :global(body):has(.fullShell) {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
   overscroll-behavior: none;
 }
+/* "/" full-viewport game: cloud-save fallback shrinks to a corner icon instead of a bar over the game. */
+:global(body):has(.fullShell) { padding-bottom: 0 !important; }
+:global(body):has(.fullShell) :global(.cloud-fallback) {
+  left: max(8px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  transform: none;
+  padding: 8px;
+  opacity: .85;
+}
+:global(body):has(.fullShell) :global(.cloud-fallback .cloud-label) { display: none; }
 :global(body):has(.shell) > :global(main) {
   flex: 1 1 0;
   min-width: 0;
