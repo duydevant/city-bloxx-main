@@ -80,6 +80,7 @@ const vi: TranslationDictionary = {
 
 const dictionaries: Record<Locale, TranslationDictionary> = { en, vi }
 const localeTags: Record<Locale, string> = { en: "en-US", vi: "vi-VN" }
+const DEFAULT_LOCALE: Locale = "vi"
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale)
@@ -91,8 +92,8 @@ function preferredLocale(): Locale {
     if (isLocale(saved)) return saved
   } catch {}
 
-  const browserLocale = window.navigator.language.toLowerCase().split("-")[0]
-  return isLocale(browserLocale) ? browserLocale : "en"
+  // Mặc định tiếng Việt, không lấy theo ngôn ngữ trình duyệt.
+  return DEFAULT_LOCALE
 }
 
 interface I18nContextValue {
@@ -106,7 +107,7 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null)
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en")
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE)
   const pathname=usePathname()
 
   useEffect(() => {
